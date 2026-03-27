@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth:*)",
+      "mcp__sketch__run_code",
+      "Bash(npx:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(node:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(rm -rf src/app/api/cycles/[id]/[cycleId])",
+      "Bash(mkdir -p src/app/api/cycles/[id]/requirements)",
+      "Bash(curl:*)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

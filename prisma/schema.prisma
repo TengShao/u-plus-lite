@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  password  String
+  role      String   @default("MEMBER")
+  level     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdCycles       BillingCycle[]      @relation("CycleCreator")
+  createdRequirements RequirementGroup[]  @relation("RequirementCreator")
+  workloads           Workload[]
+}
+
+model BillingCycle {
+  id        Int      @id @default(autoincrement())
+  label     String
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("OPEN")
+  createdBy Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator      User               @relation("CycleCreator", fields: [createdBy], references: [id])
+  requirements RequirementGroup[] @relation("RequirementCycle")
+  workloads    Workload[]
+}
+
+model RequirementGroup {
+  id               Int       @id @default(autoincrement())
+  name             String
+  status           String    @default("INCOMPLETE")
+  rating           String?
+  module           String?
+  pipeline         String?
+  types            String?
+  budgetItem       String?
+  canClose         Boolean   @default(true)
+  isBuilt          Boolean   @default(false)
+  funcPoints       Int?
+  pageCount        Int?
+  version          Int       @default(1)
+  createdInCycleId Int
+  createdBy        Int
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lastSubmittedAt  DateTime?
+
+  cycle     BillingCycle @relation("RequirementCycle", fields: [createdInCycleId], references: [id])
+  creator   User         @relation("RequirementCreator", fields: [createdBy], references: [id])
+  workloads Workload[]
+}
+
+model Workload {
+  id                 Int      @id @default(autoincrement())
+  userId             Int
+  requirementGroupId Int
+  billingCycleId     Int
+  manDays            Float
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user             User             @relation(fields: [userId], references: [id])
+  requirementGroup RequirementGroup @relation(fields: [requirementGroupId], references: [id], onDelete: Cascade)
+  billingCycle     BillingCycle     @relation(fields: [billingCycleId], references: [id])
+
+  @@unique([userId, requirementGroupId, billingCycleId])
+}
