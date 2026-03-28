@@ -6,6 +6,10 @@ import RequirementCardCollapsed from './RequirementCardCollapsed'
 import RequirementCardExpanded from './RequirementCardExpanded'
 import ConfirmDialog from './ConfirmDialog'
 
+export type PipelineSettingData = {
+  id: number; name: string; budgetItems: { id: number; name: string }[]
+}
+
 type WorkloadEntry = {
   id: number; userId: number; userName: string; userLevel: string | null; manDays: number; convertedManDays: number
 }
@@ -44,7 +48,12 @@ export default function RequirementPanel({
   const [isScrollbarVisible, setIsScrollbarVisible] = useState(false)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const scrollbarTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [pipelineSettings, setPipelineSettings] = useState<PipelineSettingData[]>([])
   const isAdmin = session?.user?.role === 'ADMIN'
+
+  useEffect(() => {
+    fetch('/api/settings').then((r) => r.json()).then(setPipelineSettings)
+  }, [])
 
   useEffect(() => {
     if (!cycleId) return
@@ -238,6 +247,7 @@ export default function RequirementPanel({
               designers={designers}
               currentUserId={session?.user?.id ? parseInt(session.user.id) : 0}
               onFilterChange={setFilters}
+              pipelineNames={pipelineSettings.map((p) => p.name)}
             />
           </div>
           <div className="ml-auto flex gap-[10px]">
@@ -297,6 +307,7 @@ export default function RequirementPanel({
                   onDirtyChange={setHasUnsaved}
                   allRequirements={requirements}
                   onExpandById={(id) => { setHasUnsaved(false); setExpandedId(id) }}
+                  pipelineSettings={pipelineSettings}
                 />
               ) : (
                 <RequirementCardCollapsed

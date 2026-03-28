@@ -1,8 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { LEVELS, BUDGET_ITEMS } from '@/lib/constants'
+import { LEVELS } from '@/lib/constants'
 
 type User = { id: number; name: string; role: string; level: string | null }
+type BudgetItem = { id: number; name: string }
+type Pipeline = { id: number; name: string; budgetItems: BudgetItem[] }
 
 type Tab = 'members' | 'budget'
 
@@ -15,18 +17,22 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
   const [newMember, setNewMember] = useState({ name: '', level: '', role: 'MEMBER' })
   const [editingMember, setEditingMember] = useState<EditingMember | null>(null)
 
-  // Budget items state - flatten for easier management
-  const [budgetItems, setBudgetItems] = useState<Record<string, string[]>>(BUDGET_ITEMS)
+  const [pipelines, setPipelines] = useState<Pipeline[]>([])
   const [newItemPipeline, setNewItemPipeline] = useState('')
   const [newItemName, setNewItemName] = useState('')
   const [newPipelineName, setNewPipelineName] = useState('')
 
   useEffect(() => {
     fetchUsers()
+    fetchSettings()
   }, [])
 
   async function fetchUsers() {
     fetch('/api/users').then((r) => r.json()).then(setUsers)
+  }
+
+  async function fetchSettings() {
+    fetch('/api/settings').then((r) => r.json()).then(setPipelines)
   }
 
   async function updateUser(userId: number, data: { name?: string; role?: string; level?: string }) {
@@ -42,10 +48,12 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
   }
 
   async function deleteUser(userId: number) {
-    if (!confirm('确定删除该成员？')) return
     const res = await fetch(`/api/users/${userId}`, { method: 'DELETE' })
     if (res.ok) {
       setUsers((prev) => prev.filter((u) => u.id !== userId))
+    } else {
+      const err = await res.json()
+      alert(err.error || '删除失败')
     }
   }
 
@@ -63,16 +71,15 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newMember.name.trim(), password: defaultPassword, confirmPassword: defaultPassword }),
+      body: JSON.stringify({
+        name: newMember.name.trim(),
+        password: defaultPassword,
+        confirmPassword: defaultPassword,
+        role: newMember.role,
+        level: newMember.level || undefined,
+      }),
     })
     if (res.ok) {
-      const created = await res.json()
-      // Update with selected level and role
-      await fetch('/api/users', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: created.id, level: newMember.level || undefined, role: newMember.role }),
-      })
       setIsAdding(false)
       fetchUsers()
     } else {
@@ -105,39 +112,39 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
     setEditingMember(null)
   }
 
-  function addBudgetItem() {
-    if (!newItemPipeline || !newItemName.trim()) return
-    setBudgetItems((prev) => ({
-      ...prev,
-      [newItemPipeline]: [...(prev[newItemPipeline] || []), newItemName.trim()]
-    }))
-    setNewItemName('')
-  }
-
-  function deleteBudgetItem(pipeline: string, index: number) {
-    if (!confirm('确定删除该预算项？')) return
-    setBudgetItems((prev) => ({
-      ...prev,
-      [pipeline]: prev[pipeline].filter((_, i) => i !== index)
-    }))
-  }
-
-  function addPipeline() {
-    if (!newPipelineName.trim()) return
-    setBudgetItems((prev) => ({
-      ...prev,
-      [newPipelineName.trim()]: []
-    }))
-    setNewPipelineName('')
-  }
-
-  function deletePipeline(pipeline: string) {
-    if (!confirm(`确定删除"${pipeline}"管线及其所有预算项？`)) return
-    setBudgetItems((prev) => {
-      const copy = { ...prev }
-      delete copy[pipeline]
-      return copy
+  async function addBudgetItem() {
+    const pipelineObj = pipelines.find((p) => p.name === newItemPipeline)
+    if (!pipelineObj || !newItemName.trim()) return
+    const res = await fetch('/api/settings/budget-items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newItemName.trim(), pipelineId: pipelineObj.id }),
     })
+    if (res.ok) { fetchSettings(); setNewItemName('') }
+    else { const err = await res.json(); alert(err.error || '添加失败') }
+  }
+
+  async function deleteBudgetItem(itemId: number) {
+    if (!confirm('确定删除该预算项？')) return
+    const res = await fetch(`/api/settings/budget-items/${itemId}`, { method: 'DELETE' })
+    if (res.ok) fetchSettings()
+  }
+
+  async function addPipeline() {
+    if (!newPipelineName.trim()) return
+    const res = await fetch('/api/settings/pipelines', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newPipelineName.trim() }),
+    })
+    if (res.ok) { fetchSettings(); setNewPipelineName('') }
+    else { const err = await res.json(); alert(err.error || '添加失败') }
+  }
+
+  async function deletePipeline(pipelineId: number, name: string) {
+    if (!confirm(`确定删除"${name}"管线及其所有预算项？`)) return
+    const res = await fetch(`/api/settings/pipelines/${pipelineId}`, { method: 'DELETE' })
+    if (res.ok) fetchSettings()
   }
 
   return (
@@ -282,7 +289,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                                 编辑
                               </button>
                               <button
-                                onClick={() => deleteUser(u.id)}
+                                onClick={() => { if (confirm('确定删除该成员？')) deleteUser(u.id) }}
                                 className="text-red-500 hover:text-red-700 text-xs"
                               >
                                 删除
@@ -316,12 +323,12 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
               </div>
 
               {/* Budget items */}
-              {Object.entries(budgetItems).map(([pipeline, items]) => (
-                <div key={pipeline} className="mb-6">
+              {pipelines.map((pl) => (
+                <div key={pl.id} className="mb-6">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-bold">{pipeline}</h3>
+                    <h3 className="font-bold">{pl.name}</h3>
                     <button
-                      onClick={() => deletePipeline(pipeline)}
+                      onClick={() => deletePipeline(pl.id, pl.name)}
                       className="text-red-500 hover:text-red-700 text-xs"
                     >
                       删除管线
@@ -332,9 +339,9 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                   <div className="mb-2 flex gap-2">
                     <input
                       type="text"
-                      value={newItemPipeline === pipeline ? newItemName : ''}
+                      value={newItemPipeline === pl.name ? newItemName : ''}
                       onChange={(e) => {
-                        setNewItemPipeline(pipeline)
+                        setNewItemPipeline(pl.name)
                         setNewItemName(e.target.value)
                       }}
                       className="flex-1 rounded border px-2 py-1 text-sm"
@@ -342,7 +349,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                     />
                     <button
                       onClick={() => {
-                        if (newItemPipeline === pipeline && newItemName.trim()) {
+                        if (newItemPipeline === pl.name && newItemName.trim()) {
                           addBudgetItem()
                         }
                       }}
@@ -354,18 +361,18 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
 
                   {/* Items list */}
                   <div className="space-y-1">
-                    {items.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between py-1 px-2 hover:bg-gray-50 rounded text-sm">
-                        <span>{item}</span>
+                    {pl.budgetItems.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between py-1 px-2 hover:bg-gray-50 rounded text-sm">
+                        <span>{item.name}</span>
                         <button
-                          onClick={() => deleteBudgetItem(pipeline, index)}
+                          onClick={() => deleteBudgetItem(item.id)}
                           className="text-red-400 hover:text-red-600 text-xs"
                         >
                           删除
                         </button>
                       </div>
                     ))}
-                    {items.length === 0 && (
+                    {pl.budgetItems.length === 0 && (
                       <div className="text-gray-400 text-sm py-2">暂无预算项</div>
                     )}
                   </div>

@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { type RequirementData } from './RequirementPanel'
-import { MODULES, PIPELINES, RATINGS, TYPES, BUDGET_ITEMS } from '@/lib/constants'
+import type { PipelineSettingData } from './RequirementPanel'
+import { MODULES, RATINGS, TYPES } from '@/lib/constants'
 import ConfirmDialog from './ConfirmDialog'
 
 const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
@@ -39,6 +40,7 @@ export default function RequirementCardExpanded({
   onDirtyChange,
   allRequirements,
   onExpandById,
+  pipelineSettings,
 }: {
   data: RequirementData
   cycleId: number
@@ -48,6 +50,7 @@ export default function RequirementCardExpanded({
   onDirtyChange: (dirty: boolean) => void
   allRequirements: RequirementData[]
   onExpandById: (id: number) => void
+  pipelineSettings: PipelineSettingData[]
 }) {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'
@@ -101,7 +104,11 @@ export default function RequirementCardExpanded({
   }
 
   const readOnly = cycleStatus === 'CLOSED' && !isAdmin
-  const budgetOptions = pipeline ? (BUDGET_ITEMS[pipeline] || []) : Object.values(BUDGET_ITEMS).flat()
+  const pipelineNames = pipelineSettings.map((p) => p.name)
+  const pipelineOptions = pipeline && !pipelineNames.includes(pipeline) ? [...pipelineNames, pipeline] : pipelineNames
+  const budgetMap: Record<string, string[]> = Object.fromEntries(pipelineSettings.map((p) => [p.name, p.budgetItems.map((b) => b.name)]))
+  const rawBudgetOptions = pipeline ? (budgetMap[pipeline] || []) : Object.values(budgetMap).flat()
+  const budgetOptions = budgetItem && !rawBudgetOptions.includes(budgetItem) ? [...rawBudgetOptions, budgetItem] : rawBudgetOptions
   const userEditable = !readOnly
 
   const nameInvalid = triedSubmit && !name.trim()
@@ -237,7 +244,7 @@ export default function RequirementCardExpanded({
         <EditableCube label="管线" required invalid={pipelineInvalid} isOpen={openMenu === 'pipeline'} isEmpty={!pipeline} width={200}>
           <SelectTrigger width={184} value={pipeline} isOpen={openMenu === 'pipeline'} onToggle={() => userEditable && setOpenMenu(openMenu === 'pipeline' ? null : 'pipeline')} invalid={pipelineInvalid} />
           {openMenu === 'pipeline' && userEditable && (
-            <MenuSingle width={184} value={pipeline} options={PIPELINES as readonly string[]} selected={pipeline} onPick={(v) => { setPipeline(v); setBudgetItem(''); setOpenMenu(null); markDirty() }} />
+            <MenuSingle width={184} value={pipeline} options={pipelineOptions as readonly string[]} selected={pipeline} onPick={(v) => { setPipeline(v); setBudgetItem(''); setOpenMenu(null); markDirty() }} />
           )}
         </EditableCube>
 

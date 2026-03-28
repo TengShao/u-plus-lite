@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import { PIPELINES, RATINGS } from '@/lib/constants'
+import { RATINGS } from '@/lib/constants'
 
 const HEALTH_OPTIONS = ['适合', '欠饱和', '过饱和']
 
@@ -41,10 +41,12 @@ export default function FilterBar({
   designers,
   currentUserId,
   onFilterChange,
+  pipelineNames,
 }: {
   designers: { id: number; name: string }[]
   currentUserId: number
   onFilterChange: (filters: Record<string, string[]>) => void
+  pipelineNames: string[]
 }) {
   const [filters, setFilters] = useState<Record<string, string[]>>({})
 
@@ -93,7 +95,7 @@ export default function FilterBar({
 
   return (
     <div className="flex gap-[8px]">
-      <MultiDropdown label="管线" options={PIPELINES as unknown as string[]} selected={filters.pipeline || []} onToggle={(v) => toggle('pipeline', v, PIPELINES as unknown as string[])} onSelectAll={() => selectAll('pipeline', PIPELINES as unknown as string[])} onExclusive={(v) => exclusive('pipeline', v)} />
+      <MultiDropdown label="管线" options={pipelineNames} selected={filters.pipeline || []} onToggle={(v) => toggle('pipeline', v, pipelineNames)} onSelectAll={() => selectAll('pipeline', pipelineNames)} onExclusive={(v) => exclusive('pipeline', v)} />
       <MultiDropdown label="评级" options={RATINGS as unknown as string[]} selected={filters.rating || []} onToggle={(v) => toggle('rating', v, RATINGS as unknown as string[])} onSelectAll={() => selectAll('rating', RATINGS as unknown as string[])} onExclusive={(v) => exclusive('rating', v)} />
       <MultiDropdown label="健康度" options={HEALTH_OPTIONS} selected={filters.health || []} onToggle={(v) => toggle('health', v, HEALTH_OPTIONS)} onSelectAll={() => selectAll('health', HEALTH_OPTIONS)} onExclusive={(v) => exclusive('health', v)} />
       <MultiDropdown

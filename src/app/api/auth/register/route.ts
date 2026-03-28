@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 
 export async function POST(req: Request) {
-  const { name, password, confirmPassword } = await req.json()
+  const { name, password, confirmPassword, role, level } = await req.json()
 
   if (!name || !password || !confirmPassword) {
     return NextResponse.json({ error: '请填写所有字段' }, { status: 400 })
@@ -21,9 +21,14 @@ export async function POST(req: Request) {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10)
-  await prisma.user.create({
-    data: { name, password: hashedPassword },
+  const user = await prisma.user.create({
+    data: {
+      name,
+      password: hashedPassword,
+      role: role || 'MEMBER',
+      level: level || null,
+    },
   })
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ id: user.id, name: user.name, role: user.role, level: user.level })
 }
