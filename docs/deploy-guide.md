@@ -36,6 +36,8 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp /usr/local/bin
 
 脚本自动完成：代码拉取 → 依赖安装 → 构建 → 数据库初始化 → PM2 启动。
 
+**前提：服务器 Mac 需配置 GitHub SSH 访问（见下方"服务器配置"第四步）**
+
 ```bash
 bash <(curl -sL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.sh)
 ```
@@ -46,25 +48,52 @@ bash <(curl -sL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/sc
 
 ## 三、手动部署步骤
 
-### 1. 上传代码到服务器
+### 1. 配置 GitHub SSH 访问（私有仓库必需）
+
+如果仓库是 private，必须通过 SSH 方式访问。
+
+**生成 SSH 密钥：**
 ```bash
-# 在服务器上克隆（需要先配置 GitHub SSH 访问）
-git clone https://github.com/TengShao/u-plus-lite.git
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+```
+连续回车使用默认路径和空密码。
+
+**查看公钥：**
+```bash
+cat ~/.ssh/id_rsa.pub
+```
+
+**添加到 GitHub：**
+- 打开 https://github.com/settings/keys
+- 点击 "New SSH key"
+- Title 填入描述（如 "Mac Server"）
+- Key 填入上面 `cat` 命令输出的完整内容
+
+**验证连接：**
+```bash
+ssh -T git@github.com
+```
+显示 "Hi TengShao! You've successfully authenticated" 即成功。
+
+### 2. 上传代码到服务器
+```bash
+# 通过 SSH 方式克隆（私有仓库必须用此格式）
+git clone git@github.com:TengShao/u-plus-lite.git
 cd u-plus-lite
 ```
 
-### 2. 安装依赖
+### 3. 安装依赖
 ```bash
 npm install
 ```
 
-### 3. 生成 Prisma 客户端 & 构建生产版本
+### 4. 生成 Prisma 客户端 & 构建生产版本
 ```bash
 npx prisma generate
 npm run build
 ```
 
-### 4. 初始化数据库
+### 5. 初始化数据库
 ```bash
 # 创建初始数据（管理员账号邵腾/88888888）
 npx prisma db push
@@ -73,23 +102,23 @@ npx prisma db push
 npx tsx prisma/seed-full.ts
 ```
 
-### 5. 安装 PM2（后台进程管理）
+### 6. 安装 PM2（后台进程管理）
 ```bash
 npm install -g pm2
 ```
 
-### 6. 启动服务
+### 7. 启动服务
 ```bash
 pm2 start npm -- start
 ```
 
-### 7. 确认运行状态
+### 8. 确认运行状态
 ```bash
 pm2 list
 pm2 logs                   # 查看日志
 ```
 
-### 8. 开机自启
+### 9. 开机自启
 ```bash
 pm2 save
 pm2 startup

@@ -7,7 +7,7 @@ set -e
 # 或下载后在服务器上运行：bash deploy.sh
 # ============================================================
 
-REPO_URL="https://github.com/TengShao/u-plus-lite.git"
+REPO_URL="git@github.com:TengShao/u-plus-lite.git"
 DIR_NAME="u-plus-lite"
 TARGET_DIR="$HOME/$DIR_NAME"
 
