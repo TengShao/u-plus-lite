@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import FilterBar from './FilterBar'
 import RequirementCardCollapsed from './RequirementCardCollapsed'
@@ -40,6 +40,10 @@ export default function RequirementPanel({
   const [showCloseCycleConfirm, setShowCloseCycleConfirm] = useState(false)
   const [cycle, setCycle] = useState<{ id: number; status: string } | null>(null)
   const [filters, setFilters] = useState<Record<string, string[]>>({})
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [isScrollbarVisible, setIsScrollbarVisible] = useState(false)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const scrollbarTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isAdmin = session?.user?.role === 'ADMIN'
 
   useEffect(() => {
@@ -54,6 +58,46 @@ export default function RequirementPanel({
         if (c) setCycle(c)
       })
   }, [cycleId, refreshKey])
+
+  // Reset scroll position when cycleId changes
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (container) {
+      container.scrollTop = 0
+    }
+  }, [cycleId])
+
+  // Track scroll position to show/hide shadow on operation area and scrollbar
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) {
+      console.log('RequirementPanel: scrollContainerRef is null')
+      return
+    }
+
+    console.log('RequirementPanel: attaching scroll listener, height:', container.clientHeight, 'scrollHeight:', container.scrollHeight)
+
+    const handleScroll = () => {
+      setIsScrolled(container.scrollTop > 0)
+      setIsScrollbarVisible(true)
+
+      if (scrollbarTimeoutRef.current) {
+        clearTimeout(scrollbarTimeoutRef.current)
+      }
+
+      scrollbarTimeoutRef.current = setTimeout(() => {
+        setIsScrollbarVisible(false)
+      }, 1000)
+    }
+
+    container.addEventListener('scroll', handleScroll, { passive: true })
+    return () => {
+      container.removeEventListener('scroll', handleScroll)
+      if (scrollbarTimeoutRef.current) {
+        clearTimeout(scrollbarTimeoutRef.current)
+      }
+    }
+  }, [requirements]) // Re-attach when requirements change (when content updates)
 
   // Frontend search filter
   const filtered = useMemo(() => {
@@ -106,6 +150,21 @@ export default function RequirementPanel({
     }
     setExpandedId(id)
     setHasUnsaved(false)
+    // Only scroll if expanded card won't be fully visible
+    setTimeout(() => {
+      const container = scrollContainerRef.current
+      if (!container) return
+      const card = container.querySelector(`[data-req-id="${id}"]`) as HTMLElement
+      if (!card) return
+      const containerRect = container.getBoundingClientRect()
+      const cardRect = card.getBoundingClientRect()
+      // Check if card is not fully visible (top cut off or bottom cut off)
+      if (cardRect.top < containerRect.top || cardRect.bottom > containerRect.bottom) {
+        const scrollTop = container.scrollTop
+        const targetScroll = scrollTop + cardRect.top - containerRect.top - 30
+        container.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' })
+      }
+    }, 0)
   }
 
   function handleCollapse() {
@@ -144,6 +203,11 @@ export default function RequirementPanel({
       const rg = await res.json()
       onRefresh()
       setExpandedId(rg.id)
+      // Scroll to top to show the new requirement
+      setTimeout(() => {
+        const container = scrollContainerRef.current
+        if (container) container.scrollTop = 0
+      }, 0)
     }
   }
 
@@ -158,46 +222,69 @@ export default function RequirementPanel({
 
   if (!cycleId) {
     return (
-      <div className="flex flex-1 items-center justify-center text-gray-400">
+      <div className="flex flex-1 items-center justify-center" style={{ color: '#C3C3C3' }}>
         请选择或新建一个月结周期
       </div>
     )
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center gap-3 border-b bg-white px-4 py-2">
-        <FilterBar
-          designers={designers}
-          currentUserId={session?.user?.id ? parseInt(session.user.id) : 0}
-          onFilterChange={setFilters}
-        />
-        <div className="ml-auto flex gap-2">
-          {isAdmin && (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className={`relative h-[60px] bg-[#F9F9F9] z-20 ${isScrolled ? ''/* 'after:content-[""] after:absolute after:-bottom-[12px] after:left-0 after:right-0 after:h-[12px] after:bg-gradient-to-b after:from-[rgba(0,0,0,0.08)] after:to-transparent' */ : ''}`}>
+        <div className="h-full px-[20px]">
+          <div className="mx-auto h-full w-full max-w-[1200px] flex items-center" style={{ fontFamily: 'Alibaba PuHuiTi 2.0' }}>
+          <div className="flex items-center">
+            <FilterBar
+              designers={designers}
+              currentUserId={session?.user?.id ? parseInt(session.user.id) : 0}
+              onFilterChange={setFilters}
+            />
+          </div>
+          <div className="ml-auto flex gap-[10px]">
+            {isAdmin && cycle?.status === 'OPEN' && (
+              <button
+                onClick={handleToggleCycle}
+                className="h-[46px] w-[159px] rounded-[12px] bg-[#F2F2F2] text-[18px] leading-[25px] text-black transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.25)] active:bg-[#D7D7D7] disabled:bg-[#B6B6B6] disabled:text-white/50"
+                style={{ fontWeight: 900 }}
+              >
+                关闭月结
+              </button>
+            )}
+            {isAdmin && cycle?.status === 'CLOSED' && (
+              <button
+                onClick={handleToggleCycle}
+                className="h-[46px] w-[159px] rounded-[12px] bg-[#F2F2F2] text-[18px] leading-[25px] text-black transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.25)] active:bg-[#D7D7D7]"
+                style={{ fontWeight: 900 }}
+              >
+                开启月结
+              </button>
+            )}
             <button
-              onClick={handleToggleCycle}
-              className={`rounded px-3 py-1.5 text-sm ${
-                cycle?.status === 'OPEN'
-                  ? 'bg-orange-500 text-white hover:bg-orange-600'
-                  : 'bg-green-500 text-white hover:bg-green-600'
-              }`}
+              onClick={handleCreateRequirement}
+              disabled={!cycleId || cycle?.status === 'CLOSED'}
+              className="flex h-[46px] w-[159px] items-center justify-center rounded-[12px] bg-[#000000] text-[18px] leading-[25px] text-white transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.25)] active:bg-[#3A3A3A] disabled:bg-[#B6B6B6] disabled:text-white/50"
+              style={{ fontWeight: 900 }}
             >
-              {cycle?.status === 'OPEN' ? '关闭月结' : '开启月结'}
+              <span className="inline-flex items-center gap-[10px]" style={!cycleId || cycle?.status === 'CLOSED' ? { opacity: 0.5 } : undefined}>
+                新建
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <g stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="8" y="2" width="8" height="4" rx="1" />
+                    <path d="M16,4 L18,4 C19.1,4 20,4.9 20,6 L20,20 C20,21.1 19.1,22 18,22 L6,22 C4.9,22 4,21.1 4,20 L4,6 C4,4.9 4.9,4 6,4 L8,4" />
+                    <polyline points="9 14 11 16 15 12" />
+                  </g>
+                </svg>
+              </span>
             </button>
-          )}
-          <button
-            onClick={handleCreateRequirement}
-            className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
-          >
-            新建需求组
-          </button>
+          </div>
+        </div>
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-4">
+      <div ref={scrollContainerRef} className={`auto-hide-scrollbar min-h-0 flex-1 overflow-y-auto px-[20px] py-[16px] ${isScrollbarVisible ? 'scrollbar-visible' : 'scrollbar-hidden'}`}>
         {filtered.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-gray-400">暂无需求组</div>
+          <div className="mx-auto flex h-full w-full max-w-[1200px] items-center justify-center" style={{ color: '#C3C3C3' }}>暂无需求组</div>
         ) : (
-          <div className="space-y-2">
+          <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-[20px]">
             {filtered.map((rg) =>
               expandedId === rg.id ? (
                 <RequirementCardExpanded
@@ -215,6 +302,7 @@ export default function RequirementPanel({
                 <RequirementCardCollapsed
                   key={rg.id}
                   data={rg}
+                  cycleStatus={cycle?.status || 'OPEN'}
                   onExpand={() => handleExpand(rg.id)}
                   onRefresh={onRefresh}
                 />

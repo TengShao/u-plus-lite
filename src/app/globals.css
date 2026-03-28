@@ -1,3 +1,110 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --u-bg-page: #F9F9F9;
+  --u-bg-panel: #ffffff;
+  --u-bg-subtle: #f8fafc;
+  --u-border: #e5e7eb;
+  --u-border-strong: #d1d5db;
+  --u-text-primary: #111827;
+  --u-text-secondary: #4b5563;
+  --u-text-muted: #9ca3af;
+  --u-accent: #2563eb;
+  --u-shadow-panel: 0 8px 24px rgba(15, 23, 42, 0.06);
+  --u-shadow-card: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--u-bg-page);
+  color: var(--u-text-primary);
+}
+
+/* Smooth scrolling with native momentum */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+input.no-spin::-webkit-outer-spin-button,
+input.no-spin::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input.no-spin[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+}
+
+.animate-fade-out {
+  animation: fadeOut 1s ease-out forwards;
+}
+
+/* Scrollbar auto-hide with smooth scrolling */
+.auto-hide-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.auto-hide-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.auto-hide-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.auto-hide-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background-color 0.3s ease;
+}
+
+.auto-hide-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+  background-clip: content-box;
+}
+
+/* Scrollbar hidden state */
+.auto-hide-scrollbar.scrollbar-hidden {
+  scrollbar-color: transparent transparent;
+}
+
+.auto-hide-scrollbar.scrollbar-hidden::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  background-clip: content-box;
+}
+
+/* Scrollbar visible state */
+.auto-hide-scrollbar.scrollbar-visible {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.auto-hide-scrollbar.scrollbar-visible::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  background-clip: content-box;
+}

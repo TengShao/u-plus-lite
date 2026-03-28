@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 
 type Cycle = {
@@ -19,6 +19,9 @@ export default function CycleSidebar({
 }) {
   const { data: session } = useSession()
   const [cycles, setCycles] = useState<Cycle[]>([])
+  const [isScrollbarVisible, setIsScrollbarVisible] = useState(false)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const scrollbarTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isAdmin = session?.user?.role === 'ADMIN'
 
   useEffect(() => {
@@ -31,6 +34,32 @@ export default function CycleSidebar({
         }
       })
   }, [refreshKey])
+
+  // Scrollbar auto-hide
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      setIsScrollbarVisible(true)
+
+      if (scrollbarTimeoutRef.current) {
+        clearTimeout(scrollbarTimeoutRef.current)
+      }
+
+      scrollbarTimeoutRef.current = setTimeout(() => {
+        setIsScrollbarVisible(false)
+      }, 1000)
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    return () => {
+      container.removeEventListener('scroll', handleScroll)
+      if (scrollbarTimeoutRef.current) {
+        clearTimeout(scrollbarTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const grouped = cycles.reduce<Record<string, Cycle[]>>((acc, c) => {
     const year = new Date(c.startDate).getFullYear().toString()
@@ -64,56 +93,72 @@ export default function CycleSidebar({
 
   function formatDate(d: string) {
     const date = new Date(d)
-    return `${date.getMonth() + 1}/${date.getDate()}`
+    return `${date.getMonth() + 1}.${date.getDate()}`
   }
 
   return (
-    <div className="flex w-[320px] shrink-0 flex-col border-r bg-white">
-      <div className="flex-1 overflow-auto p-3">
+    <div className="flex h-full w-[320px] shrink-0 flex-col">
+      <div ref={scrollContainerRef} className={`auto-hide-scrollbar flex-1 overflow-y-auto p-[18px] pb-0 ${isScrollbarVisible ? 'scrollbar-visible' : 'scrollbar-hidden'}`}>
         {Object.entries(grouped)
           .sort(([a], [b]) => Number(b) - Number(a))
-          .map(([year, items]) => (
-            <div key={year} className="mb-3">
-              <div className="mb-1 text-xs font-medium text-gray-400">{year}年</div>
-              <div className="space-y-1.5">
-                {items.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => onSelectCycle(c.id)}
-                    className={`flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition ${
-                      selectedCycleId === c.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div>
-                      <div className="font-medium">{c.label}</div>
-                      <div className="text-xs text-gray-400">
-                        {formatDate(c.startDate)} - {formatDate(c.endDate)}
-                      </div>
-                    </div>
-                    <span
-                      className={`rounded px-1.5 py-0.5 text-xs ${
-                        c.status === 'OPEN'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-500'
+          .map(([year, items], gi) => (
+            <div key={year}>
+              {gi > 0 && (
+                <div className="mx-[16px] my-[4px] flex h-[34px] w-[252px] items-center" style={{ fontFamily: 'Alibaba PuHuiTi 2.0' }}>
+                  <span className="text-[14px] leading-[20px] text-[#C8C8C8]" style={{ fontWeight: 500, letterSpacing: '-0.91px' }}>{year}</span>
+                  <span className="ml-[9px] h-px flex-1 bg-[#E9E9E9]" />
+                </div>
+              )}
+              <div className="flex flex-col gap-[4px]">
+                {items.map((c) => {
+                  const isSelected = selectedCycleId === c.id
+                  const isOpen = c.status === 'OPEN'
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => onSelectCycle(c.id)}
+                      className={`flex h-[78px] w-[284px] items-center justify-between rounded-[12px] px-[18px] text-left transition-shadow ${
+                        isSelected
+                          ? 'bg-white shadow-[0_0_8px_0_rgba(0,0,0,0.10)]'
+                          : 'bg-transparent hover:shadow-[0_0_6px_0_rgba(0,0,0,0.15)]'
                       }`}
+                      style={{ fontFamily: 'Alibaba PuHuiTi 2.0' }}
                     >
-                      {c.status === 'OPEN' ? '开启' : '关闭'}
-                    </span>
-                  </button>
-                ))}
+                      <div className="flex items-end gap-[6px]">
+                        <span className="text-[16px] leading-[22px] text-black" style={{ fontWeight: 800 }}>
+                          {c.label}
+                        </span>
+                        <span className="text-[16px] leading-[22px] text-black opacity-[0.21]" style={{ fontWeight: 500 }}>
+                          {formatDate(c.startDate)} ~ {formatDate(c.endDate)}
+                        </span>
+                      </div>
+                      <span className={`flex shrink-0 h-5 items-center justify-end gap-2 text-[14px] leading-5 ${isOpen ? 'text-[#8ECA2E]' : 'text-[#B6B6B6]'}`} style={{ fontWeight: 700 }}>
+                        {isOpen ? 'OPEN' : 'CLOSE'}
+                        <span className={`h-2 w-2 rounded-full ${isOpen ? 'bg-[#8ECA2E]' : 'bg-[#B6B6B6]'}`} />
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           ))}
       </div>
       {isAdmin && (
-        <div className="border-t p-3">
+        <div className="p-[18px]">
           <button
             onClick={createCycle}
-            className="w-full rounded-lg border-2 border-dashed border-gray-300 py-3 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-500"
+            className="relative mx-auto block h-[60px] w-[284px] rounded-[12px] bg-[#000000] text-[18px] leading-[25px] text-white transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.25)] active:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
+            style={{ fontFamily: 'Alibaba PuHuiTi 2.0', fontWeight: 900 }}
           >
-            + 新建月结
+            <span>新建月结</span>
+            <span className="pointer-events-none absolute right-[18px] top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <g stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12H19" />
+                  <path d="M12 5V19" />
+                </g>
+              </svg>
+            </span>
           </button>
         </div>
       )}

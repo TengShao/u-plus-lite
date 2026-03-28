@@ -19,10 +19,11 @@ export async function PATCH(req: Request) {
   if (!session) return unauthorized()
   if (session.user.role !== 'ADMIN') return forbidden()
 
-  const { userId, role, level } = await req.json()
+  const { userId, role, level, name } = await req.json()
   const data: Record<string, string> = {}
   if (role) data.role = role
   if (level !== undefined) data.level = level
+  if (name !== undefined) data.name = name
 
   const user = await prisma.user.update({
     where: { id: userId },

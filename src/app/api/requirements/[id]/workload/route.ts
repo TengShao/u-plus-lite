@@ -17,6 +17,18 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   const userId = parseInt(session.user.id)
   const requirementGroupId = parseInt(params.id)
 
+  // If manDays is 0, delete the workload record instead of creating/updating
+  if (manDays === 0) {
+    await prisma.workload.deleteMany({
+      where: {
+        userId,
+        requirementGroupId,
+        billingCycleId,
+      },
+    })
+    return NextResponse.json({ success: true, deleted: true })
+  }
+
   const workload = await prisma.workload.upsert({
     where: {
       userId_requirementGroupId_billingCycleId: {

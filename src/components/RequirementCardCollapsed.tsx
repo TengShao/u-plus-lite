@@ -4,25 +4,61 @@ import { useSession } from 'next-auth/react'
 import { type RequirementData } from './RequirementPanel'
 import ConfirmDialog from './ConfirmDialog'
 
+const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
+
 const HEALTH_COLORS: Record<string, string> = {
-  '适合': 'bg-green-100 text-green-700',
-  '过饱和': 'bg-red-100 text-red-700',
-  '欠饱和': 'bg-yellow-100 text-yellow-700',
+  '适合': '#8ECA2E',
+  '欠饱和': '#E9B931',
+  '过饱和': '#E96631',
+}
+
+function IconDelete() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <g stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="10" y1="11" x2="10" y2="17" />
+        <line x1="14" y1="11" x2="14" y2="17" />
+        <path d="M19,6 L19,20 C19,21.1 18.1,22 17,22 L7,22 C5.9,22 5,21.1 5,20 L5,6" />
+        <line x1="3" y1="6" x2="21" y2="6" />
+        <path d="M8,6 L8,4 C8,2.9 8.9,2 10,2 L14,2 C15.1,2 16,2.9 16,4 L16,6" />
+      </g>
+    </svg>
+  )
+}
+
+function IconConfirm() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function Divider() {
+  return <span className="mx-0 inline-block h-[10px] w-px shrink-0 bg-[#00000013]" style={{ marginTop: 4 }} />
 }
 
 export default function RequirementCardCollapsed({
   data,
+  cycleStatus,
   onExpand,
   onRefresh,
 }: {
   data: RequirementData
+  cycleStatus: string
   onExpand: () => void
   onRefresh: () => void
 }) {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'
   const [confirmAction, setConfirmAction] = useState<'delete' | 'complete' | null>(null)
+  const [deleteHover, setDeleteHover] = useState(false)
+  const [confirmHover, setConfirmHover] = useState(false)
+  const [deleteActive, setDeleteActive] = useState(false)
+  const [confirmActive, setConfirmActive] = useState(false)
   const isComplete = data.status === 'COMPLETE'
+  const isClosed = cycleStatus === 'CLOSED'
+  const buttonsDisabled = isComplete || isClosed
 
   async function handleDelete() {
     await fetch(`/api/requirements/${data.id}`, { method: 'DELETE' })
@@ -36,68 +72,125 @@ export default function RequirementCardCollapsed({
     onRefresh()
   }
 
-  const displayWorkloads = data.cycleWorkloads.slice(0, 4)
-  const extraCount = data.cycleWorkloads.length - 4
+  // Display up to 5 designers, or first 4 + "其他x人" if more than 5
+  const displayCount = data.cycleWorkloads.length > 5 ? 4 : Math.min(5, data.cycleWorkloads.length)
+  const displayWorkloads = data.cycleWorkloads.slice(0, displayCount)
+  const extraCount = data.cycleWorkloads.length > 5 ? data.cycleWorkloads.length - 4 : 0
+
+  const healthColor = data.healthStatus ? HEALTH_COLORS[data.healthStatus] : null
+
+  // Info tags: module, pipeline, types
+  const tags: string[] = []
+  if (data.module) tags.push(data.module)
+  if (data.pipeline) tags.push(data.pipeline)
+  const typesStr = data.types?.length ? data.types.join(' / ') : null
 
   return (
     <div
+      data-req-id={String(data.id)}
       onClick={onExpand}
-      className={`cursor-pointer rounded-lg border bg-white p-4 transition hover:shadow ${isComplete ? 'opacity-60' : ''}`}
+      className="relative cursor-pointer rounded-[24px] bg-white transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.15)] min-w-[1200px]"
+      style={{ ...FONT, height: 152, opacity: isComplete ? 0.6 : 1 }}
     >
-      <div className="mb-2 flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{data.name || '未命名需求组'}</span>
-          {data.module && <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-600">{data.module}</span>}
-          {data.pipeline && <span className="rounded bg-purple-50 px-1.5 py-0.5 text-xs text-purple-600">{data.pipeline}</span>}
-          {data.types?.map((t) => (
-            <span key={t} className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">{t}</span>
-          ))}
-          {data.healthStatus && (
-            <span className={`rounded px-1.5 py-0.5 text-xs ${HEALTH_COLORS[data.healthStatus] || ''}`}>
-              {data.healthStatus}
-            </span>
-          )}
-          {isComplete && <span className="rounded bg-gray-200 px-1.5 py-0.5 text-xs text-gray-500">已完成</span>}
-        </div>
-        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-          {isAdmin && !isComplete && (
-            <button
-              onClick={() => setConfirmAction('complete')}
-              className="rounded px-2 py-1 text-xs text-green-600 hover:bg-green-50"
-            >
-              完成
-            </button>
-          )}
-          <button
-            onClick={() => setConfirmAction('delete')}
-            className="rounded px-2 py-1 text-xs text-red-500 hover:bg-red-50"
-          >
-            删除
-          </button>
-        </div>
+      {/* Name + info tags — top-left */}
+      <div className="absolute left-[25px] top-[18px] flex items-center gap-[12px]" style={{ right: 200 }}>
+        <span className="shrink-0 text-[16px] leading-[22px] text-black" style={{ fontWeight: 900, letterSpacing: '-1px' }}>
+          {data.name || '未命名需求组'}
+        </span>
+        {tags.length > 0 && (
+          <>
+            <Divider />
+            {tags.map((t, i) => (
+              <span key={t} className="flex items-center gap-[12px]">
+                {i > 0 && <Divider />}
+                <span className="shrink-0 text-[12px] leading-[17px] text-[#AFAFAF]" style={{ fontWeight: 500, letterSpacing: '-0.75px' }}>{t}</span>
+              </span>
+            ))}
+          </>
+        )}
+        {typesStr && (
+          <>
+            <Divider />
+            <span className="truncate text-[12px] leading-[17px] text-[#AFAFAF]" style={{ fontWeight: 500, letterSpacing: '-0.75px' }}>{typesStr}</span>
+          </>
+        )}
       </div>
-      <div className="mb-2 flex gap-3 text-xs">
-        <InfoBlock label="拟定评级" value={data.rating || '-'} />
-        <InfoBlock label="推荐评级" value={data.recommendedRating} />
-        <InfoBlock label="可关闭" value={data.canClose ? '是' : '否'} />
-        <InfoBlock label="总投入人天" value={String(data.totalManDays)} />
-        <InfoBlock label="投入比" value={data.rating ? `${data.inputRatio}%` : '-'} />
-        <InfoBlock label="参与人数" value={String(data.participantCount)} />
-      </div>
-      {displayWorkloads.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {displayWorkloads.map((w) => (
-            <span key={w.userId} className="rounded bg-gray-50 px-2 py-0.5 text-xs text-gray-600">
-              {w.userName}: {w.manDays}天
-            </span>
-          ))}
-          {extraCount > 0 && (
-            <span className="rounded bg-gray-50 px-2 py-0.5 text-xs text-gray-400">
-              其他{extraCount}人
-            </span>
-          )}
+
+      {/* Health badge — top-right */}
+      {healthColor && (
+        <div className="absolute right-[18px] top-[18px] flex items-center gap-[6px]">
+          <span className="text-[14px] leading-[20px]" style={{ fontWeight: 800, letterSpacing: '-0.91px', color: healthColor }}>{data.healthStatus}</span>
+          <span className="h-[8px] w-[8px] rounded-full" style={{ backgroundColor: healthColor }} />
         </div>
       )}
+
+      {/* Info cubes + designer area — bottom-left */}
+      <div className="absolute bottom-[20px] left-[20px] flex items-start gap-[8px]">
+        <InfoCube label="评级" value={data.rating || '-'} />
+        <InfoCube label="推荐评级" value={data.recommendedRating} labelColor="#40C7F6" />
+        <InfoCube label="本月可关闭" value={data.canClose ? '是' : '否'} />
+        <InfoCube label="总投入人天" value={String(data.totalManDays)} />
+        <InfoCube label="投入比" value={data.rating ? `${data.inputRatio}%` : '-'} />
+        <InfoCube label="参与人数" value={String(data.participantCount)} />
+        <div className="flex h-[80px] min-w-[110px] shrink-0 flex-col rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] w-fit">
+          <span className="mt-[14px] text-center text-[12px] leading-[17px] text-[#A8A8A8]" style={{ fontWeight: 800 }}>参与设计师</span>
+          <div className="flex flex-1 items-center justify-center overflow-hidden px-[10px]">
+            {data.cycleWorkloads.length === 0 ? (
+              <span className="text-[14px] text-black/30" style={{ fontWeight: 800, fontFamily: 'Alibaba PuHuiTi 2.0' }}>
+                暂无
+              </span>
+            ) : (
+              <div className="flex items-center gap-[8px]">
+                {displayWorkloads.map((w) => (
+                  <DesignerChip key={w.userId} name={w.userName} days={String(w.manDays)} />
+                ))}
+                {extraCount > 0 && (
+                  <DesignerChip name={`其他${extraCount}人`} days={String(data.cycleWorkloads.slice(4).reduce((s, w) => s + w.manDays, 0))} muted />
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Action buttons — right side, vertically centered with cubes row (y=66 in 152h card) */}
+      <div className="absolute right-[22px] top-[66px] flex items-center" onClick={(e) => e.stopPropagation()}>
+        {isAdmin && (
+          <button
+            onClick={() => !buttonsDisabled && setConfirmAction('complete')}
+            onMouseEnter={() => setConfirmHover(true)}
+            onMouseLeave={() => { setConfirmHover(false); setConfirmActive(false) }}
+            onMouseDown={() => setConfirmActive(true)}
+            onMouseUp={() => setConfirmActive(false)}
+            className="flex h-[52px] w-[52px] items-center justify-center rounded-full"
+            style={{
+              background: !buttonsDisabled && (confirmHover || confirmActive) ? '#8ECA2E2F' : 'transparent',
+              color: '#8ECA2E',
+            }}
+          >
+            <span style={{ opacity: buttonsDisabled ? 0.08 : confirmActive ? 0.4 : 1 }}>
+              <IconConfirm />
+            </span>
+          </button>
+        )}
+        <button
+          onClick={() => !buttonsDisabled && setConfirmAction('delete')}
+          onMouseEnter={() => setDeleteHover(true)}
+          onMouseLeave={() => { setDeleteHover(false); setDeleteActive(false) }}
+          onMouseDown={() => setDeleteActive(true)}
+          onMouseUp={() => setDeleteActive(false)}
+          className="flex h-[52px] w-[52px] items-center justify-center rounded-full"
+          style={{
+            background: !buttonsDisabled && (deleteHover || deleteActive) ? '#FF000017' : 'transparent',
+            color: deleteHover || deleteActive ? '#E91B1B' : '#000000',
+          }}
+        >
+          <span style={{ opacity: buttonsDisabled ? 0.08 : deleteActive ? 0.4 : deleteHover ? 1 : 0.3 }}>
+            <IconDelete />
+          </span>
+        </button>
+      </div>
+
       {confirmAction && (
         <ConfirmDialog
           title={confirmAction === 'delete' ? '删除需求组' : '完成需求组'}
@@ -110,11 +203,23 @@ export default function RequirementCardCollapsed({
   )
 }
 
-function InfoBlock({ label, value }: { label: string; value: string }) {
+function InfoCube({ label, value, labelColor }: { label: string; value: string; labelColor?: string }) {
   return (
-    <div className="rounded bg-gray-50 px-2 py-1">
-      <div className="text-gray-400">{label}</div>
-      <div className="font-medium">{value}</div>
+    <div className="flex h-[80px] w-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD]" style={FONT}>
+      <span className="mt-[14px] text-[12px] leading-[17px]" style={{ fontWeight: 800, color: labelColor || '#A8A8A8' }}>{label}</span>
+      <div className="flex flex-1 items-center justify-center">
+        <span className="text-[16px] leading-[22px] text-black" style={{ fontWeight: 800 }}>{value}</span>
+      </div>
+    </div>
+  )
+}
+
+function DesignerChip({ name, days, muted }: { name: string; days: string; muted?: boolean }) {
+  return (
+    <div className="flex h-[33px] shrink-0 items-center rounded-[8px] border border-[#EEEEEE] bg-white px-[8px]" style={FONT}>
+      <span className="text-[12px] leading-[17px]" style={{ fontWeight: 800, color: muted ? '#D4D4D4' : '#D4D4D4' }}>{name}</span>
+      <span className="mx-[6px] h-[10px] w-px bg-[#00000013]" />
+      <span className="text-[12px] leading-[17px] text-black" style={{ fontWeight: 800 }}>{days}</span>
     </div>
   )
 }
