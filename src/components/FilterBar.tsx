@@ -302,20 +302,20 @@ function DropdownItem({
   const bg = selected || hovered ? '#8ECA2E27' : 'transparent'
   return (
     <button
-      className="flex h-[30px] w-full items-center text-left"
+      className="relative flex h-[30px] w-full items-center justify-center"
       style={{ background: bg, transition: 'background 0.1s' }}
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       {checkbox && (
-        <span className="ml-[8px]">
+        <span className="absolute left-[8px]">
           <CheckboxIcon checked={selected} />
         </span>
       )}
       <span
-        className="truncate text-[12px] leading-[17px] text-black"
-        style={{ fontWeight: 800, marginLeft: checkbox ? 16 : 36, ...FONT }}
+        className="block w-full truncate px-[8px] text-center text-[12px] leading-[17px] text-black"
+        style={{ fontWeight: 800, ...FONT }}
       >
         {label}
       </span>

@@ -89,7 +89,7 @@ export default function RequirementCardCollapsed({
     <div
       data-req-id={String(data.id)}
       onClick={onExpand}
-      className="relative cursor-pointer rounded-[24px] bg-white transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.15)] min-w-[1200px]"
+      className="animate-card-collapse relative cursor-pointer rounded-[24px] bg-white transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.15)] min-w-[1200px]"
       style={{ ...FONT, height: 152, opacity: isComplete ? 0.6 : 1 }}
     >
       {/* Name + info tags — top-left */}

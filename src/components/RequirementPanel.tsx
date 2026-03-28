@@ -42,6 +42,8 @@ export default function RequirementPanel({
   const [pendingExpandId, setPendingExpandId] = useState<number | null>(null)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
   const [showCloseCycleConfirm, setShowCloseCycleConfirm] = useState(false)
+  const [showDraftExistsConfirm, setShowDraftExistsConfirm] = useState(false)
+  const [activeDraftId, setActiveDraftId] = useState<number | null>(null)
   const [cycle, setCycle] = useState<{ id: number; status: string } | null>(null)
   const [filters, setFilters] = useState<Record<string, string[]>>({})
   const [isScrolled, setIsScrolled] = useState(false)
@@ -203,6 +205,12 @@ export default function RequirementPanel({
 
   async function handleCreateRequirement() {
     if (!cycleId) return
+
+    if (activeDraftId) {
+      setShowDraftExistsConfirm(true)
+      return
+    }
+
     const res = await fetch('/api/requirements', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -212,12 +220,38 @@ export default function RequirementPanel({
       const rg = await res.json()
       onRefresh()
       setExpandedId(rg.id)
+      setActiveDraftId(rg.id)
       // Scroll to top to show the new requirement
       setTimeout(() => {
         const container = scrollContainerRef.current
         if (container) container.scrollTop = 0
       }, 0)
     }
+  }
+
+  function handleViewDraft() {
+    if (!activeDraftId) {
+      setShowDraftExistsConfirm(false)
+      return
+    }
+    setExpandedId(activeDraftId)
+    setHasUnsaved(false)
+    setTimeout(() => {
+      const container = scrollContainerRef.current
+      if (!container) return
+      const card = container.querySelector(`[data-req-id="${activeDraftId}"]`) as HTMLElement
+      if (!card) return
+      const containerRect = container.getBoundingClientRect()
+      const cardRect = card.getBoundingClientRect()
+      const scrollTop = container.scrollTop
+      const targetScroll = scrollTop + cardRect.top - containerRect.top - 30
+      container.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' })
+    }, 0)
+    setShowDraftExistsConfirm(false)
+  }
+
+  function handleDraftResolved(id: number) {
+    if (activeDraftId === id) setActiveDraftId(null)
   }
 
   // All designers in current cycle for filter
@@ -241,7 +275,7 @@ export default function RequirementPanel({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className={`relative h-[60px] bg-[#F9F9F9] z-20 ${isScrolled ? ''/* 'after:content-[""] after:absolute after:-bottom-[12px] after:left-0 after:right-0 after:h-[12px] after:bg-gradient-to-b after:from-[rgba(0,0,0,0.08)] after:to-transparent' */ : ''}`}>
         <div className="h-full px-[20px]">
-          <div className="mx-auto h-full w-full max-w-[1200px] flex items-center" style={{ fontFamily: 'Alibaba PuHuiTi 2.0' }}>
+          <div className="mx-auto h-full w-full min-w-[1200px] max-w-[1200px] flex items-center" style={{ fontFamily: 'Alibaba PuHuiTi 2.0' }}>
           <div className="flex items-center">
             <FilterBar
               designers={designers}
@@ -307,6 +341,7 @@ export default function RequirementPanel({
                   onDirtyChange={setHasUnsaved}
                   allRequirements={requirements}
                   onExpandById={(id) => { setHasUnsaved(false); setExpandedId(id) }}
+                  onDraftResolved={handleDraftResolved}
                   pipelineSettings={pipelineSettings}
                 />
               ) : (
@@ -335,6 +370,17 @@ export default function RequirementPanel({
             setShowDiscardConfirm(false)
             setPendingExpandId(null)
           }}
+        />
+      )}
+      {showDraftExistsConfirm && (
+        <ConfirmDialog
+          title="已有新建需求组"
+          message="已有新建需求组，是否继续操作？"
+          onConfirm={handleViewDraft}
+          onCancel={() => setShowDraftExistsConfirm(false)}
+          confirmText="查看"
+          cancelText="取消"
+          confirmClassName="bg-black text-white hover:bg-[#3A3A3A]"
         />
       )}
       {showCloseCycleConfirm && (

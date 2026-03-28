@@ -1,6 +1,6 @@
 'use client'
 import { useSession, signOut } from 'next-auth/react'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import AdminSettingsModal from './AdminSettingsModal'
 
@@ -64,6 +64,146 @@ function IconUser() {
   )
 }
 
+function AccountSettingsModal({
+  initialName,
+  onClose,
+  onUpdated,
+}: {
+  initialName: string
+  onClose: () => void
+  onUpdated: (name: string) => Promise<void>
+}) {
+  const [name, setName] = useState(initialName)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  async function handleSave() {
+    const trimmedName = name.trim()
+    const payload: Record<string, string> = {}
+
+    if (trimmedName !== initialName) {
+      payload.name = trimmedName
+    }
+
+    const wantsPasswordChange = Boolean(currentPassword || newPassword || confirmPassword)
+    if (wantsPasswordChange) {
+      payload.currentPassword = currentPassword
+      payload.newPassword = newPassword
+      payload.confirmPassword = confirmPassword
+    }
+
+    if (Object.keys(payload).length === 0) {
+      setError('没有可更新内容')
+      setSuccess('')
+      return
+    }
+
+    setIsSaving(true)
+    setError('')
+    setSuccess('')
+
+    const res = await fetch('/api/account', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    const result = await res.json()
+
+    if (!res.ok) {
+      setError(result.error || '保存失败')
+      setIsSaving(false)
+      return
+    }
+
+    await onUpdated(result.name)
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+    setSuccess('保存成功')
+    setIsSaving(false)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+      <div className="w-[420px] rounded-[12px] bg-white p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-[18px] font-black text-black">账户设置</h3>
+        <div className="mt-4 space-y-4">
+          <label className="block">
+            <div className="mb-1 text-sm font-bold text-[#666]">姓名</div>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="h-10 w-full rounded-[8px] border border-[#E5E5E5] px-3 text-sm outline-none focus:border-[#8ECA2E]"
+              placeholder="请输入姓名"
+            />
+          </label>
+
+          <label className="block">
+            <div className="mb-1 text-sm font-bold text-[#666]">当前密码</div>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="h-10 w-full rounded-[8px] border border-[#E5E5E5] px-3 text-sm outline-none focus:border-[#8ECA2E]"
+              placeholder="如需修改密码请填写"
+            />
+          </label>
+
+          <label className="block">
+            <div className="mb-1 text-sm font-bold text-[#666]">新密码</div>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="h-10 w-full rounded-[8px] border border-[#E5E5E5] px-3 text-sm outline-none focus:border-[#8ECA2E]"
+              placeholder="不少于8位"
+            />
+          </label>
+
+          <label className="block">
+            <div className="mb-1 text-sm font-bold text-[#666]">确认新密码</div>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="h-10 w-full rounded-[8px] border border-[#E5E5E5] px-3 text-sm outline-none focus:border-[#8ECA2E]"
+              placeholder="再次输入新密码"
+            />
+          </label>
+
+          <p className="text-xs text-[#999]">修改姓名会影响你的登录名。</p>
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          {success && <p className="text-sm text-[#2D9F45]">{success}</p>}
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="h-9 rounded-[8px] px-4 text-sm text-[#666] hover:bg-[#F5F5F5]"
+            disabled={isSaving}
+          >
+            取消
+          </button>
+          <button
+            onClick={handleSave}
+            className="h-9 rounded-[8px] bg-black px-4 text-sm font-bold text-white hover:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
+            disabled={isSaving}
+          >
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ---------- Header ---------- */
 
 export default function Header({
@@ -73,12 +213,35 @@ export default function Header({
   searchQuery: string
   onSearchChange: (q: string) => void
 }) {
-  const { data: session } = useSession()
+  const { data: session, update } = useSession()
   const [showSettings, setShowSettings] = useState(false)
+  const [showAccountSettings, setShowAccountSettings] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
   const isAdmin = session?.user?.role === 'ADMIN'
+
+  useEffect(() => {
+    if (!showUserMenu) return
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!userMenuRef.current) return
+      if (!userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showUserMenu])
+
+  async function handleAccountUpdated(name: string) {
+    await update({ name })
+  }
+
+  async function handleSignOut() {
+    await signOut({ callbackUrl: '/login' })
+  }
 
   const hasValue = searchQuery.length > 0
   // border color: focused/hasValue → green, hovered → green, default → #F3F3F3
@@ -151,19 +314,52 @@ export default function Header({
       </div>
 
       {/* right: user */}
-      <div className="ml-auto flex items-center" style={{ marginRight: 24 }}>
-        <span
-          className="text-[16px] leading-[22px] text-[#999999]"
-          style={{ fontWeight: 800, letterSpacing: '-1px', textAlign: 'right' }}
+      <div className="ml-auto" style={{ marginRight: 24 }} ref={userMenuRef}>
+        <button
+          className="flex items-center"
+          onClick={() => setShowUserMenu((v) => !v)}
+          aria-label="用户菜单"
         >
-          Hi, {session?.user?.name}
-        </span>
-        <span className="ml-[8px]">
-          <IconUser />
-        </span>
+          <span
+            className="text-[16px] leading-[22px] text-[#999999]"
+            style={{ fontWeight: 800, letterSpacing: '-1px', textAlign: 'right' }}
+          >
+            Hi, {session?.user?.name}
+          </span>
+          <span className="ml-[8px]">
+            <IconUser />
+          </span>
+        </button>
+
+        {showUserMenu && (
+          <div className="absolute right-6 top-[58px] z-40 w-[140px] rounded-[10px] border border-[#ECECEC] bg-white py-1 shadow-[0_8px_20px_rgba(0,0,0,0.08)]">
+            <button
+              className="block h-10 w-full px-4 text-left text-sm font-bold text-black hover:bg-[#F5F5F5]"
+              onClick={() => {
+                setShowUserMenu(false)
+                setShowAccountSettings(true)
+              }}
+            >
+              账户设置
+            </button>
+            <button
+              className="block h-10 w-full px-4 text-left text-sm font-bold text-black hover:bg-[#F5F5F5]"
+              onClick={handleSignOut}
+            >
+              退出
+            </button>
+          </div>
+        )}
       </div>
 
       {showSettings && <AdminSettingsModal onClose={() => setShowSettings(false)} />}
+      {showAccountSettings && (
+        <AccountSettingsModal
+          initialName={session?.user?.name || ''}
+          onClose={() => setShowAccountSettings(false)}
+          onUpdated={handleAccountUpdated}
+        />
+      )}
     </header>
   )
 }

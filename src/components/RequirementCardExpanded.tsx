@@ -40,6 +40,7 @@ export default function RequirementCardExpanded({
   onDirtyChange,
   allRequirements,
   onExpandById,
+  onDraftResolved,
   pipelineSettings,
 }: {
   data: RequirementData
@@ -50,6 +51,7 @@ export default function RequirementCardExpanded({
   onDirtyChange: (dirty: boolean) => void
   allRequirements: RequirementData[]
   onExpandById: (id: number) => void
+  onDraftResolved: (id: number) => void
   pipelineSettings: PipelineSettingData[]
 }) {
   const { data: session } = useSession()
@@ -77,6 +79,7 @@ export default function RequirementCardExpanded({
   const [nameFocused, setNameFocused] = useState(false)
   const [decreaseAnim, setDecreaseAnim] = useState<number | null>(null)
   const [increaseAnim, setIncreaseAnim] = useState<number | null>(null)
+  const [isCollapsing, setIsCollapsing] = useState(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => { onDirtyChange(dirty) }, [dirty, onDirtyChange])
@@ -121,6 +124,15 @@ export default function RequirementCardExpanded({
     if (!dirty) setDirty(true)
   }
 
+  function collapseWithAnimation(after?: () => void) {
+    if (isCollapsing) return
+    setIsCollapsing(true)
+    setTimeout(() => {
+      after?.()
+      onCollapse()
+    }, 100)
+  }
+
   async function handleSubmit() {
     setTriedSubmit(true)
     if (!name.trim() || !rating || !module || !pipeline || !budgetItem) return
@@ -149,21 +161,23 @@ export default function RequirementCardExpanded({
     })
 
     onRefresh()
-    onCollapse()
+    onDraftResolved(data.id)
+    collapseWithAnimation()
   }
 
   async function handleDelete() {
     await fetch(`/api/requirements/${data.id}`, { method: 'DELETE' })
     setConfirmAction(null)
     onRefresh()
-    onCollapse()
+    onDraftResolved(data.id)
+    collapseWithAnimation()
   }
 
   async function handleComplete() {
     await fetch(`/api/requirements/${data.id}/complete`, { method: 'PATCH' })
     setConfirmAction(null)
     onRefresh()
-    onCollapse()
+    collapseWithAnimation()
   }
 
   function toggleType(t: string) {
@@ -179,27 +193,40 @@ export default function RequirementCardExpanded({
   ], [data])
 
   return (
-    <div data-req-id={String(data.id)} ref={cardRef} className="mx-auto max-w-[1200px] min-w-[1200px] rounded-[24px] bg-white px-[20px] pb-[30px] pt-[20px] shadow-[0_0_8px_0_rgba(0,0,0,0.15)]" style={FONT}>
+    <div data-req-id={String(data.id)} ref={cardRef} className={`${isCollapsing ? 'animate-card-fold-up' : 'animate-card-expand'} mx-auto max-w-[1200px] min-w-[1200px] rounded-[24px] bg-white px-[20px] pb-[30px] pt-[20px] shadow-[0_0_8px_0_rgba(0,0,0,0.15)]`} style={FONT}>
       {/* 需求名称区域: 标题+输入框+信息方块 一行布局 */}
-      <div className="flex items-center gap-[10px]">
-        <SectionTitle icon="name" text="需求名称" weight={800} />
-        <div className="flex w-full max-w-[600px] min-w-[240px] items-center">
-          <div className={`relative h-[42px] w-full rounded-[8px] border ${nameInvalid ? 'bg-[rgba(255,0,0,0.08)] shadow-[0_0_3px_rgba(0,0,0,0.06)]' : 'bg-white'}`} style={{ borderColor: nameInvalid ? '#FF7D7D' : nameFocused ? GREEN : '#F3F3F3' }}>
-            <input
-              value={name}
-              disabled={!userEditable}
-              onFocus={() => setNameFocused(true)}
-              onBlur={() => setNameFocused(false)}
-              onChange={(e) => { setName(e.target.value); markDirty() }}
-              placeholder="请输入需求组名称"
-              className="h-full w-full bg-transparent px-[10px] pr-[40px] text-[16px] leading-[22px] text-black placeholder:text-black/20 outline-none"
-              style={{ fontWeight: 900, letterSpacing: '-1px' }}
-            />
-            <span className="absolute right-[10px] top-1/2 -translate-y-1/2 text-[#C8C8C8]">◌</span>
+      <div className="flex items-start">
+        <div className="w-[600px]">
+          <div className="ml-[9px]">
+            <SectionTitle icon="name" text="需求名称" weight={800} />
           </div>
-          <span className="ml-[8px] text-[12px] text-[#FF0000]">*</span>
+          <div className="mt-[10px] flex items-center">
+            <div className={`relative h-[42px] w-[600px] rounded-[8px] border ${nameInvalid ? 'bg-[rgba(255,0,0,0.08)] shadow-[0_0_3px_rgba(0,0,0,0.06)]' : 'bg-white'}`} style={{ borderColor: nameInvalid ? '#FF7D7D' : nameFocused ? GREEN : '#F3F3F3' }}>
+              <input
+                value={name}
+                disabled={!userEditable}
+                onFocus={() => setNameFocused(true)}
+                onBlur={() => setNameFocused(false)}
+                onChange={(e) => { setName(e.target.value); markDirty() }}
+                placeholder="请输入需求组名称"
+                className="h-full w-full bg-transparent px-[10px] pr-[40px] text-[16px] leading-[22px] text-black placeholder:text-black/20 outline-none"
+                style={{ fontWeight: 900, letterSpacing: '-1px' }}
+              />
+              {userEditable && name.length > 0 && (
+                <button
+                  type="button"
+                  aria-label="清空需求组名称"
+                  onClick={() => { setName(''); markDirty() }}
+                  className="absolute right-[10px] top-1/2 -translate-y-1/2"
+                >
+                  <img src="/clear-input-icon.svg" alt="" aria-hidden="true" className="h-[18px] w-[18px]" />
+                </button>
+              )}
+            </div>
+            <span className="ml-[12px] text-[12px] text-[#FF0000]">*</span>
+          </div>
         </div>
-        <div className="ml-auto flex gap-[8px]">
+        <div className="ml-auto flex gap-[9px]">
           {readonlyCubes.map((c) => (
             <ReadonlyCube key={c.label} label={c.label} value={c.value} valueColor={c.color} />
           ))}
@@ -248,17 +275,17 @@ export default function RequirementCardExpanded({
           )}
         </EditableCube>
 
-        <EditableCube label="类型" isOpen={openMenu === 'types'} isEmpty={types.length === 0} width={240}>
-          <SelectTrigger width={224} value={types.join(' / ')} isOpen={openMenu === 'types'} onToggle={() => userEditable && setOpenMenu(openMenu === 'types' ? null : 'types')} />
+        <EditableCube label="类型" isOpen={openMenu === 'types'} isEmpty={types.length === 0} width={200}>
+          <SelectTrigger width={184} value={types.join(' / ')} isOpen={openMenu === 'types'} onToggle={() => userEditable && setOpenMenu(openMenu === 'types' ? null : 'types')} />
           {openMenu === 'types' && userEditable && (
-            <MenuMulti width={224} value={types.join(' / ')} options={TYPES as readonly string[]} selected={types} onToggle={(v) => toggleType(v)} />
+            <MenuMulti width={184} value={types.join(' / ')} options={TYPES as readonly string[]} selected={types} onToggle={(v) => toggleType(v)} />
           )}
         </EditableCube>
 
-        <EditableCube label="预算项" required invalid={budgetInvalid} isOpen={openMenu === 'budgetItem'} isEmpty={!budgetItem} width={240}>
-          <SelectTrigger width={224} value={budgetItem} isOpen={openMenu === 'budgetItem'} onToggle={() => userEditable && setOpenMenu(openMenu === 'budgetItem' ? null : 'budgetItem')} invalid={budgetInvalid} truncate />
+        <EditableCube label="预算项" required invalid={budgetInvalid} isOpen={openMenu === 'budgetItem'} isEmpty={!budgetItem} width={280}>
+          <SelectTrigger width={264} value={budgetItem} isOpen={openMenu === 'budgetItem'} onToggle={() => userEditable && setOpenMenu(openMenu === 'budgetItem' ? null : 'budgetItem')} invalid={budgetInvalid} truncate />
           {openMenu === 'budgetItem' && userEditable && (
-            <MenuSingle width={224} value={budgetItem} options={budgetOptions} selected={budgetItem} onPick={(v) => { setBudgetItem(v); setOpenMenu(null); markDirty() }} />
+            <MenuSingle width={264} value={budgetItem} options={budgetOptions} selected={budgetItem} onPick={(v) => { setBudgetItem(v); setOpenMenu(null); markDirty() }} />
           )}
         </EditableCube>
       </div>
@@ -268,7 +295,7 @@ export default function RequirementCardExpanded({
       <div className="mt-[20px]">
         <SectionTitle icon="designers" text="参与设计师" weight={800} />
       </div>
-      <div className="mt-[12px] min-h-[40px]">
+      <div className="mt-[12px] min-h-[33px]">
         {data.cycleWorkloads.length === 0 ? (
           <div className="flex w-full items-center justify-center py-[8px] text-[14px]" style={{ fontWeight: 800, fontFamily: 'Alibaba PuHuiTi 2.0', color: '#C3C3C3' }}>
             暂无设计师参与，怎么回事
@@ -288,7 +315,7 @@ export default function RequirementCardExpanded({
         <SectionTitle icon="mine" text="你的投入" weight={900} />
       </div>
 
-      <div className="mt-[12px] flex items-end justify-between">
+      <div className="mt-[20px] flex items-end justify-between">
         <div className="relative flex h-[60px] w-[176px] items-center rounded-[8px] bg-white px-[12px] shadow-[0_0_5px_0_rgba(0,0,0,0.1)]">
           {/* Decrease button with animation */}
           <div className="relative">
@@ -318,36 +345,40 @@ export default function RequirementCardExpanded({
 
           {/* Increase button with animation */}
           <div className="relative">
-            <StepButton onClick={() => { setManDays((v) => round1(v + 0.1)); markDirty(); triggerIncreaseAnim() }} disabled={!userEditable}>🍗</StepButton>
+            <StepButton onClick={() => { setManDays((v) => round1(v + 0.1)); markDirty(); triggerIncreaseAnim() }} disabled={!userEditable}>
+              <span className="inline-block scale-y-[-1]">🍗</span>
+            </StepButton>
             {increaseAnim && (
               <span
                 key={increaseAnim}
                 className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-[4px] text-[16px] animate-fade-out"
                 style={{ fontWeight: 800, color: '#8ECA2E' }}
               >
-                🍗
+                <span className="inline-block scale-y-[-1]">🍗</span>
               </span>
             )}
           </div>
         </div>
 
         <div className="flex items-end gap-[8px]">
-          {isAdmin && data.status !== 'COMPLETE' && (
-            <ActionIconButton type="confirm" disabled={!userEditable} onClick={() => setConfirmAction('complete')} />
-          )}
-          <ActionIconButton type="delete" disabled={!userEditable} onClick={() => setConfirmAction('delete')} />
+          <div className="flex h-[60px] items-center gap-[8px]">
+            {isAdmin && data.status !== 'COMPLETE' && (
+              <ActionIconButton type="confirm" disabled={!userEditable} onClick={() => setConfirmAction('complete')} />
+            )}
+            <ActionIconButton type="delete" disabled={!userEditable} onClick={() => setConfirmAction('delete')} />
+          </div>
 
           <button
-            onClick={() => (dirty ? setConfirmAction('cancel') : onCollapse())}
+            onClick={() => (dirty ? setConfirmAction('cancel') : collapseWithAnimation(() => onDraftResolved(data.id)))}
             className="h-[60px] w-[159px] rounded-[12px] bg-[#F2F2F2] text-[18px] leading-[25px] text-black hover:shadow-[0_0_8px_0_rgba(0,0,0,0.25)] active:bg-[#E5E5E5]"
             style={{ fontWeight: 900 }}
           >
             取消
           </button>
 
-          <div className="flex flex-col items-center gap-[8px]">
+          <div className="relative flex h-[60px] w-[159px] items-center justify-center">
             {data.lastSubmittedAt && (
-              <div className="flex items-center text-[12px] text-black/30" style={{ fontWeight: 500, letterSpacing: '-0.75px' }}>
+              <div className="absolute bottom-[68px] left-1/2 flex -translate-x-1/2 items-center whitespace-nowrap text-[12px] text-black/30" style={{ fontWeight: 500, letterSpacing: '-0.75px' }}>
                 <span className="mr-[4px]"><ClockIcon /></span>
                 {new Date(data.lastSubmittedAt).toLocaleString('zh-CN', {
                   year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -374,7 +405,7 @@ export default function RequirementCardExpanded({
         <ConfirmDialog
           title={confirmAction === 'delete' ? '删除需求组' : confirmAction === 'complete' ? '完成需求组' : '放弃修改'}
           message={confirmAction === 'delete' ? '确定删除该需求组？此操作不可撤销。' : confirmAction === 'complete' ? '确定标记该需求组为完成？' : '有未保存的修改，确定放弃？'}
-          onConfirm={confirmAction === 'delete' ? handleDelete : confirmAction === 'complete' ? handleComplete : () => { setConfirmAction(null); onCollapse() }}
+          onConfirm={confirmAction === 'delete' ? handleDelete : confirmAction === 'complete' ? handleComplete : () => { setConfirmAction(null); collapseWithAnimation(() => onDraftResolved(data.id)) }}
           onCancel={() => setConfirmAction(null)}
         />
       )}
@@ -436,19 +467,33 @@ function EditableCube({ label, width, required, invalid, isOpen, isEmpty, childr
   )
 }
 
+function fitDropdownTextSize(text: string, width: number) {
+  const available = Math.max(width - 48, 40)
+  const units = [...text].reduce((sum, ch) => sum + (/^[\x20-\x7E]$/.test(ch) ? 0.55 : 1), 0)
+  const size = Math.floor(available / Math.max(units, 1))
+  return Math.max(10, Math.min(16, size))
+}
+
 function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onToggle, invalid, truncate }: { width: number; value: string; placeholder?: string; isOpen: boolean; onToggle: () => void; invalid?: boolean; truncate?: boolean }) {
   const borderColor = invalid ? '#FF7D7D' : isOpen ? 'transparent' : '#EEEEEE'
   const boxShadow = invalid ? '0 0 3px rgba(0,0,0,0.06)' : isOpen ? 'none' : '0 0 3px rgba(0,0,0,0.1)'
+  const displayText = value || placeholder
+  const fontSize = fitDropdownTextSize(displayText, width)
   return (
     <button
       type="button"
       data-dropdown-root="true"
       onClick={onToggle}
-      className={`relative z-10 flex h-[36px] items-center rounded-[8px] border bg-white px-[10px] text-[16px] leading-[22px] hover:border-[#8ECA2E] hover:shadow-none ${truncate ? 'overflow-hidden' : ''}`}
+      className={`relative z-10 h-[36px] rounded-[8px] border bg-white px-[10px] hover:border-[#8ECA2E] hover:shadow-none ${truncate ? 'overflow-hidden' : ''}`}
       style={{ width, borderColor, boxShadow, backgroundColor: invalid ? 'rgba(255,0,0,0.08)' : '#FFFFFF', fontWeight: 800 }}
     >
-      <span className={`flex-1 text-center ${truncate ? 'truncate' : ''}`} style={{ color: value ? undefined : '#C3C3C3' }}>{value || placeholder}</span>
-      <span className="ml-[8px]"><ArrowIcon flipped={isOpen} /></span>
+      <span
+        className="pointer-events-none absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center leading-[22px]"
+        style={{ color: value ? undefined : '#C3C3C3', fontSize }}
+      >
+        {displayText}
+      </span>
+      <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon flipped={isOpen} /></span>
     </button>
   )
 }
@@ -457,15 +502,20 @@ function MenuSingle({ width, value, options, selected, onPick }: { width: number
   return (
     <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 min-w-[104px] overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid #8ECA2E', width }}>
       {/* Trigger clone (arrow flipped) */}
-      <div className="flex h-[36px] items-center px-[10px]">
-        <span className="flex-1 text-center text-[16px] leading-[22px]" style={{ fontWeight: 800 }}>{value}</span>
-        <span className="ml-[8px]"><ArrowIcon flipped /></span>
+      <div className="relative h-[36px] px-[10px]">
+        <span
+          className="pointer-events-none absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center text-[16px] leading-[22px]"
+          style={{ fontWeight: 800 }}
+        >
+          {value}
+        </span>
+        <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon flipped /></span>
       </div>
       <div className="h-px bg-[#0000000B] mx-px" />
       {/* Options */}
       <div>
         {options.map((opt) => (
-          <button key={opt} onClick={() => onPick(opt)} className={`flex h-[30px] w-full items-center justify-center text-[12px] ${selected === opt ? 'bg-[rgba(142,202,46,0.15)]' : 'hover:bg-[rgba(142,202,46,0.15)]'}`} style={{ fontWeight: 800 }}>
+          <button key={opt} onClick={() => onPick(opt)} className={`flex h-[30px] w-full items-center justify-center text-[14px] ${selected === opt ? 'bg-[rgba(142,202,46,0.15)]' : 'hover:bg-[rgba(142,202,46,0.15)]'}`} style={{ fontWeight: 800 }}>
             {opt}
           </button>
         ))}
@@ -476,11 +526,16 @@ function MenuSingle({ width, value, options, selected, onPick }: { width: number
 
 function MenuMulti({ width, value, options, selected, onToggle }: { width: number; value: string; options: readonly string[]; selected: string[]; onToggle: (v: string) => void }) {
   return (
-    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 min-w-[224px] overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid #8ECA2E', width }}>
+    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid #8ECA2E', width }}>
       {/* Trigger clone (arrow flipped) */}
-      <div className="flex h-[36px] items-center px-[10px]">
-        <span className="flex-1 text-center text-[16px] leading-[22px] truncate" style={{ fontWeight: 800 }}>{value}</span>
-        <span className="ml-[8px] shrink-0"><ArrowIcon flipped /></span>
+      <div className="relative h-[36px] px-[10px]">
+        <span
+          className="pointer-events-none absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center text-[16px] leading-[22px]"
+          style={{ fontWeight: 800 }}
+        >
+          {value}
+        </span>
+        <span className="absolute right-[10px] top-1/2 -translate-y-1/2 shrink-0"><ArrowIcon flipped /></span>
       </div>
       <div className="h-px bg-[#0000000B] mx-px" />
       {/* Options */}
@@ -488,7 +543,7 @@ function MenuMulti({ width, value, options, selected, onToggle }: { width: numbe
         {options.map((opt) => {
           const checked = selected.includes(opt)
           return (
-            <button key={opt} onClick={() => onToggle(opt)} className={`flex h-[30px] w-full items-center px-[8px] text-[12px] ${checked ? 'bg-[rgba(142,202,46,0.15)]' : 'hover:bg-[rgba(142,202,46,0.15)]'}`}>
+            <button key={opt} onClick={() => onToggle(opt)} className={`flex h-[30px] w-full items-center px-[8px] text-[14px] ${checked ? 'bg-[rgba(142,202,46,0.15)]' : 'hover:bg-[rgba(142,202,46,0.15)]'}`}>
               <span className="mr-[8px] flex h-[12px] w-[12px] items-center justify-center rounded-[4px] border border-[#EEEEEE] bg-[#FDFDFD]">
                 {checked && <span className="h-[6px] w-[6px] rounded-[1px] bg-[#8ECA2E]" />}
               </span>
@@ -542,7 +597,7 @@ function StepButton({ children, onClick, disabled }: { children: React.ReactNode
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex h-[36px] w-[36px] items-center justify-center text-[24px] leading-none text-black/80 disabled:text-black/20 transition-transform duration-100 hover:scale-[1.05] active:scale-[0.95]"
+      className="flex h-[36px] w-[36px] items-center justify-center text-[24px] leading-none text-black/80 disabled:text-black/20 transition-transform duration-100 hover:scale-[1.2] active:scale-[0.95]"
       style={{ fontWeight: 300 }}
     >
       {children}

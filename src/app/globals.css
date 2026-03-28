@@ -58,6 +58,54 @@ input.no-spin[type='number'] {
   animation: fadeOut 1s ease-out forwards;
 }
 
+@keyframes cardExpandIn {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes cardCollapseIn {
+  0% {
+    opacity: 0;
+    transform: scaleY(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes cardFoldUpOut {
+  0% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(0.92);
+  }
+}
+
+.animate-card-expand {
+  transform-origin: top center;
+  animation: cardExpandIn 120ms ease-out;
+}
+
+.animate-card-collapse {
+  transform-origin: top center;
+  animation: cardCollapseIn 100ms ease-out;
+}
+
+.animate-card-fold-up {
+  transform-origin: top center;
+  animation: cardFoldUpOut 100ms ease-in forwards;
+}
+
 /* Scrollbar auto-hide with smooth scrolling */
 .auto-hide-scrollbar {
   scrollbar-width: thin;
