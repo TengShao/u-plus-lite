@@ -51,11 +51,15 @@ export default function RequirementPanel({
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const scrollbarTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [pipelineSettings, setPipelineSettings] = useState<PipelineSettingData[]>([])
+  const [fadeInKey, setFadeInKey] = useState(0)
   const isAdmin = session?.user?.role === 'ADMIN'
 
+  // Trigger staggered fade-in animation when new cycle's requirements load
   useEffect(() => {
-    fetch('/api/settings').then((r) => r.json()).then(setPipelineSettings)
-  }, [])
+    if (requirements.length > 0) {
+      setFadeInKey((k) => k + 1)
+    }
+  }, [cycleId]) // only fire on actual cycle switch (not refresh)
 
   useEffect(() => {
     if (!cycleId) return
@@ -329,10 +333,17 @@ export default function RequirementPanel({
           <div className="mx-auto flex h-full w-full max-w-[1200px] items-center justify-center" style={{ color: '#C3C3C3' }}>暂无需求组</div>
         ) : (
           <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-[20px]">
-            {filtered.map((rg) =>
-              expandedId === rg.id ? (
+            {filtered.map((rg, i) =>
+              <div
+                key={`${fadeInKey}-${rg.id}`}
+                style={{
+                  animation: `reqFadeIn 100ms ease-out forwards`,
+                  animationDelay: `${i * 50}ms`,
+                  opacity: 0,
+                }}
+              >
+              {expandedId === rg.id ? (
                 <RequirementCardExpanded
-                  key={rg.id}
                   data={rg}
                   cycleId={cycleId}
                   cycleStatus={cycle?.status || 'OPEN'}
@@ -346,13 +357,13 @@ export default function RequirementPanel({
                 />
               ) : (
                 <RequirementCardCollapsed
-                  key={rg.id}
                   data={rg}
                   cycleStatus={cycle?.status || 'OPEN'}
                   onExpand={() => handleExpand(rg.id)}
                   onRefresh={onRefresh}
                 />
-              )
+              )}
+              </div>
             )}
           </div>
         )}

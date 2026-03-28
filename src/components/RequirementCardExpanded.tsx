@@ -469,7 +469,7 @@ function EditableCube({ label, width, required, invalid, isOpen, isEmpty, childr
 
 function fitDropdownTextSize(text: string, width: number) {
   const available = Math.max(width - 48, 40)
-  const units = [...text].reduce((sum, ch) => sum + (/^[\x20-\x7E]$/.test(ch) ? 0.55 : 1), 0)
+  const units = text.split('').reduce((sum, ch) => sum + (/^[\x20-\x7E]$/.test(ch) ? 0.55 : 1), 0)
   const size = Math.floor(available / Math.max(units, 1))
   return Math.max(10, Math.min(16, size))
 }
