@@ -11,6 +11,15 @@ REPO_URL="git@github.com:TengShao/u-plus-lite.git"
 DIR_NAME="u-plus-lite"
 TARGET_DIR="$HOME/$DIR_NAME"
 
+# 自动检测可用端口（从 3000 开始）
+find_port() {
+    local port=3000
+    while lsof -i :$port >/dev/null 2>&1; do
+        port=$((port + 1))
+    done
+    echo $port
+}
+
 echo "=========================================="
 echo " U-Minus 一键部署脚本"
 echo "=========================================="
@@ -54,10 +63,14 @@ echo ""
 echo "[6/6] 启动服务..."
 npm install -g pm2 --silent 2>/dev/null || true
 
+# 检测可用端口
+PORT=$(find_port)
+echo "检测到可用端口：$PORT"
+
 # 如果之前有运行中的实例，先停止
 pm2 delete u-plus-lite 2>/dev/null || true
 
-pm2 start npm -- start --name u-plus-lite
+PORT=$PORT pm2 start npm -- start --name u-plus-lite
 pm2 save
 
 # 获取局域网 IP
@@ -71,13 +84,13 @@ echo "=========================================="
 echo " 部署完成！"
 echo "=========================================="
 echo ""
-echo "局域网访问地址：http://$LOCAL_IP:3000"
+echo "局域网访问地址：http://$LOCAL_IP:$PORT"
 echo ""
 echo "管理员账号：邵腾"
 echo "管理员密码：88888888"
 echo ""
 echo "常用命令："
-echo "  pm2 status          查看状态"
-echo "  pm2 logs u-plus-lite  查看日志"
-echo "  pm2 restart u-plus-lite  重启"
+echo "  pm2 status              查看状态"
+echo "  pm2 logs u-plus-lite   查看日志"
+echo "  pm2 restart u-plus-lite 重启"
 echo "=========================================="
