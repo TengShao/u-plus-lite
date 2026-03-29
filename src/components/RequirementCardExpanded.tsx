@@ -42,6 +42,11 @@ export default function RequirementCardExpanded({
   onExpandById,
   onDraftResolved,
   pipelineSettings,
+  onDeleteRequest,
+  onDiscardRequest,
+  onDuplicateRequest,
+  onCompleteRequest,
+  isDraft,
 }: {
   data: RequirementData
   cycleId: number
@@ -53,6 +58,12 @@ export default function RequirementCardExpanded({
   onExpandById: (id: number) => void
   onDraftResolved: (id: number) => void
   pipelineSettings: PipelineSettingData[]
+  onDeleteRequest: (id: number) => void
+  onDiscardRequest: (id: number) => void
+  onDuplicateRequest?: (id: number, name: string) => void
+  onCompleteRequest?: (id: number) => void
+  defaultPipeline?: string | null
+  isDraft?: boolean
 }) {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'
@@ -61,7 +72,7 @@ export default function RequirementCardExpanded({
   const [name, setName] = useState(data.name)
   const [rating, setRating] = useState(data.rating || '')
   const [module, setModule] = useState(data.module || '')
-  const [pipeline, setPipeline] = useState(data.pipeline || '')
+  const [pipeline, setPipeline] = useState(data.pipeline || defaultPipeline || '')
   const [types, setTypes] = useState<string[]>(data.types || [])
   const [budgetItem, setBudgetItem] = useState(data.budgetItem || '')
   const [canClose, setCanClose] = useState(data.canClose)
@@ -71,12 +82,12 @@ export default function RequirementCardExpanded({
   const myWorkload = data.cycleWorkloads.find((w) => w.userId === userId)
   const [manDays, setManDays] = useState(myWorkload?.manDays ?? 0)
 
-  const [confirmAction, setConfirmAction] = useState<'cancel' | 'delete' | 'complete' | null>(null)
-  const [duplicateId, setDuplicateId] = useState<number | null>(null)
   const [dirty, setDirty] = useState(false)
   const [triedSubmit, setTriedSubmit] = useState(false)
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null)
   const [nameFocused, setNameFocused] = useState(false)
+  const [nameHovered, setNameHovered] = useState(false)
+  const [triggerHovered, setTriggerHovered] = useState<string | null>(null)
   const [decreaseAnim, setDecreaseAnim] = useState<number | null>(null)
   const [increaseAnim, setIncreaseAnim] = useState<number | null>(null)
   const [isCollapsing, setIsCollapsing] = useState(false)
@@ -135,13 +146,19 @@ export default function RequirementCardExpanded({
 
   async function handleSubmit() {
     setTriedSubmit(true)
-    if (!name.trim() || !rating || !module || !pipeline || !budgetItem) return
 
-    const dup = allRequirements.find((r) => r.id !== data.id && r.name.trim() === name.trim())
-    if (dup) {
-      setDuplicateId(dup.id)
-      return
+    // Check for duplicate name first
+    if (name.trim()) {
+      const dup = allRequirements.find((r) => r.id !== data.id && r.name.trim() === name.trim())
+      if (dup) {
+        if (onDuplicateRequest) {
+          onDuplicateRequest(dup.id, dup.name)
+        }
+        return
+      }
     }
+
+    if (!name.trim() || !rating || !module || !pipeline || !budgetItem) return
 
     const res = await fetch(`/api/requirements/${data.id}`, {
       method: 'PATCH',
@@ -173,13 +190,6 @@ export default function RequirementCardExpanded({
     collapseWithAnimation()
   }
 
-  async function handleComplete() {
-    await fetch(`/api/requirements/${data.id}/complete`, { method: 'PATCH' })
-    setConfirmAction(null)
-    onRefresh()
-    collapseWithAnimation()
-  }
-
   function toggleType(t: string) {
     setTypes((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t])
     markDirty()
@@ -201,7 +211,12 @@ export default function RequirementCardExpanded({
             <SectionTitle icon="name" text="需求名称" weight={800} />
           </div>
           <div className="mt-[10px] flex items-center">
-            <div className={`relative h-[42px] w-[600px] rounded-[8px] border ${nameInvalid ? 'bg-[rgba(255,0,0,0.08)] shadow-[0_0_3px_rgba(0,0,0,0.06)]' : 'bg-white'}`} style={{ borderColor: nameInvalid ? '#FF7D7D' : nameFocused ? GREEN : '#F3F3F3' }}>
+            <div
+              className={`relative h-[42px] w-[600px] rounded-[8px] border ${nameInvalid ? 'bg-[rgba(255,0,0,0.08)] shadow-[0_0_3px_rgba(0,0,0,0.06)]' : 'bg-white'}`}
+              style={{ borderColor: nameInvalid ? '#FF7D7D' : nameFocused ? GREEN : nameHovered ? GREEN : '#F3F3F3', transition: 'border-color 0.15s' }}
+              onMouseEnter={() => setNameHovered(true)}
+              onMouseLeave={() => setNameHovered(false)}
+            >
               <input
                 value={name}
                 disabled={!userEditable}
@@ -209,8 +224,9 @@ export default function RequirementCardExpanded({
                 onBlur={() => setNameFocused(false)}
                 onChange={(e) => { setName(e.target.value); markDirty() }}
                 placeholder="请输入需求组名称"
+                autoFocus={isDraft}
                 className="h-full w-full bg-transparent px-[10px] pr-[40px] text-[16px] leading-[22px] text-black placeholder:text-black/20 outline-none"
-                style={{ fontWeight: 900, letterSpacing: '-1px' }}
+                style={{ fontWeight: 900 }}
               />
               {userEditable && name.length > 0 && (
                 <button
@@ -240,6 +256,13 @@ export default function RequirementCardExpanded({
       </div>
 
       <div className="mt-[10px] flex gap-[8px]">
+        <EditableCube label="管线" required invalid={pipelineInvalid} isOpen={openMenu === 'pipeline'} isEmpty={!pipeline} width={160}>
+          <SelectTrigger width={144} value={pipeline} isOpen={openMenu === 'pipeline'} onToggle={() => userEditable && setOpenMenu(openMenu === 'pipeline' ? null : 'pipeline')} invalid={pipelineInvalid} isHovered={triggerHovered === 'pipeline'} onMouseEnter={() => setTriggerHovered('pipeline')} onMouseLeave={() => setTriggerHovered(null)} />
+          {openMenu === 'pipeline' && userEditable && (
+            <MenuSingle width={144} value={pipeline} options={pipelineOptions as readonly string[]} selected={pipeline} onPick={(v) => { setPipeline(v); setBudgetItem(''); setOpenMenu(null); markDirty() }} />
+          )}
+        </EditableCube>
+
         <EditableCube label="评级" required invalid={ratingInvalid} isOpen={openMenu === 'rating'} isEmpty={!rating} width={120}>
           <SelectTrigger
             width={104}
@@ -248,44 +271,40 @@ export default function RequirementCardExpanded({
             isOpen={openMenu === 'rating'}
             onToggle={() => userEditable && setOpenMenu(openMenu === 'rating' ? null : 'rating')}
             invalid={ratingInvalid}
+            isHovered={triggerHovered === 'rating'}
+            onMouseEnter={() => setTriggerHovered('rating')}
+            onMouseLeave={() => setTriggerHovered(null)}
           />
           {openMenu === 'rating' && userEditable && (
             <MenuSingle width={104} value={rating} options={RATINGS as readonly string[]} selected={rating} onPick={(v) => { setRating(v); setOpenMenu(null); markDirty() }} />
           )}
         </EditableCube>
 
-        <EditableCube label="本月可关闭" required isOpen={openMenu === 'canClose'} isEmpty={false} width={120}>
-          <SelectTrigger width={104} value={canClose ? '是' : '否'} isOpen={openMenu === 'canClose'} onToggle={() => userEditable && setOpenMenu(openMenu === 'canClose' ? null : 'canClose')} />
-          {openMenu === 'canClose' && userEditable && (
-            <MenuSingle width={104} value={canClose ? '是' : '否'} options={['是', '否']} selected={canClose ? '是' : '否'} onPick={(v) => { setCanClose(v === '是'); setOpenMenu(null); markDirty() }} />
-          )}
-        </EditableCube>
-
-        <EditableCube label="设计模块" required invalid={moduleInvalid} isOpen={openMenu === 'module'} isEmpty={!module} width={200}>
-          <SelectTrigger width={184} value={module} isOpen={openMenu === 'module'} onToggle={() => userEditable && setOpenMenu(openMenu === 'module' ? null : 'module')} invalid={moduleInvalid} />
+        <EditableCube label="设计模块" required invalid={moduleInvalid} isOpen={openMenu === 'module'} isEmpty={!module} width={160}>
+          <SelectTrigger width={144} value={module} isOpen={openMenu === 'module'} onToggle={() => userEditable && setOpenMenu(openMenu === 'module' ? null : 'module')} invalid={moduleInvalid} isHovered={triggerHovered === 'module'} onMouseEnter={() => setTriggerHovered('module')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'module' && userEditable && (
-            <MenuSingle width={184} value={module} options={MODULES as readonly string[]} selected={module} onPick={(v) => { setModule(v); setOpenMenu(null); markDirty() }} />
+            <MenuSingle width={144} value={module} options={MODULES as readonly string[]} selected={module} onPick={(v) => { setModule(v); setOpenMenu(null); markDirty() }} />
           )}
         </EditableCube>
 
-        <EditableCube label="管线" required invalid={pipelineInvalid} isOpen={openMenu === 'pipeline'} isEmpty={!pipeline} width={200}>
-          <SelectTrigger width={184} value={pipeline} isOpen={openMenu === 'pipeline'} onToggle={() => userEditable && setOpenMenu(openMenu === 'pipeline' ? null : 'pipeline')} invalid={pipelineInvalid} />
-          {openMenu === 'pipeline' && userEditable && (
-            <MenuSingle width={184} value={pipeline} options={pipelineOptions as readonly string[]} selected={pipeline} onPick={(v) => { setPipeline(v); setBudgetItem(''); setOpenMenu(null); markDirty() }} />
-          )}
-        </EditableCube>
-
-        <EditableCube label="类型" isOpen={openMenu === 'types'} isEmpty={types.length === 0} width={200}>
-          <SelectTrigger width={184} value={types.join(' / ')} isOpen={openMenu === 'types'} onToggle={() => userEditable && setOpenMenu(openMenu === 'types' ? null : 'types')} />
+        <EditableCube label="类型" isOpen={openMenu === 'types'} isEmpty={types.length === 0} width={160}>
+          <SelectTrigger width={144} value={types.join(' / ')} isOpen={openMenu === 'types'} onToggle={() => userEditable && setOpenMenu(openMenu === 'types' ? null : 'types')} isHovered={triggerHovered === 'types'} onMouseEnter={() => setTriggerHovered('types')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'types' && userEditable && (
-            <MenuMulti width={184} value={types.join(' / ')} options={TYPES as readonly string[]} selected={types} onToggle={(v) => toggleType(v)} />
+            <MenuMulti width={144} value={types.join(' / ')} options={TYPES as readonly string[]} selected={types} onToggle={(v) => toggleType(v)} />
           )}
         </EditableCube>
 
         <EditableCube label="预算项" required invalid={budgetInvalid} isOpen={openMenu === 'budgetItem'} isEmpty={!budgetItem} width={280}>
-          <SelectTrigger width={264} value={budgetItem} isOpen={openMenu === 'budgetItem'} onToggle={() => userEditable && setOpenMenu(openMenu === 'budgetItem' ? null : 'budgetItem')} invalid={budgetInvalid} truncate />
+          <SelectTrigger width={264} value={budgetItem} isOpen={openMenu === 'budgetItem'} onToggle={() => userEditable && setOpenMenu(openMenu === 'budgetItem' ? null : 'budgetItem')} invalid={budgetInvalid} truncate isHovered={triggerHovered === 'budgetItem'} onMouseEnter={() => setTriggerHovered('budgetItem')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'budgetItem' && userEditable && (
             <MenuSingle width={264} value={budgetItem} options={budgetOptions} selected={budgetItem} onPick={(v) => { setBudgetItem(v); setOpenMenu(null); markDirty() }} />
+          )}
+        </EditableCube>
+
+        <EditableCube label="本月可关闭" required isOpen={openMenu === 'canClose'} isEmpty={false} width={120}>
+          <SelectTrigger width={104} value={canClose ? '是' : '否'} isOpen={openMenu === 'canClose'} onToggle={() => userEditable && setOpenMenu(openMenu === 'canClose' ? null : 'canClose')} isHovered={triggerHovered === 'canClose'} onMouseEnter={() => setTriggerHovered('canClose')} onMouseLeave={() => setTriggerHovered(null)} />
+          {openMenu === 'canClose' && userEditable && (
+            <MenuSingle width={104} value={canClose ? '是' : '否'} options={['是', '否']} selected={canClose ? '是' : '否'} onPick={(v) => { setCanClose(v === '是'); setOpenMenu(null); markDirty() }} />
           )}
         </EditableCube>
       </div>
@@ -363,15 +382,19 @@ export default function RequirementCardExpanded({
         <div className="flex items-end gap-[8px]">
           <div className="flex h-[60px] items-center gap-[8px]">
             {isAdmin && data.status !== 'COMPLETE' && (
-              <ActionIconButton type="confirm" disabled={!userEditable} onClick={() => setConfirmAction('complete')} />
+              <ActionIconButton type="confirm" disabled={!userEditable} onClick={() => onCompleteRequest?.(data.id)} />
             )}
-            <ActionIconButton type="delete" disabled={!userEditable} onClick={() => setConfirmAction('delete')} />
+            <ActionIconButton type="delete" disabled={!userEditable} onClick={() => onDeleteRequest(data.id)} />
           </div>
 
           <button
-            onClick={() => (dirty ? setConfirmAction('cancel') : collapseWithAnimation(() => onDraftResolved(data.id)))}
-            className="h-[60px] w-[159px] rounded-[12px] bg-[#F2F2F2] text-[18px] leading-[25px] text-black hover:shadow-[0_0_8px_0_rgba(0,0,0,0.25)] active:bg-[#E5E5E5]"
-            style={{ fontWeight: 900 }}
+            onClick={() => (dirty || isDraft ? onDiscardRequest(data.id) : collapseWithAnimation(() => onDraftResolved(data.id)))}
+            className="h-[60px] w-[159px] rounded-[12px] bg-[#F2F2F2] text-[18px] leading-[25px] text-black transition-transform active:bg-[#E5E5E5]"
+            style={{ fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s' }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
           >
             取消
           </button>
@@ -388,8 +411,12 @@ export default function RequirementCardExpanded({
             <button
               disabled={!userEditable}
               onClick={handleSubmit}
-              className="flex h-[60px] w-[159px] items-center justify-center rounded-[12px] bg-black text-[18px] leading-[25px] text-white hover:shadow-[0_0_8px_0_rgba(0,0,0,0.25)] active:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
-              style={{ fontWeight: 900 }}
+              className="flex h-[60px] w-[159px] items-center justify-center rounded-[12px] bg-black text-[18px] leading-[25px] text-white transition-transform active:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
+              style={{ fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s' }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+              onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
             >
               <span className="inline-flex items-center gap-[10px]">
                 提交
@@ -401,27 +428,6 @@ export default function RequirementCardExpanded({
       </div>
 
 
-      {confirmAction && (
-        <ConfirmDialog
-          title={confirmAction === 'delete' ? '删除需求组' : confirmAction === 'complete' ? '完成需求组' : '放弃修改'}
-          message={confirmAction === 'delete' ? '确定删除该需求组？此操作不可撤销。' : confirmAction === 'complete' ? '确定标记该需求组为完成？' : '有未保存的修改，确定放弃？'}
-          onConfirm={confirmAction === 'delete' ? handleDelete : confirmAction === 'complete' ? handleComplete : () => { setConfirmAction(null); collapseWithAnimation(() => onDraftResolved(data.id)) }}
-          onCancel={() => setConfirmAction(null)}
-        />
-      )}
-
-      {duplicateId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="w-80 rounded-lg bg-white p-6 shadow-lg">
-            <h3 className="mb-2 font-bold">同名需求组已存在</h3>
-            <p className="mb-4 text-sm text-gray-600">同名需求组已存在，点击查看</p>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setDuplicateId(null)} className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100">取消</button>
-              <button onClick={() => { setDuplicateId(null); onExpandById(duplicateId) }} className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700">查看</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -440,17 +446,19 @@ function SectionTitle({ icon, text, weight }: { icon: 'name' | 'info' | 'designe
 
 function ReadonlyCube({ label, value, valueColor }: { label: string; value: string; valueColor: string }) {
   return (
-    <div className="h-[80px] w-[80px] shrink-0 rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] px-[8px] pt-[14px] text-center shadow-[0_0_3px_rgba(0,0,0,0.1)]">
-      <div className="text-[12px] leading-[17px] text-[#A8A8A8]" style={{ fontWeight: 800 }}>{label}</div>
-      <div className="mt-[5px] text-[16px] leading-[22px]" style={{ fontWeight: 800, color: valueColor }}>{value}</div>
+    <div className="flex h-[80px] w-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD]" style={FONT}>
+      <span className="mt-[14px] text-[12px] leading-[17px]" style={{ fontWeight: 800, color: '#A8A8A8' }}>{label}</span>
+      <div className="flex flex-1 items-center justify-center">
+        <span className="text-[16px] leading-[22px] text-black" style={{ fontWeight: 600, color: valueColor }}>{value}</span>
+      </div>
     </div>
   )
 }
 
 function EditableCube({ label, width, required, invalid, isOpen, isEmpty, children }: { label: string; width: number; required?: boolean; invalid?: boolean; isOpen?: boolean; isEmpty?: boolean; children: React.ReactNode }) {
   // Border: always show, color based on state (invalid only affects inner input, not outer cube)
-  const borderColor = isOpen ? '#8ECA2E' : !isEmpty ? '#EEEEEE' : 'transparent'
-  const shadow = isOpen ? '0 0 3px rgba(0,0,0,0.1)' : !isEmpty ? '0 0 3px rgba(0,0,0,0.1)' : 'none'
+  const borderColor = isOpen ? '#8ECA2E' : !isEmpty ? '#EEEEEE' : '#EEEEEE'
+  const shadow = isOpen ? '0 0 3px rgba(0,0,0,0.1)' : !isEmpty ? '0 0 3px rgba(0,0,0,0.1)' : '0 0 3px rgba(0,0,0,0.1)'
   return (
     <div
       className="relative h-[80px] rounded-[12px] bg-[#FDFDFD] px-[8px] pt-[14px]"
@@ -474,9 +482,9 @@ function fitDropdownTextSize(text: string, width: number) {
   return Math.max(10, Math.min(16, size))
 }
 
-function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onToggle, invalid, truncate }: { width: number; value: string; placeholder?: string; isOpen: boolean; onToggle: () => void; invalid?: boolean; truncate?: boolean }) {
-  const borderColor = invalid ? '#FF7D7D' : isOpen ? 'transparent' : '#EEEEEE'
-  const boxShadow = invalid ? '0 0 3px rgba(0,0,0,0.06)' : isOpen ? 'none' : '0 0 3px rgba(0,0,0,0.1)'
+function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onToggle, invalid, truncate, isHovered, onMouseEnter, onMouseLeave }: { width: number; value: string; placeholder?: string; isOpen: boolean; onToggle: () => void; invalid?: boolean; truncate?: boolean; isHovered?: boolean; onMouseEnter?: () => void; onMouseLeave?: () => void }) {
+  const borderColor = invalid ? '#FF7D7D' : isOpen ? 'transparent' : isHovered ? GREEN : '#EEEEEE'
+  const boxShadow = invalid ? '0 0 3px rgba(0,0,0,0.06)' : 'none'
   const displayText = value || placeholder
   const fontSize = fitDropdownTextSize(displayText, width)
   return (
@@ -484,8 +492,10 @@ function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onTogg
       type="button"
       data-dropdown-root="true"
       onClick={onToggle}
-      className={`relative z-10 h-[36px] rounded-[8px] border bg-white px-[10px] hover:border-[#8ECA2E] hover:shadow-none ${truncate ? 'overflow-hidden' : ''}`}
-      style={{ width, borderColor, boxShadow, backgroundColor: invalid ? 'rgba(255,0,0,0.08)' : '#FFFFFF', fontWeight: 800 }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className={`relative z-10 h-[36px] rounded-[8px] border bg-white px-[10px] ${truncate ? 'overflow-hidden' : ''}`}
+      style={{ width, borderColor, boxShadow, backgroundColor: invalid ? 'rgba(255,0,0,0.08)' : '#FFFFFF', fontWeight: 800, transition: 'border-color 0.15s' }}
     >
       <span
         className="pointer-events-none absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center leading-[22px]"
@@ -513,7 +523,7 @@ function MenuSingle({ width, value, options, selected, onPick }: { width: number
       </div>
       <div className="h-px bg-[#0000000B] mx-px" />
       {/* Options */}
-      <div>
+      <div className="overflow-y-auto" style={{ maxHeight: 260, scrollbarWidth: 'thin', scrollbarColor: 'rgba(0,0,0,0.2) transparent' }}>
         {options.map((opt) => (
           <button key={opt} onClick={() => onPick(opt)} className={`flex h-[30px] w-full items-center justify-center text-[14px] ${selected === opt ? 'bg-[rgba(142,202,46,0.15)]' : 'hover:bg-[rgba(142,202,46,0.15)]'}`} style={{ fontWeight: 800 }}>
             {opt}
@@ -539,7 +549,7 @@ function MenuMulti({ width, value, options, selected, onToggle }: { width: numbe
       </div>
       <div className="h-px bg-[#0000000B] mx-px" />
       {/* Options */}
-      <div>
+      <div className="overflow-y-auto" style={{ maxHeight: 260, scrollbarWidth: 'thin', scrollbarColor: 'rgba(0,0,0,0.2) transparent' }}>
         {options.map((opt) => {
           const checked = selected.includes(opt)
           return (
