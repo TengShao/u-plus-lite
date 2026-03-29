@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
@@ -7,8 +7,19 @@ export default function RegisterPage() {
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [primaryPipeline, setPrimaryPipeline] = useState('')
+  const [pipelines, setPipelines] = useState<string[]>([])
   const [error, setError] = useState('')
   const router = useRouter()
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(data => {
+        const names = data.map((p: any) => p.name)
+        setPipelines(names)
+      })
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -17,7 +28,7 @@ export default function RegisterPage() {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, password, confirmPassword }),
+      body: JSON.stringify({ name, password, confirmPassword, primaryPipeline }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -53,6 +64,14 @@ export default function RegisterPage() {
           onChange={(e) => setConfirmPassword(e.target.value)}
           className="w-full rounded border px-3 py-2 outline-none focus:border-blue-500"
         />
+        <select
+          value={primaryPipeline}
+          onChange={(e) => setPrimaryPipeline(e.target.value)}
+          className="w-full rounded border px-3 py-2 outline-none focus:border-blue-500"
+        >
+          <option value="">选择主要负责管线（可选）</option>
+          {pipelines.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
         {error && <p className="text-sm text-red-500">{error}</p>}
         <button type="submit" className="w-full rounded bg-blue-600 py-2 text-white hover:bg-blue-700">
           注册
