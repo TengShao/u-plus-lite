@@ -64,22 +64,57 @@ function IconUser() {
   )
 }
 
+function ArrowIcon({ flipped }: { flipped?: boolean }) {
+  return (
+    <svg
+      width="7" height="5" viewBox="0 0 7 5" fill="#000" xmlns="http://www.w3.org/2000/svg"
+      className="opacity-20" style={flipped ? { transform: 'scaleY(-1)' } : undefined}
+      aria-hidden="true"
+    >
+      <path d="M0.5 0.5 L3.5 4.5 L6.5 0.5 Z" rx="0.5" />
+    </svg>
+  )
+}
+
 function AccountSettingsModal({
   initialName,
+  initialPrimaryPipeline,
   onClose,
   onUpdated,
 }: {
   initialName: string
+  initialPrimaryPipeline: string
   onClose: () => void
-  onUpdated: (name: string) => Promise<void>
+  onUpdated: (name: string, primaryPipeline: string) => Promise<void>
 }) {
   const [name, setName] = useState(initialName)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [primaryPipeline, setPrimaryPipeline] = useState(initialPrimaryPipeline)
+  const [pipelines, setPipelines] = useState<string[]>([])
+  const [pipelineOpen, setPipelineOpen] = useState(false)
+  const pipelineRef = useRef<HTMLDivElement>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then((data: { name: string }[]) => setPipelines(data.map(p => p.name)))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (pipelineRef.current && !pipelineRef.current.contains(e.target as Node)) {
+        setPipelineOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   async function handleSave() {
     const trimmedName = name.trim()
@@ -87,6 +122,10 @@ function AccountSettingsModal({
 
     if (trimmedName !== initialName) {
       payload.name = trimmedName
+    }
+
+    if (primaryPipeline !== initialPrimaryPipeline) {
+      payload.primaryPipeline = primaryPipeline
     }
 
     const wantsPasswordChange = Boolean(currentPassword || newPassword || confirmPassword)
@@ -120,7 +159,7 @@ function AccountSettingsModal({
       return
     }
 
-    await onUpdated(result.name)
+    await onUpdated(result.name, result.primaryPipeline || '')
     setCurrentPassword('')
     setNewPassword('')
     setConfirmPassword('')
@@ -129,75 +168,134 @@ function AccountSettingsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="w-[420px] rounded-[12px] bg-white p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-[18px] font-black text-black">账户设置</h3>
-        <div className="mt-4 space-y-4">
-          <label className="block">
-            <div className="mb-1 text-sm font-bold text-[#666]">姓名</div>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="h-10 w-full rounded-[8px] border border-[#E5E5E5] px-3 text-sm outline-none focus:border-[#8ECA2E]"
-              placeholder="请输入姓名"
-            />
-          </label>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" style={{ fontFamily: 'Alibaba PuHuiTi 2.0' }} onClick={onClose}>
+      <div
+        className="flex flex-col items-center rounded-[24px] bg-[#F9F9F9]"
+        style={{
+          width: 369,
+          padding: '28px 17.5px 18px',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-[18px] text-black" style={{ fontWeight: 700, letterSpacing: '-1px' }}>账户设置</h3>
 
-          <label className="block">
-            <div className="mb-1 text-sm font-bold text-[#666]">当前密码</div>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className="h-10 w-full rounded-[8px] border border-[#E5E5E5] px-3 text-sm outline-none focus:border-[#8ECA2E]"
-              placeholder="如需修改密码请填写"
-            />
-          </label>
+        {error && <div className="mt-[8px] text-[14px] text-red-500">{error}</div>}
+        {success && <div className="mt-[8px] text-[14px] text-[#2D9F45]">{success}</div>}
 
-          <label className="block">
-            <div className="mb-1 text-sm font-bold text-[#666]">新密码</div>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="h-10 w-full rounded-[8px] border border-[#E5E5E5] px-3 text-sm outline-none focus:border-[#8ECA2E]"
-              placeholder="不少于8位"
-            />
-          </label>
+        <div className="mt-[32px] flex w-[334px] flex-col">
+          <div className="flex w-[306px] flex-col gap-0 self-center">
+            <div>
+              <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>姓名</div>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E]"
+                style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
+                placeholder="请输入姓名"
+              />
+            </div>
 
-          <label className="block">
-            <div className="mb-1 text-sm font-bold text-[#666]">确认新密码</div>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="h-10 w-full rounded-[8px] border border-[#E5E5E5] px-3 text-sm outline-none focus:border-[#8ECA2E]"
-              placeholder="再次输入新密码"
-            />
-          </label>
+            <div className="mt-[24px]">
+              <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>当前密码</div>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E]"
+                style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
+                placeholder="如需修改密码请填写"
+              />
+            </div>
 
-          <p className="text-xs text-[#999]">修改姓名会影响你的登录名。</p>
+            <div className="mt-[24px]">
+              <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>新密码</div>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E]"
+                style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
+                placeholder="不少于8位"
+              />
+            </div>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          {success && <p className="text-sm text-[#2D9F45]">{success}</p>}
-        </div>
+            <div className="mt-[6px]">
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E]"
+                style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
+                placeholder="再输入一次"
+              />
+            </div>
 
-        <div className="mt-6 flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="h-9 rounded-[8px] px-4 text-sm text-[#666] hover:bg-[#F5F5F5]"
-            disabled={isSaving}
-          >
-            取消
-          </button>
-          <button
-            onClick={handleSave}
-            className="h-9 rounded-[8px] bg-black px-4 text-sm font-bold text-white hover:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
-            disabled={isSaving}
-          >
-            保存
-          </button>
+            <div className="mt-[24px] relative" ref={pipelineRef}>
+              <div className="flex items-center gap-[10px]">
+                <div className="pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>主要管线</div>
+                <button
+                  type="button"
+                  onClick={() => setPipelineOpen(!pipelineOpen)}
+                  className="relative z-10 h-[42px] rounded-[8px] border border-[#EEEEEE] bg-white px-[10px] hover:border-[#8ECA2E]"
+                  style={{ width: 144, boxShadow: 'none', marginLeft: 'auto' }}
+                >
+                  <span
+                    className="absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center leading-[22px]"
+                    style={{ color: primaryPipeline ? '#000' : '#C3C3C3', fontSize: 16, fontWeight: 800 }}
+                  >
+                    {primaryPipeline || '请选择'}
+                  </span>
+                  <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon /></span>
+                </button>
+              </div>
+              {pipelineOpen && (
+                <div className="absolute z-20 overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ width: 144, right: 0, border: '1px solid #8ECA2E', marginTop: 4 }}>
+                  {pipelines.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => { setPrimaryPipeline(p); setPipelineOpen(false) }}
+                      className="flex h-[30px] w-full items-center justify-center text-[14px] hover:bg-[rgba(142,202,46,0.15)]"
+                      style={{ fontWeight: 800 }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-[42px] flex items-center justify-center gap-[14px]">
+            <button
+              onClick={onClose}
+              className="flex items-center justify-center rounded-[8px] text-[18px] text-black"
+              style={{
+                width: 160,
+                height: 46,
+                fontWeight: 900,
+                backgroundColor: '#F2F2F2',
+                letterSpacing: '-0.5px',
+              }}
+              disabled={isSaving}
+            >
+              取消
+            </button>
+            <button
+              onClick={handleSave}
+              className="flex items-center justify-center rounded-[8px] text-[18px] text-white"
+              style={{
+                width: 160,
+                height: 46,
+                fontWeight: 900,
+                backgroundColor: '#000000',
+                letterSpacing: '-0.5px',
+              }}
+              disabled={isSaving}
+            >
+              保存
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -235,12 +333,12 @@ export default function Header({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showUserMenu])
 
-  async function handleAccountUpdated(name: string) {
-    await update({ name })
+  async function handleAccountUpdated(name: string, primaryPipeline: string) {
+    await update({ name, primaryPipeline })
   }
 
   async function handleSignOut() {
-    await signOut({ callbackUrl: '/login' })
+    await signOut({ callbackUrl: '/' })
   }
 
   const hasValue = searchQuery.length > 0
@@ -356,6 +454,7 @@ export default function Header({
       {showAccountSettings && (
         <AccountSettingsModal
           initialName={session?.user?.name || ''}
+          initialPrimaryPipeline={session?.user?.primaryPipeline || ''}
           onClose={() => setShowAccountSettings(false)}
           onUpdated={handleAccountUpdated}
         />

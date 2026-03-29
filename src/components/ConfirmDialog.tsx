@@ -53,7 +53,7 @@ export default function ConfirmDialog({
 
         {/* Buttons */}
         <div
-          className="mt-[24px] flex items-center justify-center gap-[14px]"
+          className="mt-[42px] flex items-center justify-center gap-[14px]"
         >
           {/* Cancel button (light) - LEFT */}
           <button
