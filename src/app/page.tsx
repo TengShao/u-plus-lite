@@ -1,14 +1,13 @@
 'use client'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
+import AuthModal from '@/components/AuthModal'
 import Header from '@/components/Header'
 import CycleSidebar from '@/components/CycleSidebar'
 import RequirementPanel from '@/components/RequirementPanel'
 
 export default function Home() {
   const { data: session, status } = useSession()
-  const router = useRouter()
   const [selectedCycleId, setSelectedCycleId] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
@@ -19,12 +18,12 @@ export default function Home() {
     setIsClient(true)
   }, [])
 
-  useEffect(() => {
-    // Redirect if unauthenticated after session is determined
-    if (isClient && status === 'unauthenticated') {
-      router.push('/login')
-    }
-  }, [status, router, isClient])
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin')
+
+  function handleAuthSuccess() {
+    // Session will update automatically via NextAuth
+    // page will re-render and show main content
+  }
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), [])
 
@@ -38,9 +37,15 @@ export default function Home() {
     return <div className="flex h-screen items-center justify-center text-gray-400">加载中...</div>
   }
 
-  // If no session after loading, don't render (redirect will happen)
+  // If no session after loading, show auth modal
   if (!session) {
-    return null
+    return (
+      <AuthModal
+        mode={authMode}
+        onSwitch={setAuthMode}
+        onSuccess={handleAuthSuccess}
+      />
+    )
   }
 
   return (
