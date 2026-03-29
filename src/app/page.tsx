@@ -13,6 +13,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   const [isClient, setIsClient] = useState(false)
+  const [hasDraft, setHasDraft] = useState(false)
 
   useEffect(() => {
     setIsClient(true)
@@ -51,12 +52,15 @@ export default function Home() {
             onSelectCycle={setSelectedCycleId}
             onCycleCreated={refresh}
             refreshKey={refreshKey}
+            hasDraft={hasDraft}
           />
           <RequirementPanel
             cycleId={selectedCycleId}
             searchQuery={searchQuery}
             refreshKey={refreshKey}
             onRefresh={refresh}
+            onDraftChange={setHasDraft}
+            userPrimaryPipeline={session.user.primaryPipeline}
           />
       </main>
     </div>
