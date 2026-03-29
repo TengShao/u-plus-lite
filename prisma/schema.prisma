@@ -8,13 +8,14 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  password  String
-  role      String   @default("MEMBER")
-  level     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  name            String   @unique
+  password        String
+  role            String   @default("MEMBER")
+  level           String?
+  primaryPipeline String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   createdCycles       BillingCycle[]      @relation("CycleCreator")
   createdRequirements RequirementGroup[]  @relation("RequirementCreator")
