@@ -106,143 +106,149 @@ export default function AuthModal({
         </div>
 
         {mode === 'signin' ? (
-          <form onSubmit={handleSignin} className="mt-[27px] flex w-[334px] flex-col gap-[12px]">
-            {/* 账号 */}
-            <div>
-              <div className="mb-[11px] text-[20px] text-black" style={{ fontWeight: 700 }}>账号</div>
-              <input
-                type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="请输入真实姓名"
-                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none focus:border-[#8ECA2E]"
-                style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)' }}
-              />
-            </div>
+          <div className="mt-[33px] flex w-[334px] flex-col">
+            {/* Form content - 305px centered within 334px */}
+            <form onSubmit={handleSignin} className="flex w-[305px] flex-col gap-[12px] self-center">
+              {/* 账号 */}
+              <div>
+                <div className="mb-[26px] text-[20px] text-black" style={{ fontWeight: 700 }}>账号</div>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="请输入姓名"
+                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none focus:border-[#8ECA2E]"
+                  style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)' }}
+                />
+              </div>
 
-            {/* 密码 */}
-            <div>
-              <div className="mb-[11px] text-[20px] text-black" style={{ fontWeight: 700 }}>密码</div>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="请输入密码"
-                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none focus:border-[#8ECA2E]"
-                style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)' }}
-              />
-            </div>
+              {/* 密码 */}
+              <div>
+                <div className="mb-[26px] text-[20px] text-black" style={{ fontWeight: 700 }}>密码</div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="请输入密码"
+                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none focus:border-[#8ECA2E]"
+                  style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)' }}
+                />
+              </div>
 
-            {/* Error */}
-            {error && <div className="text-[14px] text-red-500">{error}</div>}
+              {/* Error */}
+              {error && <div className="text-[14px] text-red-500">{error}</div>}
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="mt-[14px] flex h-[46px] items-center justify-center rounded-[12px] bg-black text-[25px] font-black text-white hover:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
-              style={{ letterSpacing: '-0.5px' }}
-            >
-              {isLoading ? '登录中...' : '登录'}
-            </button>
+              {/* Submit - 334px full width */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="mt-[14px] flex h-[46px] w-full items-center justify-center rounded-[12px] bg-black text-[25px] font-black text-white hover:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
+                style={{ letterSpacing: '-0.5px' }}
+              >
+                {isLoading ? '登录中...' : '登录'}
+              </button>
+            </form>
 
             {/* Switch to signup */}
             <button
               type="button"
               onClick={() => onSwitch('signup')}
-              className="mt-[14px] text-center text-[20px] text-black underline underline-offset-4"
+              className="mt-[14px] self-center text-center text-[20px] text-black underline underline-offset-4"
               style={{ fontWeight: 400 }}
             >
               注册
             </button>
-          </form>
+          </div>
         ) : (
-          <form onSubmit={handleSignup} className="mt-[27px] flex w-[334px] flex-col gap-[12px]">
-            {/* 账号 */}
-            <div>
-              <div className="mb-[11px] text-[20px] text-black" style={{ fontWeight: 700 }}>账号</div>
-              <input
-                type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="请输入真实姓名"
-                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none focus:border-[#8ECA2E]"
-                style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)' }}
-              />
-            </div>
-
-            {/* 密码 */}
-            <div>
-              <div className="mb-[11px] text-[20px] text-black" style={{ fontWeight: 700 }}>密码</div>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="请输入密码（至少8位）"
-                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none focus:border-[#8ECA2E]"
-                style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)' }}
-              />
-            </div>
-
-            {/* 确认密码 */}
-            <div>
-              <div className="mb-[11px] text-[20px] text-black" style={{ fontWeight: 700 }}>确认密码</div>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                placeholder="再输入一次"
-                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none focus:border-[#8ECA2E]"
-                style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)' }}
-              />
-            </div>
-
-            {/* 主要管线 */}
-            <div>
-              <div className="mb-[11px] text-[20px] text-black" style={{ fontWeight: 700 }}>主要管线</div>
-              <div className="relative">
-                <select
-                  value={primaryPipeline}
-                  onChange={e => setPrimaryPipeline(e.target.value)}
-                  required
-                  className="h-[42px] w-full appearance-none rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] pr-[40px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none focus:border-[#8ECA2E]"
+          <div className="mt-[33px] flex w-[334px] flex-col">
+            {/* Form content - 305px centered within 334px */}
+            <form onSubmit={handleSignup} className="flex w-[305px] flex-col gap-[12px] self-center">
+              {/* 账号 */}
+              <div>
+                <div className="mb-[26px] text-[20px] text-black" style={{ fontWeight: 700 }}>账号</div>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="请输入真实姓名"
+                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none focus:border-[#8ECA2E]"
                   style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)' }}
-                >
-                  <option value="">请选择</option>
-                  {pipelines.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-                {/* S icon + chevron */}
-                <span className="pointer-events-none absolute right-[15px] top-[9px]">
-                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
-                    <path d="M1 1L5 5L9 1" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                </span>
+                />
               </div>
-            </div>
 
-            {/* Error */}
-            {error && <div className="text-[14px] text-red-500">{error}</div>}
+              {/* 密码 */}
+              <div>
+                <div className="mb-[26px] text-[20px] text-black" style={{ fontWeight: 700 }}>密码</div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="请输入密码（至少8位）"
+                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none focus:border-[#8ECA2E]"
+                  style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)' }}
+                />
+              </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="mt-[14px] flex h-[46px] items-center justify-center rounded-[12px] bg-black text-[25px] font-black text-white hover:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
-              style={{ letterSpacing: '-0.5px' }}
-            >
-              {isLoading ? '注册中...' : '注册'}
-            </button>
+              {/* 确认密码 */}
+              <div>
+                <div className="mb-[26px] text-[20px] text-black" style={{ fontWeight: 700 }}>确认密码</div>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="再输入一次"
+                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none focus:border-[#8ECA2E]"
+                  style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)' }}
+                />
+              </div>
+
+              {/* 主要管线 */}
+              <div>
+                <div className="mb-[26px] text-[20px] text-black" style={{ fontWeight: 700 }}>主要管线</div>
+                <div className="relative">
+                  <select
+                    value={primaryPipeline}
+                    onChange={e => setPrimaryPipeline(e.target.value)}
+                    required
+                    className="h-[42px] w-full appearance-none rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] pr-[40px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none focus:border-[#8ECA2E]"
+                    style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)' }}
+                  >
+                    <option value="">请选择</option>
+                    {pipelines.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  {/* S icon + chevron */}
+                  <span className="pointer-events-none absolute right-[15px] top-[9px]">
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                      <path d="M1 1L5 5L9 1" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+
+              {/* Error */}
+              {error && <div className="text-[14px] text-red-500">{error}</div>}
+
+              {/* Submit - 334px full width */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="mt-[14px] flex h-[46px] w-full items-center justify-center rounded-[12px] bg-black text-[25px] font-black text-white hover:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
+                style={{ letterSpacing: '-0.5px' }}
+              >
+                {isLoading ? '注册中...' : '注册'}
+              </button>
+            </form>
 
             {/* Switch to signin */}
             <button
               type="button"
               onClick={() => onSwitch('signin')}
-              className="mt-[14px] text-center text-[20px] text-black underline underline-offset-4"
+              className="mt-[14px] self-center text-center text-[20px] text-black underline underline-offset-4"
               style={{ fontWeight: 400 }}
             >
               登录
             </button>
-          </form>
+          </div>
         )}
       </div>
     </div>
