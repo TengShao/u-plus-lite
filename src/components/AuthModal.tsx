@@ -22,6 +22,15 @@ export default function AuthModal({
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
+  // Clear error and form when switching modes
+  useEffect(() => {
+    setError('')
+    setName('')
+    setPassword('')
+    setConfirmPassword('')
+    setPrimaryPipeline('')
+  }, [mode])
+
   // Fetch pipelines on mount
   useEffect(() => {
     fetch('/api/settings')
