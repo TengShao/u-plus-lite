@@ -185,7 +185,6 @@ export default function RequirementCardExpanded({
 
   async function handleDelete() {
     await fetch(`/api/requirements/${data.id}`, { method: 'DELETE' })
-    setConfirmAction(null)
     onRefresh()
     onDraftResolved(data.id)
     collapseWithAnimation()
