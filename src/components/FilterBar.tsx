@@ -42,11 +42,13 @@ export default function FilterBar({
   currentUserId,
   onFilterChange,
   pipelineNames,
+  counts,
 }: {
   designers: { id: number; name: string }[]
   currentUserId: number
   onFilterChange: (filters: Record<string, string[]>) => void
   pipelineNames: string[]
+  counts?: { pipeline?: Record<string, number>; rating?: Record<string, number>; health?: Record<string, number>; designer?: Record<string, number>; canClose?: Record<string, number>; status?: Record<string, number> }
 }) {
   const [filters, setFilters] = useState<Record<string, string[]>>({})
 
@@ -95,9 +97,9 @@ export default function FilterBar({
 
   return (
     <div className="flex gap-[8px]">
-      <MultiDropdown label="管线" options={pipelineNames} selected={filters.pipeline || []} onToggle={(v) => toggle('pipeline', v, pipelineNames)} onSelectAll={() => selectAll('pipeline', pipelineNames)} onExclusive={(v) => exclusive('pipeline', v)} />
-      <MultiDropdown label="评级" options={RATINGS as unknown as string[]} selected={filters.rating || []} onToggle={(v) => toggle('rating', v, RATINGS as unknown as string[])} onSelectAll={() => selectAll('rating', RATINGS as unknown as string[])} onExclusive={(v) => exclusive('rating', v)} />
-      <MultiDropdown label="健康度" options={HEALTH_OPTIONS} selected={filters.health || []} onToggle={(v) => toggle('health', v, HEALTH_OPTIONS)} onSelectAll={() => selectAll('health', HEALTH_OPTIONS)} onExclusive={(v) => exclusive('health', v)} />
+      <MultiDropdown label="管线" options={pipelineNames} selected={filters.pipeline || []} onToggle={(v) => toggle('pipeline', v, pipelineNames)} onSelectAll={() => selectAll('pipeline', pipelineNames)} onExclusive={(v) => exclusive('pipeline', v)} counts={counts?.pipeline} />
+      <MultiDropdown label="评级" options={RATINGS as unknown as string[]} selected={filters.rating || []} onToggle={(v) => toggle('rating', v, RATINGS as unknown as string[])} onSelectAll={() => selectAll('rating', RATINGS as unknown as string[])} onExclusive={(v) => exclusive('rating', v)} counts={counts?.rating} />
+      <MultiDropdown label="健康度" options={HEALTH_OPTIONS} selected={filters.health || []} onToggle={(v) => toggle('health', v, HEALTH_OPTIONS)} onSelectAll={() => selectAll('health', HEALTH_OPTIONS)} onExclusive={(v) => exclusive('health', v)} counts={counts?.health} />
       <MultiDropdown
         label="设计师"
         options={sortedDesigners.map((d) => String(d.id))}
@@ -106,9 +108,10 @@ export default function FilterBar({
         onToggle={(v) => toggle('designer', v, sortedDesigners.map((d) => String(d.id)))}
         onSelectAll={() => selectAll('designer', sortedDesigners.map((d) => String(d.id)))}
         onExclusive={(v) => exclusive('designer', v)}
+        counts={counts?.designer}
       />
-      <SingleDropdown label="可关闭" options={['true', 'false']} optionLabels={['是', '否']} selected={filters.canClose?.[0] || ''} onSelect={(v) => selectSingle('canClose', v)} />
-      <SingleDropdown label="状态" options={['INCOMPLETE', 'COMPLETE']} optionLabels={['未完成', '已完成']} selected={filters.status?.[0] || ''} onSelect={(v) => selectSingle('status', v)} />
+      <SingleDropdown label="可关闭" options={['true', 'false']} optionLabels={['是', '否']} selected={filters.canClose?.[0] || ''} onSelect={(v) => selectSingle('canClose', v)} counts={counts?.canClose} />
+      <SingleDropdown label="状态" options={['INCOMPLETE', 'COMPLETE']} optionLabels={['未完成', '已完成']} selected={filters.status?.[0] || ''} onSelect={(v) => selectSingle('status', v)} counts={counts?.status} />
     </div>
   )
 }
@@ -148,11 +151,13 @@ function DropdownTrigger({
 
 /* ---------- Multi-select dropdown ---------- */
 function MultiDropdown({
-  label, options, optionLabels, selected, onToggle, onSelectAll, onExclusive,
+  label, options, optionLabels, selected, onToggle, onSelectAll, onExclusive, counts,
 }: {
   label: string; options: string[]; optionLabels?: string[]
   selected: string[]; onToggle: (v: string) => void; onSelectAll: () => void; onExclusive: (v: string) => void
+  counts?: Record<string, number>
 }) {
+  const totalCount = counts ? Object.values(counts).reduce((sum, c) => sum + c, 0) : undefined
   const [open, setOpen] = useState(false)
   const [hovered, setHovered] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -202,7 +207,8 @@ function MultiDropdown({
           {/* items */}
           <div>
             <DropdownItem
-              label={`ALL`}
+              label={`全部`}
+              count={totalCount}
               selected={allSelected}
               checkbox
               onClick={() => { onSelectAll(); setOpen(false) }}
@@ -211,6 +217,7 @@ function MultiDropdown({
               <DropdownItem
                 key={opt}
                 label={optionLabels ? optionLabels[i] : opt}
+                count={counts?.[opt]}
                 selected={selected.includes(opt)}
                 checkbox
                 onClick={() => allSelected ? onExclusive(opt) : onToggle(opt)}
@@ -225,11 +232,13 @@ function MultiDropdown({
 
 /* ---------- Single-select dropdown ---------- */
 function SingleDropdown({
-  label, options, optionLabels, selected, onSelect,
+  label, options, optionLabels, selected, onSelect, counts,
 }: {
   label: string; options: string[]; optionLabels: string[]
   selected: string; onSelect: (v: string) => void
+  counts?: Record<string, number>
 }) {
+  const totalCount = counts ? Object.values(counts).reduce((sum, c) => sum + c, 0) : undefined
   const [open, setOpen] = useState(false)
   const [hovered, setHovered] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -273,7 +282,8 @@ function SingleDropdown({
           <div className="h-px bg-[#0000000B] mx-px" />
           <div>
             <DropdownItem
-              label={`ALL`}
+              label={`全部`}
+              count={totalCount}
               selected={!selected}
               onClick={() => { onSelect(''); setOpen(false) }}
             />
@@ -281,6 +291,7 @@ function SingleDropdown({
               <DropdownItem
                 key={opt}
                 label={optionLabels[i]}
+                count={counts?.[opt]}
                 selected={selected === opt}
                 onClick={() => { onSelect(opt); setOpen(false) }}
               />
@@ -294,16 +305,16 @@ function SingleDropdown({
 
 /* ---------- Dropdown item ---------- */
 function DropdownItem({
-  label, selected, checkbox, onClick,
+  label, count, selected, checkbox, onClick,
 }: {
-  label: string; selected: boolean; checkbox?: boolean; onClick: () => void
+  label: string; count?: number; selected: boolean; checkbox?: boolean; onClick: () => void
 }) {
   const [hovered, setHovered] = useState(false)
   const bg = selected || hovered ? '#8ECA2E27' : 'transparent'
   return (
     <button
-      className="relative flex h-[30px] w-full items-center justify-center"
-      style={{ background: bg, transition: 'background 0.1s' }}
+      className="relative flex h-[30px] w-full items-center"
+      style={{ background: bg, transition: 'background 0.1s', paddingLeft: checkbox ? 28 : 8, paddingRight: 8 }}
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -314,11 +325,16 @@ function DropdownItem({
         </span>
       )}
       <span
-        className="block w-full truncate px-[8px] text-center text-[12px] leading-[17px] text-black"
+        className="flex-1 truncate text-left text-[12px] leading-[17px] text-black"
         style={{ fontWeight: 800, ...FONT }}
       >
         {label}
       </span>
+      {count !== undefined && (
+        <span className="ml-2 text-[12px] text-black/40" style={{ fontWeight: 800 }}>
+          {count}
+        </span>
+      )}
     </button>
   )
 }

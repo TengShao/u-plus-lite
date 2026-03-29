@@ -46,6 +46,7 @@ export default function RequirementCardExpanded({
   onDiscardRequest,
   onDuplicateRequest,
   onCompleteRequest,
+  defaultPipeline,
   isDraft,
 }: {
   data: RequirementData
@@ -62,8 +63,8 @@ export default function RequirementCardExpanded({
   onDiscardRequest: (id: number) => void
   onDuplicateRequest?: (id: number, name: string) => void
   onCompleteRequest?: (id: number) => void
-  defaultPipeline?: string | null
   isDraft?: boolean
+  defaultPipeline?: string | null
 }) {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'

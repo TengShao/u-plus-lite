@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { type RequirementData } from './RequirementPanel'
-import ConfirmDialog from './ConfirmDialog'
 
 const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
 
@@ -43,15 +42,18 @@ export default function RequirementCardCollapsed({
   cycleStatus,
   onExpand,
   onRefresh,
+  onDeleteRequest,
+  onCompleteRequest,
 }: {
   data: RequirementData
   cycleStatus: string
   onExpand: () => void
   onRefresh: () => void
+  onDeleteRequest: (id: number) => void
+  onCompleteRequest?: (id: number) => void
 }) {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'
-  const [confirmAction, setConfirmAction] = useState<'delete' | 'complete' | null>(null)
   const [deleteHover, setDeleteHover] = useState(false)
   const [confirmHover, setConfirmHover] = useState(false)
   const [deleteActive, setDeleteActive] = useState(false)
@@ -60,18 +62,6 @@ export default function RequirementCardCollapsed({
   const isClosed = cycleStatus === 'CLOSED'
   const buttonsDisabled = isComplete || isClosed
 
-  async function handleDelete() {
-    await fetch(`/api/requirements/${data.id}`, { method: 'DELETE' })
-    setConfirmAction(null)
-    onRefresh()
-  }
-
-  async function handleComplete() {
-    await fetch(`/api/requirements/${data.id}/complete`, { method: 'PATCH' })
-    setConfirmAction(null)
-    onRefresh()
-  }
-
   // Display up to 5 designers, or first 4 + "其他x人" if more than 5
   const displayCount = data.cycleWorkloads.length > 5 ? 4 : Math.min(5, data.cycleWorkloads.length)
   const displayWorkloads = data.cycleWorkloads.slice(0, displayCount)
@@ -79,10 +69,10 @@ export default function RequirementCardCollapsed({
 
   const healthColor = data.healthStatus ? HEALTH_COLORS[data.healthStatus] : null
 
-  // Info tags: module, pipeline, types
+  // Info tags: pipeline, module, types
   const tags: string[] = []
-  if (data.module) tags.push(data.module)
   if (data.pipeline) tags.push(data.pipeline)
+  if (data.module) tags.push(data.module)
   const typesStr = data.types?.length ? data.types.join(' / ') : null
 
   return (
@@ -94,7 +84,7 @@ export default function RequirementCardCollapsed({
     >
       {/* Name + info tags — top-left */}
       <div className="absolute left-[25px] top-[18px] flex items-center gap-[12px]" style={{ right: 200 }}>
-        <span className="shrink-0 text-[16px] leading-[22px] text-black" style={{ fontWeight: 900, letterSpacing: '-1px' }}>
+        <span className="shrink-0 text-[16px] leading-[22px] text-black" style={{ fontWeight: 900 }}>
           {data.name || '未命名需求组'}
         </span>
         {tags.length > 0 && (
@@ -157,7 +147,7 @@ export default function RequirementCardCollapsed({
       <div className="absolute right-[22px] top-[66px] flex items-center" onClick={(e) => e.stopPropagation()}>
         {isAdmin && (
           <button
-            onClick={() => !buttonsDisabled && setConfirmAction('complete')}
+            onClick={() => !buttonsDisabled && onCompleteRequest?.(data.id)}
             onMouseEnter={() => setConfirmHover(true)}
             onMouseLeave={() => { setConfirmHover(false); setConfirmActive(false) }}
             onMouseDown={() => setConfirmActive(true)}
@@ -174,7 +164,7 @@ export default function RequirementCardCollapsed({
           </button>
         )}
         <button
-          onClick={() => !buttonsDisabled && setConfirmAction('delete')}
+          onClick={() => !buttonsDisabled && onDeleteRequest(data.id)}
           onMouseEnter={() => setDeleteHover(true)}
           onMouseLeave={() => { setDeleteHover(false); setDeleteActive(false) }}
           onMouseDown={() => setDeleteActive(true)}
@@ -191,14 +181,6 @@ export default function RequirementCardCollapsed({
         </button>
       </div>
 
-      {confirmAction && (
-        <ConfirmDialog
-          title={confirmAction === 'delete' ? '删除需求组' : '完成需求组'}
-          message={confirmAction === 'delete' ? '确定删除该需求组？此操作不可撤销。' : '确定标记该需求组为完成？'}
-          onConfirm={confirmAction === 'delete' ? handleDelete : handleComplete}
-          onCancel={() => setConfirmAction(null)}
-        />
-      )}
     </div>
   )
 }
@@ -208,7 +190,7 @@ function InfoCube({ label, value, labelColor }: { label: string; value: string; 
     <div className="flex h-[80px] w-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD]" style={FONT}>
       <span className="mt-[14px] text-[12px] leading-[17px]" style={{ fontWeight: 800, color: labelColor || '#A8A8A8' }}>{label}</span>
       <div className="flex flex-1 items-center justify-center">
-        <span className="text-[16px] leading-[22px] text-black" style={{ fontWeight: 800 }}>{value}</span>
+        <span className="text-[16px] leading-[22px] text-black" style={{ fontWeight: 600 }}>{value}</span>
       </div>
     </div>
   )

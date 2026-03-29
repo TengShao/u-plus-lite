@@ -2,20 +2,20 @@
 import { Fragment, useEffect, useState } from 'react'
 import { LEVELS } from '@/lib/constants'
 
-type User = { id: number; name: string; role: string; level: string | null }
+type User = { id: number; name: string; role: string; level: string | null; primaryPipeline: string | null }
 type BudgetItem = { id: number; name: string }
 type Pipeline = { id: number; name: string; budgetItems: BudgetItem[] }
 
 type Tab = 'members' | 'budget'
 
-type EditingMember = { id: number; name: string; level: string; role: string }
+type EditingMember = { id: number; name: string; level: string; role: string; primaryPipeline: string }
 type EditingBudgetItem = { id: number; pipelineId: number; name: string }
 
 export default function AdminSettingsModal({ onClose }: { onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<Tab>('members')
   const [users, setUsers] = useState<User[]>([])
   const [isAdding, setIsAdding] = useState(false)
-  const [newMember, setNewMember] = useState({ name: '', level: '', role: 'MEMBER' })
+  const [newMember, setNewMember] = useState({ name: '', level: '', role: 'MEMBER', primaryPipeline: '' })
   const [editingMember, setEditingMember] = useState<EditingMember | null>(null)
 
   const [pipelines, setPipelines] = useState<Pipeline[]>([])
@@ -39,7 +39,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
     fetch('/api/settings').then((r) => r.json()).then(setPipelines)
   }
 
-  async function updateUser(userId: number, data: { name?: string; role?: string; level?: string }) {
+  async function updateUser(userId: number, data: { name?: string; role?: string; level?: string; primaryPipeline?: string }) {
     const res = await fetch('/api/users', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -63,7 +63,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
 
   function startAddMember() {
     setIsAdding(true)
-    setNewMember({ name: '', level: '', role: 'MEMBER' })
+    setNewMember({ name: '', level: '', role: 'MEMBER', primaryPipeline: '' })
   }
 
   async function confirmAddMember() {
@@ -81,6 +81,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
         confirmPassword: defaultPassword,
         role: newMember.role,
         level: newMember.level || undefined,
+        primaryPipeline: newMember.primaryPipeline || undefined,
       }),
     })
     if (res.ok) {
@@ -94,21 +95,21 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
 
   function cancelAddMember() {
     setIsAdding(false)
-    setNewMember({ name: '', level: '', role: 'MEMBER' })
+    setNewMember({ name: '', level: '', role: 'MEMBER', primaryPipeline: '' })
   }
 
   function startEditMember(user: User) {
-    setEditingMember({ id: user.id, name: user.name, level: user.level || '', role: user.role })
+    setEditingMember({ id: user.id, name: user.name, level: user.level || '', role: user.role, primaryPipeline: user.primaryPipeline || '' })
   }
 
   async function confirmEditMember() {
     if (!editingMember) return
-    const { id, name, level, role } = editingMember
+    const { id, name, level, role, primaryPipeline } = editingMember
     if (!name.trim()) {
       alert('请填写姓名')
       return
     }
-    await updateUser(id, { name: name.trim(), level: level || undefined, role })
+    await updateUser(id, { name: name.trim(), level: level || undefined, role, primaryPipeline: primaryPipeline || undefined })
     setEditingMember(null)
   }
 
@@ -243,6 +244,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                     <th className="pb-2">姓名</th>
                     <th className="pb-2">职级</th>
                     <th className="pb-2">角色</th>
+                    <th className="pb-2">主要负责管线</th>
                     <th className="pb-2">操作</th>
                   </tr>
                 </thead>
@@ -277,6 +279,16 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                         >
                           <option value="MEMBER">成员</option>
                           <option value="ADMIN">管理员</option>
+                        </select>
+                      </td>
+                      <td className="py-2">
+                        <select
+                          value={newMember.primaryPipeline}
+                          onChange={(e) => setNewMember({ ...newMember, primaryPipeline: e.target.value })}
+                          className="rounded border px-2 py-1 text-sm"
+                        >
+                          <option value="">未设置</option>
+                          {pipelines.map((pl) => <option key={pl.id} value={pl.name}>{pl.name}</option>)}
                         </select>
                       </td>
                       <td className="py-2">
@@ -321,6 +333,16 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                             </select>
                           </td>
                           <td className="py-2">
+                            <select
+                              value={editingMember.primaryPipeline}
+                              onChange={(e) => setEditingMember({ ...editingMember, primaryPipeline: e.target.value })}
+                              className="rounded border px-2 py-1 text-sm"
+                            >
+                              <option value="">未设置</option>
+                              {pipelines.map((pl) => <option key={pl.id} value={pl.name}>{pl.name}</option>)}
+                            </select>
+                          </td>
+                          <td className="py-2">
                             <div className="flex gap-2">
                               <button onClick={confirmEditMember} className="text-green-600 hover:text-green-700 text-sm">确认</button>
                               <button onClick={cancelEditMember} className="text-gray-500 hover:text-gray-700 text-sm">取消</button>
@@ -332,6 +354,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                           <td className="py-2">{u.name}</td>
                           <td className="py-2">{u.level || '-'}</td>
                           <td className="py-2">{u.role === 'ADMIN' ? '管理员' : '成员'}</td>
+                          <td className="py-2">{u.primaryPipeline || '-'}</td>
                           <td className="py-2">
                             <div className="flex gap-3">
                               <button

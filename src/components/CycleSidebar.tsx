@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
+import ConfirmDialog from './ConfirmDialog'
 
 type Cycle = {
   id: number; label: string; startDate: string; endDate: string; status: string
@@ -11,12 +12,16 @@ export default function CycleSidebar({
   onSelectCycle,
   onCycleCreated,
   refreshKey,
+  hasDraft,
 }: {
   selectedCycleId: number | null
   onSelectCycle: (id: number) => void
   onCycleCreated: () => void
   refreshKey: number
+  hasDraft?: boolean
 }) {
+  const [pendingSwitchId, setPendingSwitchId] = useState<number | null>(null)
+  const [showSwitchConfirm, setShowSwitchConfirm] = useState(false)
   const { data: session } = useSession()
   const [cycles, setCycles] = useState<Cycle[]>([])
   const [isScrollbarVisible, setIsScrollbarVisible] = useState(false)
@@ -116,7 +121,14 @@ export default function CycleSidebar({
                   return (
                     <button
                       key={c.id}
-                      onClick={() => onSelectCycle(c.id)}
+                      onClick={() => {
+                        if (hasDraft && c.id !== selectedCycleId) {
+                          setPendingSwitchId(c.id)
+                          setShowSwitchConfirm(true)
+                        } else {
+                          onSelectCycle(c.id)
+                        }
+                      }}
                       className={`flex h-[78px] w-[284px] items-center justify-between rounded-[12px] px-[18px] text-left transition-shadow ${
                         isSelected
                           ? 'bg-white shadow-[0_0_8px_0_rgba(0,0,0,0.10)]'
@@ -147,8 +159,12 @@ export default function CycleSidebar({
         <div className="p-[18px]">
           <button
             onClick={createCycle}
-            className="relative mx-auto block h-[60px] w-[284px] rounded-[12px] bg-[#000000] text-[18px] leading-[25px] text-white transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.25)] active:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
-            style={{ fontFamily: 'Alibaba PuHuiTi 2.0', fontWeight: 900 }}
+            className="relative mx-auto block h-[60px] w-[284px] rounded-[12px] bg-[#000000] text-[18px] leading-[25px] text-white transition-transform active:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
+            style={{ fontFamily: 'Alibaba PuHuiTi 2.0', fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s' }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
           >
             <span>新建月结</span>
             <span className="pointer-events-none absolute right-[18px] top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center">
@@ -163,18 +179,22 @@ export default function CycleSidebar({
         </div>
       )}
       {duplicateCycle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="w-80 rounded-lg bg-white p-6 shadow-lg">
-            <h3 className="mb-2 font-bold">当前周期已存在</h3>
-            <p className="mb-4 text-sm text-gray-600">当前周期已存在，点击查看</p>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setDuplicateCycle(null)}
-                className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100">取消</button>
-              <button onClick={() => { onSelectCycle(duplicateCycle.id); setDuplicateCycle(null) }}
-                className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700">查看</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="当前周期已存在"
+          message="当前周期已存在，点击查看"
+          onConfirm={() => { onSelectCycle(duplicateCycle.id); setDuplicateCycle(null) }}
+          onCancel={() => setDuplicateCycle(null)}
+          confirmText="查看"
+          cancelText="取消"
+        />
+      )}
+      {showSwitchConfirm && pendingSwitchId !== null && (
+        <ConfirmDialog
+          title="放弃修改"
+          message="有未保存的修改，是否放弃？"
+          onConfirm={() => { onSelectCycle(pendingSwitchId); setShowSwitchConfirm(false); setPendingSwitchId(null) }}
+          onCancel={() => { setShowSwitchConfirm(false); setPendingSwitchId(null) }}
+        />
       )}
     </div>
   )

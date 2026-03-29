@@ -13,6 +13,16 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const cycle = await prisma.billingCycle.findUnique({ where: { id: cycleId } })
   if (!cycle) return NextResponse.json({ error: '周期不存在' }, { status: 404 })
 
+  // Delete unsubmitted drafts older than 1 minute (to avoid deleting just-created requirements)
+  const oneMinuteAgo = new Date(Date.now() - 60 * 1000)
+  await prisma.requirementGroup.deleteMany({
+    where: {
+      lastSubmittedAt: null,
+      rating: null,
+      createdAt: { lt: oneMinuteAgo },
+    },
+  })
+
   // Visible in this cycle: have workload in cycle OR INCOMPLETE and created in/before cycle
   const requirements = await prisma.requirementGroup.findMany({
     where: {
