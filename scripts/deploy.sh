@@ -178,7 +178,7 @@ setup_path() {
     echo " U-Minus 部署脚本"
     echo "=========================================="
     echo ""
-    echo "部署路径 [默认: $DEFAULT_DIR]: "
+    echo "部署路径 [默认: ~/u-plus-lite]: "
     read -r input
     DEPLOY_DIR=${input:-$DEFAULT_DIR}
     DEPLOY_DIR=$(eval echo "$DEPLOY_DIR")  # 展开 ~ 等
@@ -196,6 +196,14 @@ setup_code() {
         cd "$DEPLOY_DIR"
         UPDATE_MODE=true
         PROJECT_ROOT="$DEPLOY_DIR"
+        # 清理旧的构建缓存（防止 .next 中残留的 Prisma 客户端数据库路径导致连接错误数据库）
+        if [ -d ".next" ]; then
+            echo "清理旧的构建缓存..."
+            rm -rf .next
+        fi
+        # 用本地正确版本覆盖（GitHub 上的版本可能较旧）
+        cp "$SCRIPT_DIR/deploy.sh" "$DEPLOY_DIR/scripts/deploy.sh"
+        echo "部署脚本已更新为最新版本"
     else
         # 首次部署
         if [ -d "$DEPLOY_DIR" ]; then
@@ -218,6 +226,9 @@ setup_code() {
 
         # DEPLOY_DIR 即为项目根目录
         PROJECT_ROOT="$DEPLOY_DIR"
+
+        # 用本地正确版本的 deploy.sh 覆盖克隆的版本（防止 GitHub 上的旧版本有问题）
+        cp "$SCRIPT_DIR/deploy.sh" "$DEPLOY_DIR/scripts/deploy.sh"
 
         # 替换 seed.ts 为支持命令行参数的版本
         cat > prisma/seed.ts << 'SEED_EOF'
@@ -265,9 +276,155 @@ main()
 SEED_EOF
         echo "seed.ts 已更新为支持命令行参数的版本"
 
+        # 写入 import.ts（因为该文件未推送到 GitHub，需要内嵌）
+        cat > prisma/import.ts << 'IMPORT_EOF'
+import { PrismaClient } from '@prisma/client'
+import * as fs from 'fs'
+import * as readline from 'readline'
+
+const prisma = new PrismaClient()
+
+type CliArgs = {
+  pipelines?: string
+  budgetItems?: string
+}
+
+function parseArgs(): CliArgs {
+  const args: CliArgs = {}
+  for (let i = 2; i < process.argv.length; i++) {
+    const arg = process.argv[i]
+    if (arg.startsWith('--pipelines=')) args.pipelines = arg.replace('--pipelines=', '')
+    if (arg.startsWith('--budget-items=')) args.budgetItems = arg.replace('--budget-items=', '')
+  }
+  return args
+}
+
+async function readCsvLines(input: string): Promise<string[]> {
+  if (input === '-') {
+    const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity })
+    const lines: string[] = []
+    for await (const line of rl) lines.push(line)
+    return lines
+  }
+  if (!fs.existsSync(input)) {
+    console.error('文件不存在: ' + input)
+    process.exit(1)
+  }
+  return fs.readFileSync(input, 'utf8').split('\n').filter((l) => l.trim())
+}
+
+function parsePipelinesCsv(lines: string[]): string[] {
+  if (lines.length < 2) return []
+  return lines.slice(1).filter((l) => l.trim())
+}
+
+function parseBudgetItemsCsv(lines: string[]): Array<{ pipeline: string; name: string }> {
+  if (lines.length < 2) return []
+  return lines.slice(1).map((line) => {
+    const firstComma = line.indexOf(',')
+    if (firstComma === -1) return { pipeline: '', name: line.trim() }
+    return {
+      pipeline: line.slice(0, firstComma).trim(),
+      name: line.slice(firstComma + 1).split(',')[0].trim(),
+    }
+  })
+}
+
+async function ensureOtherPipeline(): Promise<number> {
+  const existing = await prisma.pipelineSetting.findUnique({ where: { name: '其他' } })
+  if (existing) return existing.id
+  const created = await prisma.pipelineSetting.create({ data: { name: '其他' } })
+  console.log('  自动创建"其他"管线')
+  return created.id
+}
+
+async function importPipelines(args: CliArgs) {
+  if (!args.pipelines) {
+    console.log('跳过管线导入（未指定 --pipelines）')
+    return
+  }
+  const lines = await readCsvLines(args.pipelines)
+  const names = parsePipelinesCsv(lines)
+  if (names.length === 0) {
+    console.log('pipelines.csv 为空，跳过')
+    return
+  }
+  let created = 0, skipped = 0
+  for (const name of names) {
+    if (!name.trim()) continue
+    const existing = await prisma.pipelineSetting.findUnique({ where: { name } })
+    if (existing) {
+      skipped++
+    } else {
+      await prisma.pipelineSetting.create({ data: { name } })
+      created++
+    }
+  }
+  console.log('管线导入完成：跳过 ' + skipped + '，已创建 ' + created)
+}
+
+async function importBudgetItems(args: CliArgs) {
+  if (!args.budgetItems) {
+    console.log('跳过预算项导入（未指定 --budget-items）')
+    return
+  }
+  const otherPipelineId = await ensureOtherPipeline()
+  const lines = await readCsvLines(args.budgetItems)
+  const items = parseBudgetItemsCsv(lines)
+  if (items.length === 0) {
+    console.log('budget_items.csv 为空，跳过')
+    return
+  }
+  let created = 0, skipped = 0
+  const pipelineMap = new Map<string, number>()
+  const allPipelines = await prisma.pipelineSetting.findMany()
+  for (const p of allPipelines) pipelineMap.set(p.name, p.id)
+  for (const item of items) {
+    if (!item.name.trim()) continue
+    let pipelineId = item.pipeline ? pipelineMap.get(item.pipeline) : undefined
+    if (!pipelineId) {
+      if (item.pipeline) {
+        const createdPipeline = await prisma.pipelineSetting.create({ data: { name: item.pipeline } })
+        pipelineMap.set(item.pipeline, createdPipeline.id)
+        pipelineId = createdPipeline.id
+        console.log('  自动创建管线: ' + item.pipeline)
+      } else {
+        pipelineId = otherPipelineId
+      }
+    }
+    const existing = await prisma.budgetItemSetting.findFirst({
+      where: { pipelineId, name: item.name },
+    })
+    if (existing) {
+      skipped++
+    } else {
+      await prisma.budgetItemSetting.create({ data: { pipelineId, name: item.name } })
+      created++
+    }
+  }
+  console.log('预算项导入完成：跳过 ' + skipped + '，已创建 ' + created)
+}
+
+async function main() {
+  const args = parseArgs()
+  console.log('')
+  await importPipelines(args)
+  await importBudgetItems(args)
+  console.log('')
+}
+
+main()
+  .catch((e) => {
+    console.error(e)
+    process.exit(1)
+  })
+  .finally(() => prisma.$disconnect())
+IMPORT_EOF
+        echo "import.ts 已写入"
+
         # 创建 .env 文件（如果不存在，git clone 不会复制 .gitignore 中的文件）
         if [ ! -f ".env" ]; then
-            echo 'DATABASE_URL="file:./dev.db"' > .env
+            echo "DATABASE_URL=\"file:$DEPLOY_DIR/prisma/dev.db\"" > .env
             echo 'NEXTAUTH_SECRET="u-minus-dev-secret-change-in-production"' >> .env
             echo 'NEXTAUTH_URL="http://localhost:3000"' >> .env
             echo ".env 文件已创建"
@@ -291,7 +448,8 @@ setup_prisma() {
     npx prisma generate
 
     echo "[4/7] 应用数据库迁移..."
-    npx prisma migrate deploy
+    # 使用 db push 而非 migrate deploy，避免相对路径解析到错误位置（prisma/prisma/dev.db）
+    npx prisma db push --accept-data-loss
 }
 
 # ============================================================
@@ -356,22 +514,39 @@ setup_admin() {
 # ============================================================
 build_and_start() {
     echo "[6/7] 构建生产版本..."
+    # PORT 和 NEXTAUTH_URL 已在 config_nextauth 中更新到 .env
     npm run build
 
     echo "[7/7] 启动 PM2 服务..."
 
-    # 安装/更新 PM2
+    # 安装 PM2（如果尚未安装）
     npm install -g pm2 --silent 2>/dev/null || true
 
     # 停止旧实例
     pm2 delete u-plus-lite 2>/dev/null || true
 
-    # 启动服务
+    # 启动服务（PORT 由 config_nextauth 设置在 .env 中，启动时 PM2 自动加载 .env）
+    PORT=$PORT pm2 start npm --name u-plus-lite -- start
+    pm2 save
+}
+
+# ============================================================
+# Step 7: 配置 NEXTAUTH_URL
+# ============================================================
+config_nextauth() {
+    # 在 build 前更新 .env 中的 NEXTAUTH_URL（Next.js build 时会嵌入环境变量）
+    echo "[配置] 更新 NEXTAUTH_URL..."
+
+    # 查找可用端口
     PORT=$(find_available_port)
     echo "使用端口：$PORT"
 
-    PORT=$PORT pm2 start npm --name u-plus-lite -- start
-    pm2 save
+    LOCAL_IP=$(get_local_ip)
+
+    if [ -f ".env" ]; then
+        sed -i '' "s|NEXTAUTH_URL=.*|NEXTAUTH_URL=\"http://$LOCAL_IP:$PORT\"|" .env
+        echo "NEXTAUTH_URL 已更新为 http://$LOCAL_IP:$PORT"
+    fi
 
     # 自启配置
     echo ""
@@ -379,24 +554,10 @@ build_and_start() {
     read -r enable_autostart
     enable_autostart=${enable_autostart:-Y}
     if [ "$(echo "$enable_autostart" | tr '[:upper:]' '[:lower:]')" = "y" ]; then
-        echo "（需要输入管理员密码）"
+        echo "（需要输入本机管理员密码）"
         sudo pm2 startup 2>/dev/null || true
     else
         echo "已跳过开机自启配置"
-    fi
-}
-
-# ============================================================
-# Step 7: 配置 NEXTAUTH_URL
-# ============================================================
-config_nextauth() {
-    echo "[配置] 更新 NEXTAUTH_URL..."
-
-    LOCAL_IP=$(get_local_ip)
-
-    if [ -f ".env" ]; then
-        sed -i '' "s|NEXTAUTH_URL=.*|NEXTAUTH_URL=\"http://$LOCAL_IP:$PORT\"|" .env
-        echo "NEXTAUTH_URL 已更新为 http://$LOCAL_IP:$PORT"
     fi
 }
 
@@ -468,11 +629,20 @@ import_csv_data() {
         local budget_content
         budget_content=$(cat)
 
+        # 使用临时文件传递内容（避免 stdin pipe 与 tsx ESM 加载冲突）
         if [ -n "$pipelines_content" ]; then
-            echo "$pipelines_content" | npx tsx "$PROJECT_ROOT/prisma/import.ts" --pipelines=-
+            local pipelines_tmp
+            pipelines_tmp=$(mktemp)
+            echo "$pipelines_content" > "$pipelines_tmp"
+            npx tsx "$PROJECT_ROOT/prisma/import.ts" --pipelines="$pipelines_tmp"
+            rm -f "$pipelines_tmp"
         fi
         if [ -n "$budget_content" ]; then
-            echo "$budget_content" | npx tsx "$PROJECT_ROOT/prisma/import.ts" --budget-items=-
+            local budget_tmp
+            budget_tmp=$(mktemp)
+            echo "$budget_content" > "$budget_tmp"
+            npx tsx "$PROJECT_ROOT/prisma/import.ts" --budget-items="$budget_tmp"
+            rm -f "$budget_tmp"
         fi
     else
         echo "跳过导入，管理员可在 Web 端手动添加管线/预算项"
@@ -495,7 +665,7 @@ show_complete() {
 
     if [ "$UPDATE_MODE" = false ]; then
         echo "管理员账号：$ADMIN_NAME"
-        echo "管理员密码：******"
+        echo "管理员密码：$ADMIN_PASSWORD"
     fi
 
     echo ""
@@ -516,8 +686,8 @@ main() {
     install_deps         # Step 3: 安装依赖
     setup_prisma         # Step 4: Prisma
     setup_admin          # Step 5: 管理员
-    build_and_start      # Step 6: 构建并启动
-    config_nextauth      # Step 7: 配置 NEXTAUTH_URL
+    config_nextauth      # Step 6: 配置 NEXTAUTH_URL（必须在 build 前，以嵌入正确环境变量）
+    build_and_start      # Step 7: 构建并启动
     import_csv_data      # Step 8: CSV import
     show_complete        # 完成
 }
