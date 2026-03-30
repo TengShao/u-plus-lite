@@ -8,10 +8,13 @@ export async function POST(req: Request) {
   if (session.user.role !== 'ADMIN') return forbidden()
 
   const { name, pipelineId } = await req.json()
-  if (!name?.trim() || !pipelineId) return NextResponse.json({ error: '参数不完整' }, { status: 400 })
+  if (!name?.trim()) return NextResponse.json({ error: '名称不能为空' }, { status: 400 })
 
   const item = await prisma.budgetItemSetting.create({
-    data: { name: name.trim(), pipelineId },
+    data: {
+      name: name.trim(),
+      pipelineId: pipelineId || null,
+    },
   })
   return NextResponse.json(item)
 }
