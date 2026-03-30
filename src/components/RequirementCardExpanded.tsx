@@ -309,6 +309,10 @@ export default function RequirementCardExpanded({
         </EditableCube>
       </div>
 
+      <div className="mt-[20px]">
+        <SectionTitle icon="info" text="其他信息" weight={800} />
+      </div>
+
       <div className="mt-[20px] h-px w-full bg-[#0000000A]" />
 
       <div className="mt-[20px]">
