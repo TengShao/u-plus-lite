@@ -26,6 +26,10 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
   const [budgetItemSearch, setBudgetItemSearch] = useState('')
   const [expandedPipelines, setExpandedPipelines] = useState<Record<number, boolean>>({})
 
+  const [isAddingPipeline, setIsAddingPipeline] = useState(false)
+  const [newPipelineName, setNewPipelineName] = useState('')
+  const [newItemPipelineId, setNewItemPipelineId] = useState<number | null>(null)
+
   useEffect(() => {
     fetchUsers()
     fetchSettings()
@@ -120,11 +124,42 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
   function startAddBudgetItem(pipelineId: number) {
     setIsAddingBudgetItemPipelineId(pipelineId)
     setNewItemName('')
+    setNewItemPipelineId(pipelineId)
   }
 
   function cancelAddBudgetItem() {
     setIsAddingBudgetItemPipelineId(null)
     setNewItemName('')
+  }
+
+  function startAddPipeline() {
+    setIsAddingPipeline(true)
+    setNewPipelineName('')
+  }
+
+  function cancelAddPipeline() {
+    setIsAddingPipeline(false)
+    setNewPipelineName('')
+  }
+
+  async function confirmAddPipeline() {
+    if (!newPipelineName.trim()) {
+      alert('请填写管线名称')
+      return
+    }
+    const res = await fetch('/api/settings/pipelines', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newPipelineName.trim() }),
+    })
+    if (res.ok) {
+      setIsAddingPipeline(false)
+      setNewPipelineName('')
+      fetchSettings()
+    } else {
+      const err = await res.json()
+      alert(err.error || '创建失败')
+    }
   }
 
   async function confirmAddBudgetItem() {
@@ -135,7 +170,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
     const res = await fetch('/api/settings/budget-items', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newItemName.trim(), pipelineId: isAddingBudgetItemPipelineId }),
+      body: JSON.stringify({ name: newItemName.trim(), pipelineId: newItemPipelineId }),
     })
     if (res.ok) {
       setIsAddingBudgetItemPipelineId(null)
@@ -380,15 +415,38 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
             </>
           ) : (
             <>
-              <div className="mb-4">
-                <input
-                  type="text"
-                  value={budgetItemSearch}
-                  onChange={(e) => setBudgetItemSearch(e.target.value)}
-                  placeholder="搜索预算项"
-                  className="w-full rounded border px-3 py-2 text-sm"
-                />
+              <div className="mb-4 flex gap-2">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={budgetItemSearch}
+                    onChange={(e) => setBudgetItemSearch(e.target.value)}
+                    placeholder="搜索预算项"
+                    className="w-full rounded border px-3 py-2 text-sm"
+                  />
+                </div>
+                <button
+                  onClick={startAddPipeline}
+                  className="px-4 py-2 bg-black text-white rounded text-sm whitespace-nowrap"
+                >
+                  + 新增管线
+                </button>
               </div>
+
+              {isAddingPipeline && (
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={newPipelineName}
+                    onChange={(e) => setNewPipelineName(e.target.value)}
+                    placeholder="管线名称"
+                    className="border rounded px-2 py-1 text-sm"
+                    autoFocus
+                  />
+                  <button onClick={confirmAddPipeline} className="text-green-600 hover:text-green-700 text-sm">确认</button>
+                  <button onClick={cancelAddPipeline} className="text-gray-500 hover:text-gray-700 text-sm">取消</button>
+                </div>
+              )}
 
               <table className="w-full text-sm">
                 <thead>
@@ -398,53 +456,67 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                   </tr>
                 </thead>
                 <tbody>
-                  {pipelines.map((pl) => {
-                    const expanded = isPipelineExpanded(pl.id)
-                    const filteredBudgetItems = getFilteredBudgetItems(pl)
+                  {(() => {
+                    const sortedPipelines = [...pipelines].sort((a, b) => {
+                      if (a.name === '其他') return 1
+                      if (b.name === '其他') return -1
+                      return a.id - b.id
+                    })
+                    return sortedPipelines.map((pl) => {
+                      const expanded = isPipelineExpanded(pl.id)
+                      const filteredBudgetItems = getFilteredBudgetItems(pl)
 
-                    return (
-                      <Fragment key={pl.id}>
-                        <tr className="border-b">
-                          <td className="py-2 font-semibold">
-                            <button
-                              type="button"
-                              onClick={() => togglePipeline(pl.id)}
-                              className="inline-flex items-center gap-2"
-                            >
-                              <span className="text-xs text-gray-500">{expanded ? '▾' : '▸'}</span>
-                              <span>{pl.name}</span>
-                            </button>
-                          </td>
-                          <td className="py-2">
-                            <button
-                              onClick={() => startAddBudgetItem(pl.id)}
-                              className="rounded bg-black px-3 py-1 text-xs text-white hover:bg-[#3A3A3A]"
-                            >
-                              新增预算项
-                            </button>
-                          </td>
-                        </tr>
-
-                        {expanded && isAddingBudgetItemPipelineId === pl.id && (
-                          <tr key={`add-item-${pl.id}`} className="border-b bg-gray-50">
-                            <td className="py-2 pl-6">
-                              <input
-                                type="text"
-                                value={newItemName}
-                                onChange={(e) => setNewItemName(e.target.value)}
-                                className="w-48 rounded border px-2 py-1 text-sm"
-                                placeholder="预算项名称"
-                                autoFocus
-                              />
+                      return (
+                        <Fragment key={pl.id}>
+                          <tr className="border-b">
+                            <td className="py-2 font-semibold">
+                              <button
+                                type="button"
+                                onClick={() => togglePipeline(pl.id)}
+                                className="inline-flex items-center gap-2"
+                              >
+                                <span className="text-xs text-gray-500">{expanded ? '▾' : '▸'}</span>
+                                <span>{pl.name}</span>
+                              </button>
                             </td>
                             <td className="py-2">
-                              <div className="flex gap-2">
-                                <button onClick={confirmAddBudgetItem} className="text-green-600 hover:text-green-700 text-sm">确认</button>
-                                <button onClick={cancelAddBudgetItem} className="text-gray-500 hover:text-gray-700 text-sm">取消</button>
-                              </div>
+                              <button
+                                onClick={() => startAddBudgetItem(pl.id)}
+                                className="rounded bg-black px-3 py-1 text-xs text-white hover:bg-[#3A3A3A]"
+                              >
+                                新增预算项
+                              </button>
                             </td>
                           </tr>
-                        )}
+
+                          {expanded && isAddingBudgetItemPipelineId === pl.id && (
+                            <tr key={`add-item-${pl.id}`} className="border-b bg-gray-50">
+                              <td className="py-2 pl-6">
+                                <select
+                                  value={newItemPipelineId ?? ''}
+                                  onChange={(e) => setNewItemPipelineId(e.target.value ? Number(e.target.value) : null)}
+                                  className="border rounded px-1 py-1 text-xs mr-2"
+                                >
+                                  <option value="">不关联管线</option>
+                                  {pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                                <input
+                                  type="text"
+                                  value={newItemName}
+                                  onChange={(e) => setNewItemName(e.target.value)}
+                                  className="w-48 rounded border px-2 py-1 text-sm"
+                                  placeholder="预算项名称"
+                                  autoFocus
+                                />
+                              </td>
+                              <td className="py-2">
+                                <div className="flex gap-2">
+                                  <button onClick={confirmAddBudgetItem} className="text-green-600 hover:text-green-700 text-sm">确认</button>
+                                  <button onClick={cancelAddBudgetItem} className="text-gray-500 hover:text-gray-700 text-sm">取消</button>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
 
                         {expanded && filteredBudgetItems.map((item) => (
                           <tr key={`item-${item.id}`} className={`border-b ${editingBudgetItem?.id === item.id ? 'bg-gray-50' : ''}`}>
@@ -492,7 +564,8 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                         )}
                       </Fragment>
                     )
-                  })}
+                  })
+                  })()}
                 </tbody>
               </table>
             </>
