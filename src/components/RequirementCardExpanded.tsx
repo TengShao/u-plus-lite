@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { type RequirementData } from './RequirementPanel'
 import type { PipelineSettingData } from './RequirementPanel'
-import { MODULES, RATINGS, TYPES } from '@/lib/constants'
+import { MODULES, RATINGS, RATING_STANDARDS, TYPES } from '@/lib/constants'
+import { getHealthStatus } from '@/lib/compute'
 import ConfirmDialog from './ConfirmDialog'
 
 const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
@@ -79,9 +80,23 @@ export default function RequirementCardExpanded({
   const [canClose, setCanClose] = useState(data.canClose)
   const [funcPoints, setFuncPoints] = useState(data.funcPoints ?? data.funcPointsRecommended)
   const [pageCount, setPageCount] = useState(data.pageCount ?? 0)
-
   const myWorkload = data.cycleWorkloads.find((w) => w.userId === userId)
   const [manDays, setManDays] = useState(myWorkload?.manDays ?? 0)
+  const [manDaysFocused, setManDaysFocused] = useState(false)
+
+  // Real-time computed values based on local manDays
+  const computedTotalManDays = data.totalManDays - (myWorkload?.manDays ?? 0) + manDays
+  const computedFuncPointsRecommended = Math.round(computedTotalManDays * 0.62)
+
+  // Real-time participant count
+  const computedParticipantCount = data.participantCount
+    - ((myWorkload?.manDays ?? 0) > 0 ? 1 : 0)
+    + (manDays > 0 ? 1 : 0)
+
+  // Real-time input ratio (approximation using raw man-days instead of converted)
+  const ratingStandard = rating ? (RATING_STANDARDS[rating] ?? 1) : 0
+  const computedInputRatio = rating ? Math.round((computedTotalManDays / ratingStandard) * 100) : 0
+  const computedHealthStatus = rating ? getHealthStatus(computedInputRatio) : null
 
   const [dirty, setDirty] = useState(false)
   const [triedSubmit, setTriedSubmit] = useState(false)
@@ -131,6 +146,8 @@ export default function RequirementCardExpanded({
   const moduleInvalid = triedSubmit && !module
   const pipelineInvalid = triedSubmit && !pipeline
   const budgetInvalid = triedSubmit && !budgetItem
+  const funcPointsInvalid = triedSubmit && !funcPoints
+  const pageCountInvalid = triedSubmit && !pageCount
 
   function markDirty() {
     if (!dirty) setDirty(true)
@@ -159,7 +176,7 @@ export default function RequirementCardExpanded({
       }
     }
 
-    if (!name.trim() || !rating || !module || !pipeline || !budgetItem) return
+    if (!name.trim() || !rating || !module || !pipeline || !budgetItem || !funcPoints || !pageCount) return
 
     const res = await fetch(`/api/requirements/${data.id}`, {
       method: 'PATCH',
@@ -196,11 +213,11 @@ export default function RequirementCardExpanded({
   }
 
   const readonlyCubes = useMemo(() => [
-    { label: '总投入人天', value: String(data.totalManDays), color: '#000000' },
-    { label: '参与人数', value: String(data.participantCount), color: '#000000' },
-    { label: '投入比', value: data.rating ? `${data.inputRatio}%` : '-', color: '#000000' },
-    { label: '健康度', value: data.healthStatus || '-', color: data.healthStatus ? HEALTH_COLORS[data.healthStatus] : '#000000' },
-  ], [data])
+    { label: '总投入人天', value: String(computedTotalManDays), color: '#000000' },
+    { label: '参与人数', value: String(computedParticipantCount), color: '#000000' },
+    { label: '投入比', value: rating ? `${computedInputRatio}%` : '-', color: '#000000' },
+    { label: '健康度', value: computedHealthStatus || '-', color: computedHealthStatus ? HEALTH_COLORS[computedHealthStatus] : '#000000' },
+  ], [computedTotalManDays, computedParticipantCount, computedInputRatio, computedHealthStatus, rating])
 
   return (
     <div data-req-id={String(data.id)} ref={cardRef} className={`${isCollapsing ? 'animate-card-fold-up' : 'animate-card-expand'} mx-auto max-w-[1200px] min-w-[1200px] rounded-[24px] bg-white px-[20px] pb-[30px] pt-[20px] shadow-[0_0_8px_0_rgba(0,0,0,0.15)]`} style={FONT}>
@@ -210,36 +227,38 @@ export default function RequirementCardExpanded({
           <div className="ml-[9px]">
             <SectionTitle icon="name" text="需求名称" weight={800} />
           </div>
-          <div className="mt-[10px] flex items-center">
-            <div
-              className={`relative h-[42px] w-[600px] rounded-[8px] border ${nameInvalid ? 'bg-[rgba(255,0,0,0.08)] shadow-[0_0_3px_rgba(0,0,0,0.06)]' : 'bg-white'}`}
-              style={{ borderColor: nameInvalid ? '#FF7D7D' : nameFocused ? GREEN : nameHovered ? GREEN : '#F3F3F3', transition: 'border-color 0.15s' }}
-              onMouseEnter={() => setNameHovered(true)}
-              onMouseLeave={() => setNameHovered(false)}
-            >
-              <input
-                value={name}
-                disabled={!userEditable}
-                onFocus={() => setNameFocused(true)}
-                onBlur={() => setNameFocused(false)}
-                onChange={(e) => { setName(e.target.value); markDirty() }}
-                placeholder="请输入需求组名称"
-                autoFocus={isDraft}
-                className="h-full w-full bg-transparent px-[10px] pr-[40px] text-[16px] leading-[22px] text-black placeholder:text-black/20 outline-none"
-                style={{ fontWeight: 900 }}
-              />
-              {userEditable && name.length > 0 && (
-                <button
-                  type="button"
-                  aria-label="清空需求组名称"
-                  onClick={() => { setName(''); markDirty() }}
-                  className="absolute right-[10px] top-1/2 -translate-y-1/2"
-                >
-                  <img src="/clear-input-icon.svg" alt="" aria-hidden="true" className="h-[18px] w-[18px]" />
-                </button>
-              )}
+          <div className="relative mt-[10px] flex items-center">
+            <div className="relative w-[600px]">
+              <div
+                className={`relative h-[42px] rounded-[8px] border ${nameInvalid ? 'bg-[rgba(255,0,0,0.08)] shadow-[0_0_3px_rgba(0,0,0,0.06)]' : 'bg-white'}`}
+                style={{ borderColor: nameInvalid ? '#FF7D7D' : nameFocused ? GREEN : nameHovered ? GREEN : '#F3F3F3', transition: 'border-color 0.15s' }}
+                onMouseEnter={() => setNameHovered(true)}
+                onMouseLeave={() => setNameHovered(false)}
+              >
+                <input
+                  value={name}
+                  disabled={!userEditable}
+                  onFocus={() => setNameFocused(true)}
+                  onBlur={() => setNameFocused(false)}
+                  onChange={(e) => { setName(e.target.value); markDirty() }}
+                  placeholder="请输入需求组名称"
+                  autoFocus={isDraft}
+                  className="h-full w-full bg-transparent px-[10px] pr-[40px] text-[16px] leading-[22px] text-black placeholder:text-black/20 outline-none"
+                  style={{ fontWeight: 900 }}
+                />
+                {userEditable && name.length > 0 && (
+                  <button
+                    type="button"
+                    aria-label="清空需求组名称"
+                    onClick={() => { setName(''); markDirty() }}
+                    className="absolute right-[10px] top-1/2 -translate-y-1/2"
+                  >
+                    <img src="/clear-input-icon.svg" alt="" aria-hidden="true" className="h-[18px] w-[18px]" />
+                  </button>
+                )}
+              </div>
+              <span className="absolute left-[604px] top-[19px] h-[4px] w-[4px] rounded-full bg-[#FF0000]" />
             </div>
-            <span className="ml-[12px] text-[12px] text-[#FF0000]">*</span>
           </div>
         </div>
         <div className="ml-auto flex gap-[9px]">
@@ -309,28 +328,33 @@ export default function RequirementCardExpanded({
         </EditableCube>
       </div>
 
-      <div className="mt-[20px]">
+      <div className="mt-[20px] flex items-center gap-[8px]">
         <SectionTitle icon="info" text="其他信息" weight={800} />
+        <span className="text-[12px] leading-[17px] text-[#AFAFAF]" style={{ fontWeight: 500, letterSpacing: '-0.75px' }}>
+          Tips: 功能点数 <span style={{ fontWeight: 800 }}>{computedFuncPointsRecommended}</span>
+        </span>
       </div>
 
       <div className="mt-[10px] flex gap-[8px]">
-        <EditableCube label="功能点数" isOpen={false} isEmpty={!funcPoints} width={120}>
+        <EditableCube label="功能点数" required invalid={funcPointsInvalid} isOpen={false} isEmpty={!funcPoints} width={120}>
           <CubeInput
             width={104}
             value={funcPoints}
             onChange={(v) => { setFuncPoints(parseInt(v) || 0); markDirty() }}
             placeholder="请输入"
             disabled={!userEditable}
+            invalid={funcPointsInvalid}
           />
         </EditableCube>
 
-        <EditableCube label="界面数" isOpen={false} isEmpty={!pageCount} width={120}>
+        <EditableCube label="界面数" required invalid={pageCountInvalid} isOpen={false} isEmpty={!pageCount} width={120}>
           <CubeInput
             width={104}
             value={pageCount}
             onChange={(v) => { setPageCount(parseInt(v) || 0); markDirty() }}
             placeholder="请输入"
             disabled={!userEditable}
+            invalid={pageCountInvalid}
           />
         </EditableCube>
       </div>
@@ -341,15 +365,18 @@ export default function RequirementCardExpanded({
         <SectionTitle icon="designers" text="参与设计师" weight={800} />
       </div>
       <div className="mt-[12px] min-h-[33px]">
-        {data.cycleWorkloads.length === 0 ? (
-          <div className="flex w-full items-center justify-center py-[8px] text-[14px]" style={{ fontWeight: 800, fontFamily: 'Alibaba PuHuiTi 2.0', color: '#C3C3C3' }}>
+        {data.cycleWorkloads.length === 0 && manDays === 0 ? (
+          <div className="flex h-[33px] w-full items-center justify-center text-[14px]" style={{ fontWeight: 800, fontFamily: 'Alibaba PuHuiTi 2.0', color: '#C3C3C3' }}>
             暂无设计师参与，怎么回事
           </div>
         ) : (
-          <div className="flex flex-wrap gap-[8px]">
+          <div className="flex h-[33px] flex-wrap items-center gap-[8px]">
             {data.cycleWorkloads.map((w) => (
-              <DesignerChip key={w.userId} name={w.userId === userId ? '你' : w.userName} days={String(w.manDays)} mine={w.userId === userId} />
+              <DesignerChip key={w.userId} name={w.userId === userId ? '你' : w.userName} days={String(w.userId === userId ? manDays : w.manDays)} mine={w.userId === userId} />
             ))}
+            {manDays > 0 && !data.cycleWorkloads.some((w) => w.userId === userId) && (
+              <DesignerChip name="你" days={String(manDays)} mine />
+            )}
           </div>
         )}
       </div>
@@ -381,9 +408,11 @@ export default function RequirementCardExpanded({
             type="number"
             step="0.1"
             min="0"
-            value={manDays}
+            value={manDaysFocused && manDays === 0 ? '' : manDays === 0 ? '0' : manDays || ''}
             disabled={!userEditable}
             onChange={(e) => { setManDays(parseFloat(e.target.value) || 0); markDirty() }}
+            onFocus={() => setManDaysFocused(true)}
+            onBlur={() => setManDaysFocused(false)}
             className="no-spin mx-[8px] h-[36px] w-[64px] rounded-[8px] border border-[#F3F3F3] text-center text-[20px] leading-[36px] outline-none"
             style={{ fontWeight: 800 }}
           />
@@ -494,8 +523,10 @@ function EditableCube({ label, width, required, invalid, isOpen, isEmpty, childr
         boxShadow: shadow,
       }}
     >
-      <div className="text-center text-[12px] leading-[17px] text-[#A8A8A8]" style={{ fontWeight: 800 }}>{label}</div>
-      {required && <span className="absolute right-[10px] top-[14px] text-[12px] text-[#FF0000]">*</span>}
+      <div className="relative flex items-center justify-center">
+        <span className="text-[12px] leading-[17px] text-[#A8A8A8]" style={{ fontWeight: 800 }}>{label}</span>
+      </div>
+      {required && <span className="absolute right-[8px] top-[8px] h-[4px] w-[4px] rounded-full bg-[#FF0000]" />}
       <div className="relative mt-[5px]">{children}</div>
     </div>
   )
@@ -592,19 +623,21 @@ function MenuMulti({ width, value, options, selected, onToggle }: { width: numbe
   )
 }
 
-function CubeInput({ width, value, onChange, placeholder = '请输入', disabled }: { width: number; value: string | number; onChange: (v: string) => void; placeholder?: string; disabled?: boolean }) {
+function CubeInput({ width, value, onChange, placeholder = '请输入', disabled, invalid }: { width: number; value: string | number; onChange: (v: string) => void; placeholder?: string; disabled?: boolean; invalid?: boolean }) {
   const [focused, setFocused] = useState(false)
+  const borderColor = invalid ? '#FF7D7D' : focused ? GREEN : '#EEEEEE'
+  const bgColor = invalid && !focused ? 'rgba(255,0,0,0.08)' : '#FFFFFF'
   return (
     <input
       type="text"
-      value={value}
+      value={value === 0 ? '0' : value || ''}
       disabled={disabled}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className="h-[36px] rounded-[8px] border border-transparent bg-white px-[10px] text-center text-[16px] leading-[22px] text-black placeholder:text-[#C3C3C3] outline-none"
-      style={{ width, fontWeight: 800, borderColor: focused ? GREEN : '#EEEEEE', transition: 'border-color 0.15s', backgroundColor: '#FFFFFF' }}
+      style={{ width, fontWeight: 800, borderColor, transition: 'border-color 0.15s, background-color 0.15s', backgroundColor: bgColor }}
     />
   )
 }
