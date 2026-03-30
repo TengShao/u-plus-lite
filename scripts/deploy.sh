@@ -24,6 +24,20 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# 静默读取密码（跨平台兼容，macOS Terminal.app 上也能正确隐藏输入）
+read_secret() {
+    local prompt="$1"
+    local var_name="$2"
+    # 使用 stty 禁用终端回显，trap 确保退出时恢复
+    trap 'stty echo 2>/dev/null' EXIT INT TERM
+    stty -echo 2>/dev/null
+    read -r "$var_name"
+    stty echo 2>/dev/null
+    trap - EXIT INT TERM
+    # 打印换行（因为输入时没有回显换行）
+    echo ""
+}
+
 # 获取局域网 IP (macOS)
 get_local_ip() {
     local ip
@@ -193,6 +207,15 @@ setup_code() {
     if [ -d "$DEPLOY_DIR/.git" ]; then
         # 已有代码，走更新流程
         echo "检测到已有代码，进入更新模式..."
+        echo ""
+        echo "即将更新现有部署：$DEPLOY_DIR"
+        echo "是否继续？[Y: 更新，其他: 取消并退出]"
+        read -r confirm
+        confirm=${confirm:-Y}
+        if [ "$(echo "$confirm" | tr '[:upper:]' '[:lower:]')" != "y" ]; then
+            echo "已取消更新。请使用其他部署路径重新运行脚本。"
+            exit 0
+        fi
         cd "$DEPLOY_DIR"
         UPDATE_MODE=true
         PROJECT_ROOT="$DEPLOY_DIR"
@@ -472,38 +495,30 @@ setup_admin() {
         read -p "  管理员姓名: " ADMIN_NAME
     done
 
-    read -sp "  密码: " ADMIN_PASSWORD
-    echo ""
+    read_secret "  密码: " ADMIN_PASSWORD
     while [ -z "$ADMIN_PASSWORD" ]; do
         echo "  错误：密码不能为空"
-        read -sp "  密码: " ADMIN_PASSWORD
-        echo ""
+        read_secret "  密码: " ADMIN_PASSWORD
     done
 
     while [ ${#ADMIN_PASSWORD} -lt 8 ]; do
         echo "  错误：密码至少8位"
-        read -sp "  密码: " ADMIN_PASSWORD
-        echo ""
+        read_secret "  密码: " ADMIN_PASSWORD
     done
 
-    read -sp "  确认密码: " ADMIN_PASSWORD_CONFIRM
-    echo ""
+    read_secret "  确认密码: " ADMIN_PASSWORD_CONFIRM
     while [ "$ADMIN_PASSWORD" != "$ADMIN_PASSWORD_CONFIRM" ]; do
         echo "  错误：两次输入的密码不一致"
-        read -sp "  密码: " ADMIN_PASSWORD
-        echo ""
+        read_secret "  密码: " ADMIN_PASSWORD
         while [ -z "$ADMIN_PASSWORD" ]; do
             echo "  错误：密码不能为空"
-            read -sp "  密码: " ADMIN_PASSWORD
-            echo ""
+            read_secret "  密码: " ADMIN_PASSWORD
         done
         while [ ${#ADMIN_PASSWORD} -lt 8 ]; do
             echo "  错误：密码至少8位"
-            read -sp "  密码: " ADMIN_PASSWORD
-            echo ""
+            read_secret "  密码: " ADMIN_PASSWORD
         done
-        read -sp "  确认密码: " ADMIN_PASSWORD_CONFIRM
-        echo ""
+        read_secret "  确认密码: " ADMIN_PASSWORD_CONFIRM
     done
 
     npx tsx "$PROJECT_ROOT/prisma/seed.ts" "$ADMIN_NAME" "$ADMIN_PASSWORD"

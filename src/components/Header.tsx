@@ -338,7 +338,7 @@ export default function Header({
   }
 
   async function handleSignOut() {
-    await signOut({ callbackUrl: '/' })
+    await signOut({ callbackUrl: window.location.origin })
   }
 
   const hasValue = searchQuery.length > 0
