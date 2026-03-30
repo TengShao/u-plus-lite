@@ -196,6 +196,11 @@ setup_path() {
     read -r input
     DEPLOY_DIR=${input:-$DEFAULT_DIR}
     DEPLOY_DIR=$(eval echo "$DEPLOY_DIR")  # 展开 ~ 等
+
+    # 如果路径末尾不是 /u-plus-lite，自动添加（方便用户输入 ~/部署 这样的路径）
+    if [ "${DEPLOY_DIR##*/}" != "u-plus-lite" ]; then
+        DEPLOY_DIR="$DEPLOY_DIR/u-plus-lite"
+    fi
 }
 
 # ============================================================
