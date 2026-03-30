@@ -570,6 +570,23 @@ function MenuMulti({ width, value, options, selected, onToggle }: { width: numbe
   )
 }
 
+function CubeInput({ width, value, onChange, placeholder = '请输入', disabled }: { width: number; value: string | number; onChange: (v: string) => void; placeholder?: string; disabled?: boolean }) {
+  const [focused, setFocused] = useState(false)
+  return (
+    <input
+      type="text"
+      value={value}
+      disabled={disabled}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="h-[36px] rounded-[8px] border border-transparent bg-white px-[10px] text-center text-[16px] leading-[22px] text-black placeholder:text-[#C3C3C3] outline-none"
+      style={{ width, fontWeight: 800, borderColor: focused ? GREEN : '#EEEEEE', transition: 'border-color 0.15s', backgroundColor: '#FFFFFF' }}
+    />
+  )
+}
+
 function DesignerChip({ name, days, mine }: { name: string; days: string; mine?: boolean }) {
   return (
     <div className="flex h-[33px] items-center rounded-[8px] border border-[#EEEEEE] bg-white px-[8px]">
