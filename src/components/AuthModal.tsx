@@ -35,6 +35,9 @@ export default function AuthModal({
   const [isLoading, setIsLoading] = useState(false)
   const [pipelineOpen, setPipelineOpen] = useState(false)
   const pipelineRef = useRef<HTMLDivElement>(null)
+  const [level, setLevel] = useState('')
+  const [levelOpen, setLevelOpen] = useState(false)
+  const levelRef = useRef<HTMLDivElement>(null)
 
   // Clear error and form when switching modes
   useEffect(() => {
@@ -43,6 +46,7 @@ export default function AuthModal({
     setPassword('')
     setConfirmPassword('')
     setPrimaryPipeline('')
+    setLevel('')
   }, [mode])
 
   // Fetch pipelines on mount
@@ -58,6 +62,9 @@ export default function AuthModal({
     function handleClickOutside(e: MouseEvent) {
       if (pipelineRef.current && !pipelineRef.current.contains(e.target as Node)) {
         setPipelineOpen(false)
+      }
+      if (levelRef.current && !levelRef.current.contains(e.target as Node)) {
+        setLevelOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -106,11 +113,15 @@ export default function AuthModal({
       setError('请选择主要管线')
       return
     }
+    if (!level) {
+      setError('请选择职级')
+      return
+    }
     setIsLoading(true)
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, password, confirmPassword, primaryPipeline }),
+      body: JSON.stringify({ name, password, confirmPassword, primaryPipeline, level }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -249,43 +260,97 @@ export default function AuthModal({
                 />
               </div>
 
-              {/* 主要管线 */}
-              <div className="mt-[24px] relative" ref={pipelineRef}>
-                <div className="flex items-center gap-[10px]">
-                  <div className="pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>主要管线</div>
-                  <button
-                    type="button"
-                    onClick={() => setPipelineOpen(!pipelineOpen)}
-                    className="relative z-10 h-[42px] rounded-[8px] border border-[#EEEEEE] bg-white px-[10px] hover:border-[#8ECA2E]"
-                    style={{ width: 144, boxShadow: 'none', marginLeft: 'auto' }}
-                  >
-                    <span
-                      className="absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center leading-[22px]"
-                      style={{ color: primaryPipeline ? '#000' : '#C3C3C3', fontSize: 16, fontWeight: 800 }}
+              {/* 主要管线和职级 - 同一行并排，标题和下拉框上下结构 */}
+              <div className="mt-[24px] flex gap-[28px]">
+                {/* 主要管线 */}
+                <div style={{ width: 139 }}>
+                  <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>主要管线</div>
+                  <div className="relative" ref={pipelineRef}>
+                    <button
+                      type="button"
+                      onClick={() => setPipelineOpen(!pipelineOpen)}
+                      className="relative z-10 h-[36px] w-full rounded-[8px] border border-[#EEEEEE] bg-white px-[10px] hover:border-[#8ECA2E]"
+                      style={{ boxShadow: 'none', transition: 'border-color 0.15s' }}
                     >
-                      {primaryPipeline || '请选择'}
-                    </span>
-                    <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon /></span>
-                  </button>
-                </div>
-                {pipelineOpen && (
-                  <div className="absolute z-20 overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ width: 144, right: 0, border: '1px solid #8ECA2E', marginTop: 4 }}>
-                    {pipelines.map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => { setPrimaryPipeline(p); setPipelineOpen(false) }}
-                        className="flex h-[30px] w-full items-center justify-center text-[14px] hover:bg-[rgba(142,202,46,0.15)]"
-                        style={{ fontWeight: 800 }}
+                      <span
+                        className="absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center leading-[22px]"
+                        style={{ color: primaryPipeline ? '#000' : '#C3C3C3', fontSize: 16, fontWeight: 800 }}
                       >
-                        {p}
-                      </button>
-                    ))}
+                        {primaryPipeline || '请选择'}
+                      </span>
+                      <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon flipped={pipelineOpen} /></span>
+                    </button>
+                    {pipelineOpen && (
+                      <div className="absolute left-0 top-0 z-20 w-full overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid #8ECA2E' }}>
+                        {/* Trigger clone */}
+                        <div className="relative h-[36px] px-[10px]">
+                          <span className="absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center text-[16px] leading-[22px]" style={{ fontWeight: 800 }}>
+                            {primaryPipeline || '请选择'}
+                          </span>
+                          <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon flipped /></span>
+                        </div>
+                        <div className="h-px bg-[#0000000B] mx-px" />
+                        {pipelines.map((p) => (
+                          <button
+                            key={p}
+                            onClick={() => { setPrimaryPipeline(p); setPipelineOpen(false) }}
+                            className="flex h-[30px] w-full items-center justify-center text-[14px] hover:bg-[rgba(142,202,46,0.15)]"
+                            style={{ fontWeight: 800 }}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+
+                {/* 职级 */}
+                <div style={{ width: 139 }}>
+                  <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>职级</div>
+                  <div className="relative" ref={levelRef}>
+                    <button
+                      type="button"
+                      onClick={() => setLevelOpen(!levelOpen)}
+                      className="relative z-10 h-[36px] w-full rounded-[8px] border border-[#EEEEEE] bg-white px-[10px] hover:border-[#8ECA2E]"
+                      style={{ boxShadow: 'none', transition: 'border-color 0.15s' }}
+                    >
+                      <span
+                        className="absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center leading-[22px]"
+                        style={{ color: level ? '#000' : '#C3C3C3', fontSize: 16, fontWeight: 800 }}
+                      >
+                        {level || '请选择'}
+                      </span>
+                      <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon flipped={levelOpen} /></span>
+                    </button>
+                    {levelOpen && (
+                      <div className="absolute left-0 top-0 z-20 w-full overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid #8ECA2E' }}>
+                        {/* Trigger clone */}
+                        <div className="relative h-[36px] px-[10px]">
+                          <span className="absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center text-[16px] leading-[22px]" style={{ fontWeight: 800 }}>
+                            {level || '请选择'}
+                          </span>
+                          <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon flipped /></span>
+                        </div>
+                        <div className="h-px bg-[#0000000B] mx-px" />
+                        {['P5', 'P4', 'P3', 'INTERN', 'OUTSOURCE'].map((l) => (
+                          <button
+                            key={l}
+                            onClick={() => { setLevel(l); setLevelOpen(false) }}
+                            className={`flex h-[30px] w-full items-center justify-center text-[14px] ${level === l ? 'bg-[rgba(142,202,46,0.15)]' : 'hover:bg-[rgba(142,202,46,0.15)]'}`}
+                            style={{ fontWeight: 800 }}
+                          >
+                            {l}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Hidden input for form submission */}
-              <input type="hidden" name="primaryPipeline" value={primaryPipeline} />
+              <input type="hidden" name="level" value={level} />
 
               {/* Submit - 306px full width */}
               <button

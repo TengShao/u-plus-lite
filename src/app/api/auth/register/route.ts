@@ -15,6 +15,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '两次密码不一致' }, { status: 400 })
   }
 
+  const validLevels = ['P5', 'P4', 'P3', 'INTERN', 'OUTSOURCE']
+  if (!level || !validLevels.includes(level)) {
+    return NextResponse.json({ error: '请选择有效职级' }, { status: 400 })
+  }
+
   const existing = await prisma.user.findUnique({ where: { name } })
   if (existing) {
     return NextResponse.json({ error: '该姓名已被注册' }, { status: 400 })
