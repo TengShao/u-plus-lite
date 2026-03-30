@@ -313,6 +313,28 @@ export default function RequirementCardExpanded({
         <SectionTitle icon="info" text="其他信息" weight={800} />
       </div>
 
+      <div className="mt-[10px] flex gap-[8px]">
+        <EditableCube label="功能点数" isOpen={false} isEmpty={!funcPoints} width={120}>
+          <CubeInput
+            width={104}
+            value={funcPoints}
+            onChange={(v) => { setFuncPoints(parseInt(v) || 0); markDirty() }}
+            placeholder="请输入"
+            disabled={!userEditable}
+          />
+        </EditableCube>
+
+        <EditableCube label="界面数" isOpen={false} isEmpty={!pageCount} width={120}>
+          <CubeInput
+            width={104}
+            value={pageCount}
+            onChange={(v) => { setPageCount(parseInt(v) || 0); markDirty() }}
+            placeholder="请输入"
+            disabled={!userEditable}
+          />
+        </EditableCube>
+      </div>
+
       <div className="mt-[20px] h-px w-full bg-[#0000000A]" />
 
       <div className="mt-[20px]">
