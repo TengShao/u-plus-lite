@@ -89,11 +89,11 @@ model PipelineSetting {
 model BudgetItemSetting {
   id         Int             @id @default(autoincrement())
   name       String
-  pipelineId Int
+  pipelineId Int?
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
 
-  pipeline PipelineSetting @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  pipeline PipelineSetting? @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
 
   @@unique([pipelineId, name])
 }
