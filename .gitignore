@@ -26,3 +26,6 @@ prisma/exports/
 
 # Local generated assets
 public/logo.svg
+
+# TypeScript
+tsconfig.tsbuildinfo
