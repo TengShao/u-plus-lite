@@ -3,94 +3,429 @@ set -e
 
 # ============================================================
 # U-Minus 一键部署脚本（macOS 服务器用）
-# 使用方式：bash <(curl -sL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.sh)
-# 或下载后在服务器上运行：bash deploy.sh
+# 使用方式：
+#   curl -sL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.sh | bash
 # ============================================================
 
-REPO_URL="git@github.com:TengShao/u-plus-lite.git"
-DIR_NAME="u-plus-lite"
-TARGET_DIR="$HOME/$DIR_NAME"
+REPO_URL="https://github.com/TengShao/u-plus-lite.git"
+DEFAULT_DIR="$HOME/u-plus-lite"
+DEPLOY_DIR=""
 
-# 自动检测可用端口（从 3000 开始）
-find_port() {
+# 颜色定义
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# 获取局域网 IP (macOS)
+get_local_ip() {
+    local ip
+    ip=$(ipconfig getifaddr en0 2>/dev/null)
+    if [ -z "$ip" ]; then
+        ip=$(ipconfig getifaddr en1 2>/dev/null)
+    fi
+    if [ -z "$ip" ]; then
+        ip=$(ipconfig getifaddr en0)
+    fi
+    echo "$ip"
+}
+
+# 检测端口是否被占用 (macOS)
+is_port_used() {
+    local port=$1
+    lsof -i :$port >/dev/null 2>&1
+}
+
+# 查找可用端口
+find_available_port() {
     local port=3000
-    while lsof -i :$port >/dev/null 2>&1; do
+    while is_port_used $port; do
         port=$((port + 1))
     done
     echo $port
 }
 
-echo "=========================================="
-echo " U-Minus 一键部署脚本"
-echo "=========================================="
+# 检测命令是否存在
+command_exists() {
+    command -v "$1" &> /dev/null
+}
 
-# Step 1: 获取代码
-if [ -d "$TARGET_DIR" ]; then
+# 打印带颜色的状态
+print_status() {
+    local ok=$1
+    local msg=$2
+    if [ "$ok" = "ok" ]; then
+        echo -e "${GREEN}[✓]${NC} $msg"
+    elif [ "$ok" = "fail" ]; then
+        echo -e "${RED}[✗]${NC} $msg"
+    else
+        echo -e "${YELLOW}[-]${NC} $msg"
+    fi
+}
+
+# ============================================================
+# Step 0: 依赖检测
+# ============================================================
+check_dependencies() {
     echo ""
-    echo "[1/6] 检测到已有代码，更新中..."
-    cd "$TARGET_DIR"
-    git pull origin master
-else
+    echo "正在检测系统依赖..."
     echo ""
-    echo "[1/6] 克隆代码仓库..."
-    cd ~
-    git clone "$REPO_URL" "$TARGET_DIR"
-    cd "$TARGET_DIR"
-fi
 
-# Step 2: 安装依赖
-echo ""
-echo "[2/6] 安装依赖..."
-npm install
+    local missing_deps=()
+    local dep_info=""
 
-# Step 3: 生成 Prisma 客户端
-echo ""
-echo "[3/6] 生成 Prisma 客户端..."
-npx prisma generate
+    # 检测 Git
+    if command_exists git; then
+        local git_version
+        git_version=$(git --version | sed 's/git version //')
+        print_status "ok" "Git: 已安装 ($git_version)"
+    else
+        print_status "fail" "Git: 未安装"
+        missing_deps+=("git")
+        dep_info="${dep_info}  - Git: 未安装（Xcode Command Line Tools 包含）\n"
+    fi
 
-# Step 4: 构建生产版本
-echo ""
-echo "[4/6] 构建生产版本..."
-npm run build
+    # 检测 Node.js
+    if command_exists node; then
+        local node_version
+        node_version=$(node -v)
+        # 检查版本是否 >= 18
+        local major_version
+        major_version=$(echo $node_version | sed 's/v\([0-9]*\)\..*/\1/')
+        if [ "$major_version" -ge 18 ]; then
+            print_status "ok" "Node.js: $node_version"
+        else
+            print_status "fail" "Node.js: $node_version (需要 v18+)"
+            missing_deps+=("node")
+            dep_info="${dep_info}  - Node.js: $node_version (需要 v18+)\n"
+        fi
+    else
+        print_status "fail" "Node.js: 未安装"
+        missing_deps+=("node")
+        dep_info="${dep_info}  - Node.js: 未安装（需要 v18+）\n"
+    fi
 
-# Step 5: 初始化数据库
-echo ""
-echo "[5/6] 初始化数据库（初始状态）..."
-npx prisma db push
+    # 如果有缺失依赖，提示安装
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        echo ""
+        echo -e "${YELLOW}检测到缺少以下依赖：${NC}"
+        echo -e "$dep_info"
+        echo ""
+        echo "是否自动安装？ [Y/n]: "
+        read -r response
+        response=${response:-Y}
+        response=$(echo "$response" | tr '[:lower:]' '[:upper:]')
 
-# Step 6: 启动服务
-echo ""
-echo "[6/6] 启动服务..."
-npm install -g pm2 --silent 2>/dev/null || true
+        if [ "$response" != "Y" ]; then
+            echo ""
+            echo -e "${RED}部署取消。请先手动安装缺少的依赖后，重新运行脚本。${NC}"
+            echo ""
+            echo "安装指引："
+            echo "  macOS: https://nodejs.org/ 或 brew install node"
+            echo "  Git:   安装 Xcode Command Line Tools (运行 xcode-select --install)"
+            exit 1
+        fi
 
-# 检测可用端口
-PORT=$(find_port)
-echo "检测到可用端口：$PORT"
+        echo ""
+        echo "正在安装依赖..."
+        echo ""
 
-# 如果之前有运行中的实例，先停止
-pm2 delete u-plus-lite 2>/dev/null || true
+        # 安装 Git (通过 Xcode CLT)
+        for dep in "${missing_deps[@]}"; do
+            if [ "$dep" = "git" ]; then
+                echo "正在安装 Git..."
+                xcode-select --install 2>/dev/null || true
+                # 等待用户确认安装弹窗
+                sleep 2
+                print_status "ok" "Git 安装命令已触发，请等待 Xcode CLT 安装完成"
+            fi
+        done
 
-PORT=$PORT pm2 start npm -- start --name u-plus-lite
-pm2 save
+        # 安装 Node.js (通过 Homebrew)
+        for dep in "${missing_deps[@]}"; do
+            if [ "$dep" = "node" ]; then
+                if ! command_exists brew; then
+                    echo "正在安装 Homebrew..."
+                    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                fi
+                echo "正在安装 Node.js..."
+                brew install node
+                print_status "ok" "Node.js 安装完成"
+            fi
+        done
 
-# 获取局域网 IP
-LOCAL_IP=$(hostname -I | awk '{print $1}')
-if [ -z "$LOCAL_IP" ]; then
-    LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "请手动查询")
-fi
+        echo ""
+        echo "所有依赖检测通过，继续部署..."
+    else
+        echo ""
+        echo -e "${GREEN}所有依赖检测通过！${NC}"
+    fi
+}
 
-echo ""
-echo "=========================================="
-echo " 部署完成！"
-echo "=========================================="
-echo ""
-echo "局域网访问地址：http://$LOCAL_IP:$PORT"
-echo ""
-echo "管理员账号：邵腾"
-echo "管理员密码：88888888"
-echo ""
-echo "常用命令："
-echo "  pm2 status              查看状态"
-echo "  pm2 logs u-plus-lite   查看日志"
-echo "  pm2 restart u-plus-lite 重启"
-echo "=========================================="
+# ============================================================
+# Step 1: 路径配置
+# ============================================================
+setup_path() {
+    echo ""
+    echo "=========================================="
+    echo " U-Minus 部署脚本"
+    echo "=========================================="
+    echo ""
+    echo "部署路径 [默认: $DEFAULT_DIR]: "
+    read -r input
+    DEPLOY_DIR=${input:-$DEFAULT_DIR}
+    DEPLOY_DIR=$(eval echo "$DEPLOY_DIR")  # 展开 ~ 等
+}
+
+# ============================================================
+# Step 2: 检测/克隆代码
+# ============================================================
+setup_code() {
+    echo ""
+
+    if [ -d "$DEPLOY_DIR/.git" ]; then
+        # 已有代码，走更新流程
+        echo "检测到已有代码，进入更新模式..."
+        cd "$DEPLOY_DIR"
+        UPDATE_MODE=true
+    else
+        # 首次部署
+        if [ -d "$DEPLOY_DIR" ]; then
+            echo -e "${YELLOW}警告：$DEPLOY_DIR 已存在但不是 Git 仓库${NC}"
+            echo "是否删除并重新克隆？ [y/N]: "
+            read -r response
+            response=${response:-N}
+            if [ "$(echo "$response" | tr '[:upper:]' '[:lower:]')" = "y" ]; then
+                rm -rf "$DEPLOY_DIR"
+            else
+                echo "部署取消。"
+                exit 1
+            fi
+        fi
+
+        echo "[1/7] 正在克隆代码仓库..."
+        git clone "$REPO_URL" "$DEPLOY_DIR"
+        cd "$DEPLOY_DIR"
+        UPDATE_MODE=false
+
+        # 替换 seed.ts 为支持命令行参数的版本
+        cat > prisma/seed.ts << 'SEED_EOF'
+import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
+
+const prisma = new PrismaClient()
+
+async function main() {
+  const providedName = process.argv[2]
+  const providedPassword = process.argv[3]
+
+  if (providedName && providedPassword) {
+    const hashedPassword = await bcrypt.hash(providedPassword, 10)
+    await prisma.user.upsert({
+      where: { name: providedName },
+      update: {},
+      create: {
+        name: providedName,
+        password: hashedPassword,
+        role: 'ADMIN',
+      },
+    })
+    console.log(`Seed complete: admin user "${providedName}" created`)
+  } else {
+    const hashedPassword = await bcrypt.hash('88888888', 10)
+    await prisma.user.upsert({
+      where: { name: '邵腾' },
+      update: {},
+      create: {
+        name: '邵腾',
+        password: hashedPassword,
+        role: 'ADMIN',
+      },
+    })
+    console.log('Seed complete: admin user "邵腾" created (default)')
+  }
+
+  // Seed pipeline & budget item settings
+  const BUDGET_ITEMS: Record<string, string[]> = {
+    'UGC研发': ['UGC商业化功能', '编辑器WEB端功能开发', '移动端交互兼容PC端', 'UGC功能规范整理', 'UGC编辑器日常维护Q1', 'UGC编辑器日常维护Q2', 'UGC编辑器日常维护Q3', 'UGC编辑器日常维护Q4', 'UGC编辑器能力拓展H1', 'UGC编辑器能力拓展H2', 'UGC长线复玩支持Q1', 'UGC长线复玩支持Q2', 'UGC长线复玩支持Q3', 'UGC长线复玩支持Q4', 'UGCPC编辑器设计', 'UGCPC优化'],
+    'UGC运营': ['乐园会员体系', '乐园AI陪玩系统', '蛋仔shorts设计', '嘉年华活动设计', '日常运营活动H1', '日常运营活动H2', 'UGC长线复玩设计', 'UGC运营日常维护Q1', 'UGC运营日常维护Q2', 'UGC运营日常维护Q3', 'UGC运营日常维护Q4'],
+    '玩法': ['玩法体验日常维护Q1', '玩法体验日常维护Q2', '玩法体验日常维护Q3', '玩法体验日常维护Q4', '超燃相关体验设计与优化Q1', '超燃相关体验设计与优化Q2', '超燃相关体验设计与优化Q3', '超燃相关体验设计与优化Q4', '惊魂夜相关体验设计与优化Q1', '惊魂夜相关体验设计与优化Q2', '惊魂夜相关体验设计与优化Q3', '惊魂夜相关体验设计与优化Q4', '碰碰棋相关体验设计与优化Q1', '碰碰棋相关体验设计与优化Q2', '碰碰棋相关体验设计与优化Q3', '碰碰棋相关体验设计与优化Q4', '寻宝队相关体验设计与优化Q1', '寻宝队相关体验设计与优化Q2', '寻宝队相关体验设计与优化Q3', '寻宝队相关体验设计与优化Q4', '捣蛋鬼相关体验设计与优化Q1', '捣蛋鬼相关体验设计与优化Q2', '捣蛋鬼相关体验设计与优化Q3', '捣蛋鬼相关体验设计与优化Q4', '新S级玩法设计与落地Q1', '新S级玩法设计与落地Q2', '新S级玩法设计与落地Q3', '新S级玩法设计与落地Q4', '主城互动相关设计Q1', '主城互动相关设计Q2', '主城互动相关设计Q3', '主城互动相关设计Q4', '副玩法主城设计与维护Q1', '副玩法主城设计与维护Q2', '副玩法主城设计与维护Q3', '副玩法主城设计与维护Q4'],
+    '系统': ['农场矿洞系统设计及体验优化', '农场社交向系统内容丰富及体验优化', '农场商业化系统内容丰富及体验优化', '农场养成深度广度扩展', '农场活跃向玩法及活动维护', '农场基建及基础玩法体验维护优化', '疯狂农场玩法体验优化迭代', '疯狂农场玩法功能扩展', '疯狂农场商业化', '艾比PVE相关系统内容丰富及体验优化', '艾比PVP相关系统内容丰富及体验优化', '艾比养成深度广度扩展', '艾比活跃向玩法及活动维护', '艾比大陆等级优化', '艾比营地建造系统', '艾比探险小队', '艾比小市场', '艾比GTA玩法', '新赛事扩展', '赛事相关体验优化', '个人信息迭代', '蛋壳蛋圈整体迭代', '房间系统迭代', '玩法选择系统体验维护优化', '各类玩法通用结算界面体验维护优化', '回流系统体验优化', '社交系统相关体验优化', '聊天系统相关体验优化', '相机相册相关系统体验维护优化', '小组件扩展', '设置系统及包体维护相关优化', '常规通用系统相关优化'],
+    'IP': ['商城、背包相关规范整合', '副玩法商业化规范', 'IP&商业化模板化', '日常商业化系统优化', '已有商业化系统优化与维护', '商业化内容海外覆盖式合入', '商城相关功能拓展', '背包相关功能扩展', '预览相关功能扩展', '核心赛季奖池付费Q1', '核心赛季奖池付费Q2', '核心赛季奖池付费Q3', '核心赛季奖池付费Q4', 'IP联动奖池付费Q1', 'IP联动奖池付费Q2', 'IP联动奖池付费Q3', 'IP联动奖池付费Q4', '节日限定奖池付费Q1', '节日限定奖池付费Q2', '节日限定奖池付费Q3', '节日限定奖池付费Q4', '热销相关活动Q1', '热销相关活动Q2', '热销相关活动Q3', '热销相关活动Q4', '周年庆大事件', '年末春晚', 'IP蛋仔岛玩法', '玩具及多形态道具', '副玩法商业化支持', 'UGC商业化支持', '系统商业化支持', '蛋仔岛玩法商业化'],
+    '海外': ['海外-优化与跑查', '海外-覆盖式合入', '海外-merge多语言处理Q1', '海外-merge多语言处理Q2', '海外-merge多语言处理Q3', '海外-merge多语言处理Q4', '海外-本地化设计'],
+  }
+
+  for (const [pipelineName, items] of Object.entries(BUDGET_ITEMS)) {
+    const pipeline = await prisma.pipelineSetting.upsert({
+      where: { name: pipelineName },
+      update: {},
+      create: { name: pipelineName },
+    })
+    for (const itemName of items) {
+      await prisma.budgetItemSetting.upsert({
+        where: { pipelineId_name: { pipelineId: pipeline.id, name: itemName } },
+        update: {},
+        create: { name: itemName, pipelineId: pipeline.id },
+      })
+    }
+  }
+  console.log('Seed complete: pipeline & budget item settings created')
+}
+
+main()
+  .catch((e) => { console.error(e); process.exit(1) })
+  .finally(() => prisma.$disconnect())
+SEED_EOF
+        echo "seed.ts 已更新为支持命令行参数的版本"
+
+        # 创建 .env 文件（如果不存在，git clone 不会复制 .gitignore 中的文件）
+        if [ ! -f ".env" ]; then
+            echo 'DATABASE_URL="file:./dev.db"' > .env
+            echo 'NEXTAUTH_SECRET="u-minus-dev-secret-change-in-production"' >> .env
+            echo 'NEXTAUTH_URL="http://localhost:3000"' >> .env
+            echo ".env 文件已创建"
+        fi
+    fi
+}
+
+# ============================================================
+# Step 3: 安装依赖
+# ============================================================
+install_deps() {
+    echo "[2/7] 安装项目依赖..."
+    npm install
+}
+
+# ============================================================
+# Step 4: Prisma 初始化
+# ============================================================
+setup_prisma() {
+    echo "[3/7] 生成 Prisma 客户端..."
+    npx prisma generate
+
+    echo "[4/7] 应用数据库迁移..."
+    npx prisma migrate deploy
+}
+
+# ============================================================
+# Step 5: 创建管理员（仅首次）
+# ============================================================
+setup_admin() {
+    if [ "$UPDATE_MODE" = true ]; then
+        echo "[5/7] 跳过管理员创建（更新模式）..."
+        return
+    fi
+
+    echo "[5/7] 创建管理员账号..."
+    echo ""
+    echo "首次部署，创建管理员账号"
+    echo ""
+
+    read -p "  管理员姓名: " ADMIN_NAME
+    while [ -z "$ADMIN_NAME" ]; do
+        echo "  错误：管理员姓名不能为空"
+        read -p "  管理员姓名: " ADMIN_NAME
+    done
+
+    read -sp "  密码: " ADMIN_PASSWORD
+    echo ""
+    while [ -z "$ADMIN_PASSWORD" ]; do
+        echo "  错误：密码不能为空"
+        read -sp "  密码: " ADMIN_PASSWORD
+        echo ""
+    done
+
+    while [ ${#ADMIN_PASSWORD} -lt 8 ]; do
+        echo "  错误：密码至少8位"
+        read -sp "  密码: " ADMIN_PASSWORD
+        echo ""
+    done
+
+    npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/seed.ts "$ADMIN_NAME" "$ADMIN_PASSWORD"
+}
+
+# ============================================================
+# Step 6: 构建并启动
+# ============================================================
+build_and_start() {
+    echo "[6/7] 构建生产版本..."
+    npm run build
+
+    echo "[7/7] 启动 PM2 服务..."
+
+    # 安装/更新 PM2
+    npm install -g pm2 --silent 2>/dev/null || true
+
+    # 停止旧实例
+    pm2 delete u-plus-lite 2>/dev/null || true
+
+    # 启动服务
+    PORT=$(find_available_port)
+    echo "使用端口：$PORT"
+
+    PORT=$PORT pm2 start npm --name u-plus-lite -- start
+    pm2 save
+
+    # 自启配置
+    echo ""
+    echo "配置开机自启..."
+    pm2 startup 2>/dev/null | grep -v "PM2" | bash 2>/dev/null || true
+}
+
+# ============================================================
+# Step 7: 配置 NEXTAUTH_URL
+# ============================================================
+config_nextauth() {
+    echo "[配置] 更新 NEXTAUTH_URL..."
+
+    LOCAL_IP=$(get_local_ip)
+
+    if [ -f ".env" ]; then
+        sed -i '' "s|NEXTAUTH_URL=.*|NEXTAUTH_URL=\"http://$LOCAL_IP:$PORT\"|" .env
+        echo "NEXTAUTH_URL 已更新为 http://$LOCAL_IP:$PORT"
+    fi
+}
+
+# ============================================================
+# 完成
+# ============================================================
+show_complete() {
+    LOCAL_IP=$(get_local_ip)
+
+    echo ""
+    echo "=========================================="
+    echo -e " ${GREEN}部署完成！${NC}"
+    echo "=========================================="
+    echo ""
+    echo "局域网访问地址：http://$LOCAL_IP:$PORT"
+    echo ""
+
+    if [ "$UPDATE_MODE" = false ]; then
+        echo "管理员账号：$ADMIN_NAME"
+        echo "管理员密码：******"
+    fi
+
+    echo ""
+    echo "常用命令："
+    echo "  pm2 status              查看状态"
+    echo "  pm2 logs u-plus-lite   查看日志"
+    echo "  pm2 restart u-plus-lite 重启"
+    echo "=========================================="
+}
+
+# ============================================================
+# 主流程
+# ============================================================
+main() {
+    check_dependencies    # Step 0: 依赖检测
+    setup_path           # Step 1: 路径配置
+    setup_code           # Step 2: 克隆/更新代码
+    install_deps         # Step 3: 安装依赖
+    setup_prisma         # Step 4: Prisma
+    setup_admin          # Step 5: 管理员
+    build_and_start      # Step 6: 构建并启动
+    config_nextauth      # Step 7: 配置 NEXTAUTH_URL
+    show_complete        # 完成
+}
+
+main "$@"

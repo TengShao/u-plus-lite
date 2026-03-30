@@ -4,17 +4,34 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  const hashedPassword = await bcrypt.hash('88888888', 10)
-  await prisma.user.upsert({
-    where: { name: '邵腾' },
-    update: {},
-    create: {
-      name: '邵腾',
-      password: hashedPassword,
-      role: 'ADMIN',
-    },
-  })
-  console.log('Seed complete: admin user created')
+  const providedName = process.argv[2]
+  const providedPassword = process.argv[3]
+
+  if (providedName && providedPassword) {
+    const hashedPassword = await bcrypt.hash(providedPassword, 10)
+    await prisma.user.upsert({
+      where: { name: providedName },
+      update: {},
+      create: {
+        name: providedName,
+        password: hashedPassword,
+        role: 'ADMIN',
+      },
+    })
+    console.log(`Seed complete: admin user "${providedName}" created`)
+  } else {
+    const hashedPassword = await bcrypt.hash('88888888', 10)
+    await prisma.user.upsert({
+      where: { name: '邵腾' },
+      update: {},
+      create: {
+        name: '邵腾',
+        password: hashedPassword,
+        role: 'ADMIN',
+      },
+    })
+    console.log('Seed complete: admin user "邵腾" created (default)')
+  }
 
   // Seed pipeline & budget item settings
   const BUDGET_ITEMS: Record<string, string[]> = {
