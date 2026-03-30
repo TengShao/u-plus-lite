@@ -7,6 +7,11 @@ set -e
 #   curl -sL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.sh | bash
 # ============================================================
 
+# 获取脚本自身所在目录，自动切换到项目根目录
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
+
 REPO_URL="https://github.com/TengShao/u-plus-lite.git"
 DEFAULT_DIR="$HOME/u-plus-lite"
 DEPLOY_DIR=""
@@ -191,7 +196,7 @@ setup_code() {
     else
         # 首次部署
         if [ -d "$DEPLOY_DIR" ]; then
-            echo -e "${YELLOW}警告：$DEPLOY_DIR 已存在但不是 Git 仓库${NC}"
+            echo -e "${YELLOW}警告：$DEPLOY_DIR 目录已存在，但不是 U-Minus 项目目录${NC}"
             echo "是否删除并重新克隆？ [y/N]: "
             read -r response
             response=${response:-N}
@@ -317,6 +322,26 @@ setup_admin() {
         echo ""
     done
 
+    read -sp "  确认密码: " ADMIN_PASSWORD_CONFIRM
+    echo ""
+    while [ "$ADMIN_PASSWORD" != "$ADMIN_PASSWORD_CONFIRM" ]; do
+        echo "  错误：两次输入的密码不一致"
+        read -sp "  密码: " ADMIN_PASSWORD
+        echo ""
+        while [ -z "$ADMIN_PASSWORD" ]; do
+            echo "  错误：密码不能为空"
+            read -sp "  密码: " ADMIN_PASSWORD
+            echo ""
+        done
+        while [ ${#ADMIN_PASSWORD} -lt 8 ]; do
+            echo "  错误：密码至少8位"
+            read -sp "  密码: " ADMIN_PASSWORD
+            echo ""
+        done
+        read -sp "  确认密码: " ADMIN_PASSWORD_CONFIRM
+        echo ""
+    done
+
     npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/seed.ts "$ADMIN_NAME" "$ADMIN_PASSWORD"
 }
 
@@ -344,8 +369,15 @@ build_and_start() {
 
     # 自启配置
     echo ""
-    echo "配置开机自启..."
-    pm2 startup 2>/dev/null | grep -v "PM2" | bash 2>/dev/null || true
+    echo "是否配置开机自启？[Y/n]: "
+    read -r enable_autostart
+    enable_autostart=${enable_autostart:-Y}
+    if [ "$(echo "$enable_autostart" | tr '[:upper:]' '[:lower:]')" = "y" ]; then
+        echo "（需要输入管理员密码）"
+        sudo pm2 startup 2>/dev/null || true
+    else
+        echo "已跳过开机自启配置"
+    fi
 }
 
 # ============================================================
@@ -373,15 +405,25 @@ import_csv_data() {
     echo "  2 - 直接粘贴 CSV 内容"
     echo "  3 - 跳过（稍后通过 Web 端手动添加）"
     echo ""
-    echo "请选择 [3]: "
+    echo "请选择（直接回车跳过）: "
     read -r choice
     choice=${choice:-3}
 
     if [ "$choice" = "1" ]; then
         echo ""
-        echo "请输入 pipelines.csv 路径（直接回车跳过）: "
+        echo "请输入管线名称文件路径（CSV格式，直接回车跳过）: "
+        echo "  格式示例：每行一个管线名称，如："
+        echo "    UGC研发"
+        echo "    UGC运营"
+        echo "    玩法"
+        echo ""
         read -r pipelines_path
-        echo "请输入 budget_items.csv 路径（直接回车跳过）: "
+        echo ""
+        echo "请输入预算项文件路径（CSV格式，直接回车跳过）: "
+        echo "  格式示例：管线名称,预算项名称，如："
+        echo "    UGC研发,UGC商业化功能"
+        echo "    UGC运营,乐园会员体系"
+        echo ""
         read -r budget_path
 
         local cmd_args=""
@@ -400,10 +442,20 @@ import_csv_data() {
 
     elif [ "$choice" = "2" ]; then
         echo ""
-        echo "请粘贴 pipelines.csv 内容（完成后按 Ctrl+D）: "
+        echo "请粘贴管线名称文件内容（每行一个名称，Ctrl+D 结束）: "
+        echo "  格式示例："
+        echo "    UGC研发"
+        echo "    UGC运营"
+        echo "    玩法"
+        echo ""
         local pipelines_content
         pipelines_content=$(cat)
-        echo "请粘贴 budget_items.csv 内容（完成后按 Ctrl+D）: "
+        echo ""
+        echo "请粘贴预算项文件内容（格式：管线名称,预算项名称，Ctrl+D 结束）: "
+        echo "  格式示例："
+        echo "    UGC研发,UGC商业化功能"
+        echo "    UGC运营,乐园会员体系"
+        echo ""
         local budget_content
         budget_content=$(cat)
 

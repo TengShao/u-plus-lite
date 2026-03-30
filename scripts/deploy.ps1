@@ -5,6 +5,12 @@
 # ============================================================
 
 $ErrorActionPreference = "Stop"
+
+# 自动切换到脚本所在的项目根目录
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ProjectRoot = Split-Path -Parent $ScriptDir
+Set-Location $ProjectRoot
+
 $REPO_URL = "https://github.com/TengShao/u-plus-lite.git"
 $DEFAULT_DIR = "$env:USERPROFILE\u-plus-lite"
 $DEPLOY_DIR = ""
@@ -185,7 +191,7 @@ function Initialize-Code {
     } else {
         # 首次部署
         if (Test-Path $script:DEPLOY_DIR) {
-            Write-Host "警告：$script:DEPLOY_DIR 已存在但不是 Git 仓库" -ForegroundColor Yellow
+            Write-Host "警告：$script:DEPLOY_DIR 目录已存在，但不是 U-Minus 项目目录" -ForegroundColor Yellow
             Write-Host "是否删除并重新克隆？ [y/N]: " -NoNewline
             $response = Read-Host
             if ([string]::IsNullOrEmpty($response)) { $response = "N" }
@@ -302,6 +308,25 @@ function Initialize-Admin {
         }
     } while ([string]::IsNullOrEmpty($script:ADMIN_PASSWORD))
 
+    do {
+        $securePassConfirm = Read-Host "  确认密码: " -AsSecureString
+        $confirmPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassConfirm))
+        if ($script:ADMIN_PASSWORD -ne $confirmPassword) {
+            Write-Host "  错误：两次输入的密码不一致" -ForegroundColor Red
+            # 重新输入密码
+            do {
+                $securePass = Read-Host "  密码: " -AsSecureString
+                $script:ADMIN_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePass))
+                if ([string]::IsNullOrEmpty($script:ADMIN_PASSWORD)) {
+                    Write-Host "  错误：密码不能为空" -ForegroundColor Red
+                } elseif ($script:ADMIN_PASSWORD.Length -lt 8) {
+                    Write-Host "  错误：密码至少8位" -ForegroundColor Red
+                    $script:ADMIN_PASSWORD = ""
+                }
+            } while ([string]::IsNullOrEmpty($script:ADMIN_PASSWORD))
+        }
+    } while ($script:ADMIN_PASSWORD -ne $confirmPassword)
+
     npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/seed.ts $script:ADMIN_NAME $script:ADMIN_PASSWORD
 }
 
@@ -375,15 +400,18 @@ function Import-CsvData {
     Write-Host "  2 - 直接粘贴 CSV 内容"
     Write-Host "  3 - 跳过（稍后通过 Web 端手动添加）"
     Write-Host ""
-    Write-Host "请选择 [3]: " -NoNewline
+    Write-Host "请选择（直接回车跳过）: " -NoNewline
     $choice = Read-Host
     if ([string]::IsNullOrEmpty($choice)) { $choice = "3" }
 
     if ($choice -eq "1") {
         Write-Host ""
-        Write-Host "请输入 pipelines.csv 路径（直接回车跳过）: " -NoNewline
+        Write-Host "请输入管线名称文件路径（CSV格式，直接回车跳过）: " -NoNewline
+        Write-Host "  格式示例：每行一个管线名称，如：UGC研发、UGC运营、玩法" -ForegroundColor DarkGray
         $pipelinesPath = Read-Host
-        Write-Host "请输入 budget_items.csv 路径（直接回车跳过）: " -NoNewline
+        Write-Host ""
+        Write-Host "请输入预算项文件路径（CSV格式，直接回车跳过）: " -NoNewline
+        Write-Host "  格式示例：管线名称,预算项名称，如：UGC研发,UGC商业化功能" -ForegroundColor DarkGray
         $budgetPath = Read-Host
 
         $cmdArgs = ""
@@ -402,11 +430,14 @@ function Import-CsvData {
 
     } elseif ($choice -eq "2") {
         Write-Host ""
-        Write-Host "请粘贴 pipelines.csv 内容（完成后按 Ctrl+D）: "
+        Write-Host "请粘贴管线名称文件内容（每行一个名称，回车后空行结束）: " -NoNewline
+        Write-Host "  格式示例：UGC研发、UGC运营、玩法" -ForegroundColor DarkGray
         $pipelinesContent = @()
         $input | ForEach-Object { $pipelinesContent += $_ }
         $pipelinesContent = $pipelinesContent -join "`n"
-        Write-Host "请粘贴 budget_items.csv 内容（完成后按 Ctrl+D）: "
+        Write-Host ""
+        Write-Host "请粘贴预算项文件内容（格式：管线名称,预算项名称，回车后空行结束）: " -NoNewline
+        Write-Host "  格式示例：UGC研发,UGC商业化功能" -ForegroundColor DarkGray
         $budgetContent = @()
         $input | ForEach-Object { $budgetContent += $_ }
         $budgetContent = $budgetContent -join "`n"
