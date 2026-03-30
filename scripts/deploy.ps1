@@ -393,6 +393,9 @@ function Set-NextAuthUrl {
 # Step 8: CSV import (optional)
 # ============================================================
 function Import-CsvData {
+    # 确保从项目根目录执行
+    Set-Location $ProjectRoot
+
     Write-Host ""
     Write-Host "[8/8] 是否导入预算项和管线数据？" -ForegroundColor Cyan
     Write-Host ""

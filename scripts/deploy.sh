@@ -398,6 +398,9 @@ config_nextauth() {
 # Step 8: CSV import (optional)
 # ============================================================
 import_csv_data() {
+    # 确保从项目根目录执行
+    cd "$PROJECT_ROOT"
+
     echo ""
     echo "[8/8] 是否导入预算项和管线数据？"
     echo ""
