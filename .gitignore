@@ -5,3 +5,24 @@ node_modules/
 *.db
 *.db-journal
 src/generated/
+
+# macOS
+.DS_Store
+
+# Playwright
+.playwright-mcp/
+
+# Local screenshots
+*.png
+
+# Plan docs
+docs/superpowers/plans/
+
+# Prisma exports
+prisma/exports/
+
+# Claude local settings
+.claude/settings.local.json
+
+# Local generated assets
+public/logo.svg
