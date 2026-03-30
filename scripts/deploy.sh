@@ -348,7 +348,7 @@ setup_admin() {
         echo ""
     done
 
-    npx ts-node --transpile-only --compiler-options '{"module":"CommonJS"}' "$PROJECT_ROOT/prisma/seed.ts" "$ADMIN_NAME" "$ADMIN_PASSWORD"
+    npx tsx "$PROJECT_ROOT/prisma/seed.ts" "$ADMIN_NAME" "$ADMIN_PASSWORD"
 }
 
 # ============================================================
@@ -444,7 +444,7 @@ import_csv_data() {
         fi
 
         if [ -n "$cmd_args" ]; then
-            npx ts-node --transpile-only --compiler-options '{"module":"CommonJS"}' "$PROJECT_ROOT/prisma/import.ts" $cmd_args
+            npx tsx "$PROJECT_ROOT/prisma/import.ts" $cmd_args
         else
             echo "未指定文件，跳过导入"
         fi
@@ -469,10 +469,10 @@ import_csv_data() {
         budget_content=$(cat)
 
         if [ -n "$pipelines_content" ]; then
-            echo "$pipelines_content" | npx ts-node --transpile-only --compiler-options '{"module":"CommonJS"}' "$PROJECT_ROOT/prisma/import.ts" --pipelines=-
+            echo "$pipelines_content" | npx tsx "$PROJECT_ROOT/prisma/import.ts" --pipelines=-
         fi
         if [ -n "$budget_content" ]; then
-            echo "$budget_content" | npx ts-node --transpile-only --compiler-options '{"module":"CommonJS"}' "$PROJECT_ROOT/prisma/import.ts" --budget-items=-
+            echo "$budget_content" | npx tsx "$PROJECT_ROOT/prisma/import.ts" --budget-items=-
         fi
     else
         echo "跳过导入，管理员可在 Web 端手动添加管线/预算项"
