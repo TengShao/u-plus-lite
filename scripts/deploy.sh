@@ -195,6 +195,7 @@ setup_code() {
         echo "检测到已有代码，进入更新模式..."
         cd "$DEPLOY_DIR"
         UPDATE_MODE=true
+        PROJECT_ROOT="$DEPLOY_DIR"
     else
         # 首次部署
         if [ -d "$DEPLOY_DIR" ]; then
@@ -214,6 +215,9 @@ setup_code() {
         git clone "$REPO_URL" "$DEPLOY_DIR"
         cd "$DEPLOY_DIR"
         UPDATE_MODE=false
+
+        # DEPLOY_DIR 即为项目根目录
+        PROJECT_ROOT="$DEPLOY_DIR"
 
         # 替换 seed.ts 为支持命令行参数的版本
         cat > prisma/seed.ts << 'SEED_EOF'
