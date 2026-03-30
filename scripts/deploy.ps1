@@ -238,30 +238,7 @@ async function main() {
     console.log('Seed complete: admin user "邵腾" created (default)')
   }
 
-  const BUDGET_ITEMS: Record<string, string[]> = {
-    'UGC研发': ['UGC商业化功能', '编辑器WEB端功能开发', '移动端交互兼容PC端', 'UGC功能规范整理', 'UGC编辑器日常维护Q1', 'UGC编辑器日常维护Q2', 'UGC编辑器日常维护Q3', 'UGC编辑器日常维护Q4', 'UGC编辑器能力拓展H1', 'UGC编辑器能力拓展H2', 'UGC长线复玩支持Q1', 'UGC长线复玩支持Q2', 'UGC长线复玩支持Q3', 'UGC长线复玩支持Q4', 'UGCPC编辑器设计', 'UGCPC优化'],
-    'UGC运营': ['乐园会员体系', '乐园AI陪玩系统', '蛋仔shorts设计', '嘉年华活动设计', '日常运营活动H1', '日常运营活动H2', 'UGC长线复玩设计', 'UGC运营日常维护Q1', 'UGC运营日常维护Q2', 'UGC运营日常维护Q3', 'UGC运营日常维护Q4'],
-    '玩法': ['玩法体验日常维护Q1', '玩法体验日常维护Q2', '玩法体验日常维护Q3', '玩法体验日常维护Q4', '超燃相关体验设计与优化Q1', '超燃相关体验设计与优化Q2', '超燃相关体验设计与优化Q3', '超燃相关体验设计与优化Q4', '惊魂夜相关体验设计与优化Q1', '惊魂夜相关体验设计与优化Q2', '惊魂夜相关体验设计与优化Q3', '惊魂夜相关体验设计与优化Q4', '碰碰棋相关体验设计与优化Q1', '碰碰棋相关体验设计与优化Q2', '碰碰棋相关体验设计与优化Q3', '碰碰棋相关体验设计与优化Q4', '寻宝队相关体验设计与优化Q1', '寻宝队相关体验设计与优化Q2', '寻宝队相关体验设计与优化Q3', '寻宝队相关体验设计与优化Q4', '捣蛋鬼相关体验设计与优化Q1', '捣蛋鬼相关体验设计与优化Q2', '捣蛋鬼相关体验设计与优化Q3', '捣蛋鬼相关体验设计与优化Q4', '新S级玩法设计与落地Q1', '新S级玩法设计与落地Q2', '新S级玩法设计与落地Q3', '新S级玩法设计与落地Q4', '主城互动相关设计Q1', '主城互动相关设计Q2', '主城互动相关设计Q3', '主城互动相关设计Q4', '副玩法主城设计与维护Q1', '副玩法主城设计与维护Q2', '副玩法主城设计与维护Q3', '副玩法主城设计与维护Q4'],
-    '系统': ['农场矿洞系统设计及体验优化', '农场社交向系统内容丰富及体验优化', '农场商业化系统内容丰富及体验优化', '农场养成深度广度扩展', '农场活跃向玩法及活动维护', '农场基建及基础玩法体验维护优化', '疯狂农场玩法体验优化迭代', '疯狂农场玩法功能扩展', '疯狂农场商业化', '艾比PVE相关系统内容丰富及体验优化', '艾比PVP相关系统内容丰富及体验优化', '艾比养成深度广度扩展', '艾比活跃向玩法及活动维护', '艾比大陆等级优化', '艾比营地建造系统', '艾比探险小队', '艾比小市场', '艾比GTA玩法', '新赛事扩展', '赛事相关体验优化', '个人信息迭代', '蛋壳蛋圈整体迭代', '房间系统迭代', '玩法选择系统体验维护优化', '各类玩法通用结算界面体验维护优化', '回流系统体验优化', '社交系统相关体验优化', '聊天系统相关体验优化', '相机相册相关系统体验维护优化', '小组件扩展', '设置系统及包体维护相关优化', '常规通用系统相关优化'],
-    'IP': ['商城、背包相关规范整合', '副玩法商业化规范', 'IP&商业化模板化', '日常商业化系统优化', '已有商业化系统优化与维护', '商业化内容海外覆盖式合入', '商城相关功能拓展', '背包相关功能扩展', '预览相关功能扩展', '核心赛季奖池付费Q1', '核心赛季奖池付费Q2', '核心赛季奖池付费Q3', '核心赛季奖池付费Q4', 'IP联动奖池付费Q1', 'IP联动奖池付费Q2', 'IP联动奖池付费Q3', 'IP联动奖池付费Q4', '节日限定奖池付费Q1', '节日限定奖池付费Q2', '节日限定奖池付费Q3', '节日限定奖池付费Q4', '热销相关活动Q1', '热销相关活动Q2', '热销相关活动Q3', '热销相关活动Q4', '周年庆大事件', '年末春晚', 'IP蛋仔岛玩法', '玩具及多形态道具', '副玩法商业化支持', 'UGC商业化支持', '系统商业化支持', '蛋仔岛玩法商业化'],
-    '海外': ['海外-优化与跑查', '海外-覆盖式合入', '海外-merge多语言处理Q1', '海外-merge多语言处理Q2', '海外-merge多语言处理Q3', '海外-merge多语言处理Q4', '海外-本地化设计'],
-  }
-
-  for (const [pipelineName, items] of Object.entries(BUDGET_ITEMS)) {
-    const pipeline = await prisma.pipelineSetting.upsert({
-      where: { name: pipelineName },
-      update: {},
-      create: { name: pipelineName },
-    })
-    for (const itemName of items) {
-      await prisma.budgetItemSetting.upsert({
-        where: { pipelineId_name: { pipelineId: pipeline.id, name: itemName } },
-        update: {},
-        create: { name: itemName, pipelineId: pipeline.id },
-      })
-    }
-  }
-  console.log('Seed complete: pipeline & budget item settings created')
+  console.log('Seed complete: admin user created (pipelines/budget items via CSV import or Web UI)')
 }
 
 main()
@@ -388,6 +365,64 @@ function Set-NextAuthUrl {
 }
 
 # ============================================================
+# Step 8: CSV import (optional)
+# ============================================================
+function Import-CsvData {
+    Write-Host ""
+    Write-Host "[8/8] 是否导入预算项和管线数据？" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  1 - 指定 CSV 文件路径"
+    Write-Host "  2 - 直接粘贴 CSV 内容"
+    Write-Host "  3 - 跳过（稍后通过 Web 端手动添加）"
+    Write-Host ""
+    Write-Host "请选择 [3]: " -NoNewline
+    $choice = Read-Host
+    if ([string]::IsNullOrEmpty($choice)) { $choice = "3" }
+
+    if ($choice -eq "1") {
+        Write-Host ""
+        Write-Host "请输入 pipelines.csv 路径（直接回车跳过）: " -NoNewline
+        $pipelinesPath = Read-Host
+        Write-Host "请输入 budget_items.csv 路径（直接回车跳过）: " -NoNewline
+        $budgetPath = Read-Host
+
+        $cmdArgs = ""
+        if (-not [string]::IsNullOrEmpty($pipelinesPath)) {
+            $cmdArgs += " --pipelines=$pipelinesPath"
+        }
+        if (-not [string]::IsNullOrEmpty($budgetPath)) {
+            $cmdArgs += " --budget-items=$budgetPath"
+        }
+
+        if (-not [string]::IsNullOrEmpty($cmdArgs)) {
+            Invoke-Expression "npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/import.ts $cmdArgs"
+        } else {
+            Write-Host "未指定文件，跳过导入"
+        }
+
+    } elseif ($choice -eq "2") {
+        Write-Host ""
+        Write-Host "请粘贴 pipelines.csv 内容（完成后按 Ctrl+D）: "
+        $pipelinesContent = @()
+        $input | ForEach-Object { $pipelinesContent += $_ }
+        $pipelinesContent = $pipelinesContent -join "`n"
+        Write-Host "请粘贴 budget_items.csv 内容（完成后按 Ctrl+D）: "
+        $budgetContent = @()
+        $input | ForEach-Object { $budgetContent += $_ }
+        $budgetContent = $budgetContent -join "`n"
+
+        if (-not [string]::IsNullOrEmpty($pipelinesContent)) {
+            $pipelinesContent | npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/import.ts --pipelines=-
+        }
+        if (-not [string]::IsNullOrEmpty($budgetContent)) {
+            $budgetContent | npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/import.ts --budget-items=-
+        }
+    } else {
+        Write-Host "跳过导入，管理员可在 Web 端手动添加管线/预算项"
+    }
+}
+
+# ============================================================
 # 完成
 # ============================================================
 function Show-Complete {
@@ -426,6 +461,7 @@ function Main {
     Initialize-Admin    # Step 5: 管理员
     Start-Service       # Step 6: 构建并启动
     Set-NextAuthUrl     # Step 7: 配置 NEXTAUTH_URL
+    Import-CsvData      # Step 8: CSV import
     Show-Complete       # 完成
 }
 
