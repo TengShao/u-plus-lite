@@ -8,7 +8,9 @@ set -e
 # ============================================================
 
 # 获取脚本自身所在目录，自动切换到项目根目录
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# $0 可能是相对路径（如 scripts/deploy.sh），需要先转为绝对路径
+[[ "$0" != /* ]] && _script="$PWD/$0" || _script="$0"
+SCRIPT_DIR="$(cd -P "$(dirname "$_script")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
