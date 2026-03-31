@@ -31,10 +31,11 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # 静默读取密码（跨平台兼容，macOS Terminal.app 上也能正确隐藏输入）
-# 当通过管道运行（bash <(curl ...)）时，stdin 不是终端，改为从 /dev/tty 读取
 read_secret() {
     local prompt="$1"
     local var_name="$2"
+    # 打印提示（-n 不换行）
+    echo -n "$prompt"
     # 使用 stty 禁用终端回显，trap 确保退出时恢复
     trap 'stty echo 2>/dev/null' EXIT INT TERM
     stty -echo 2>/dev/null
