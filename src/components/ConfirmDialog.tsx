@@ -33,6 +33,7 @@ export default function ConfirmDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
       <div
         className="flex flex-col items-center rounded-[24px] bg-[#F9F9F9]"
+        onClick={(e) => e.stopPropagation()}
         style={{ width: 369, padding: '28px 17.5px 18px', ...FONT }}
       >
         {/* Title */}
