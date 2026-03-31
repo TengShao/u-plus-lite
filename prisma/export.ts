@@ -25,8 +25,8 @@ async function main() {
     include: { pipeline: true },
   })
   const budgetCsv = [
-    'pipeline,name,category',
-    ...budgetItems.map((b) => `${b.pipeline?.name ?? ''},${b.name},`),
+    'pipeline,name',
+    ...budgetItems.map((b) => `${b.pipeline?.name ?? ''},${b.name}`),
   ].join('\n')
   fs.writeFileSync(path.join(outDir, 'budget_items.csv'), '\uFEFF' + budgetCsv, 'utf8')
   console.log(`导出预算项: ${budgetItems.length} 条 -> prisma/exports/budget_items.csv`)

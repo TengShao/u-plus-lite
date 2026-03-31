@@ -4,7 +4,7 @@
 
 ### 1. 导出文件位置
 ```
-prisma/exports/pipelines.csv     # 7 条管线
+prisma/exports/pipelines.csv     # 6 条管线
 prisma/exports/budget_items.csv  # 135 条预算项
 ```
 
@@ -101,7 +101,7 @@ bash scripts/deploy.sh
 - [ ] 全新部署：`npm run build` 无报错
 - [ ] 全新部署：PM2 服务启动成功
 - [ ] 全新部署：CSV 导入日志显示 "跳过 N，已创建 M"
-- [ ] 全新部署：登录 Web UI，新需求组下拉显示 7 条管线 + 135 条预算项
+- [ ] 全新部署：登录 Web UI，新需求组下拉显示 6 条管线 + 135 条预算项
 - [ ] 更新部署：UPDATE_MODE 确认提示正常
 - [ ] 更新部署：.next 缓存被清理，重新 build
 - [ ] 更新部署：原有数据库数据保留
