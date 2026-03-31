@@ -119,6 +119,18 @@
 **修复：** 在 `read_secret` 中添加 `echo -n "$prompt"` 在读取前显示提示。
 **状态：** ✅ 已修复（2026-03-31）
 
+### 问题 25：管线下拉框数据丢失（前端代码误删）
+**描述：** 新建需求组和编辑需求组时，管线下拉框中没有数据。
+**原因：** commit `6219bea` (2026-03-29 02:26) 添加渐入动画功能时，意外删除了 `RequirementCardExpanded` 中加载管线配置的 `useEffect`。
+**原始代码（被误删）：**
+```typescript
+useEffect(() => {
+  fetch('/api/settings').then((r) => r.json()).then(setPipelineSettings)
+}, [])
+```
+**修复：** 恢复 `fetch('/api/settings')` 调用，并添加 `IMPORTANT:` 注释防止再次被误删。统一使用 `/api/settings` API。
+**状态：** ✅ 已修复
+
 ---
 
 ## 测试进度
