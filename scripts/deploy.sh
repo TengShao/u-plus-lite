@@ -717,6 +717,17 @@ show_complete() {
     if [ "$UPDATE_MODE" = false ]; then
         echo "管理员账号：$ADMIN_NAME"
         echo "管理员密码：$ADMIN_PASSWORD"
+    else
+        # 更新模式：从数据库读取当前管理员账号
+        local db_path="$PROJECT_ROOT/prisma/prod.db"
+        if [ -f "$db_path" ]; then
+            local admin_name
+            admin_name=$(sqlite3 "$db_path" "SELECT name FROM User WHERE role='ADMIN' LIMIT 1;" 2>/dev/null)
+            if [ -n "$admin_name" ]; then
+                echo "管理员账号：$admin_name"
+                echo "管理员密码：（不变，沿用之前的设置）"
+            fi
+        fi
     fi
 
     echo ""
