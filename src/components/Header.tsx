@@ -91,8 +91,8 @@ function AccountSettingsModal({
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [lastUsedPipeline, setLastUsedPipeline] = useState(lastUsedPipeline || '')
-  const initialLastUsedPipeline = lastUsedPipeline || ''
+  const [selectedPipeline, setSelectedPipeline] = useState(lastUsedPipeline || '')
+  const initialSelectedPipeline = lastUsedPipeline || ''
   const [pipelines, setPipelines] = useState<string[]>([])
   const [pipelineOpen, setPipelineOpen] = useState(false)
   const pipelineRef = useRef<HTMLDivElement>(null)
@@ -125,8 +125,8 @@ function AccountSettingsModal({
       payload.name = trimmedName
     }
 
-    if (lastUsedPipeline !== initialLastUsedPipeline) {
-      payload.lastUsedPipeline = lastUsedPipeline
+    if (selectedPipeline !== initialSelectedPipeline) {
+      payload.lastUsedPipeline = selectedPipeline
     }
 
     const wantsPasswordChange = Boolean(currentPassword || newPassword || confirmPassword)
@@ -243,9 +243,9 @@ function AccountSettingsModal({
                 >
                   <span
                     className="absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center leading-[22px]"
-                    style={{ color: lastUsedPipeline ? '#000' : '#C3C3C3', fontSize: 16, fontWeight: 800 }}
+                    style={{ color: selectedPipeline ? '#000' : '#C3C3C3', fontSize: 16, fontWeight: 800 }}
                   >
-                    {lastUsedPipeline || '请选择'}
+                    {selectedPipeline || '请选择'}
                   </span>
                   <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon /></span>
                 </button>
@@ -255,7 +255,7 @@ function AccountSettingsModal({
                   {pipelines.map((p) => (
                     <button
                       key={p}
-                      onClick={() => { setLastUsedPipeline(p); setPipelineOpen(false) }}
+                      onClick={() => { setSelectedPipeline(p); setPipelineOpen(false) }}
                       className="flex h-[30px] w-full items-center justify-center text-[14px] hover:bg-[rgba(142,202,46,0.15)]"
                       style={{ fontWeight: 800 }}
                     >
@@ -450,7 +450,7 @@ export default function Header({
       {showAccountSettings && (
         <AccountSettingsModal
           initialName={session?.user?.name || ''}
-          lastUsedPipeline={session?.user?.lastUsedPipeline}
+          lastUsedPipeline={session?.user?.lastUsedPipeline ?? null}
           onClose={() => setShowAccountSettings(false)}
           onUpdated={handleAccountUpdated}
         />
