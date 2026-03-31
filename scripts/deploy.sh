@@ -468,7 +468,7 @@ IMPORT_EOF
 
         # 创建 .env 文件（如果不存在，git clone 不会复制 .gitignore 中的文件）
         if [ ! -f ".env" ]; then
-            echo "DATABASE_URL=\"file:$DEPLOY_DIR/prisma/dev.db\"" > .env
+            echo "DATABASE_URL=\"file:$DEPLOY_DIR/prisma/prod.db\"" > .env
             echo 'NEXTAUTH_SECRET="u-minus-dev-secret-change-in-production"' >> .env
             echo 'NEXTAUTH_URL="http://localhost:3000"' >> .env
             echo ".env 文件已创建"

@@ -15,6 +15,7 @@ $REPO_URL = "https://github.com/TengShao/u-plus-lite.git"
 $DEFAULT_DIR = "$env:USERPROFILE\u-plus-lite"
 $DEPLOY_DIR = ""
 $UPDATE_MODE = $false
+$PORT = 3000
 
 # 获取局域网 IP (Windows)
 function Get-LocalIP {
@@ -108,51 +109,12 @@ function Test-Dependencies {
         Write-Host "检测到缺少以下依赖：" -ForegroundColor Yellow
         Write-Host $depInfo
         Write-Host ""
-        Write-Host "是否自动安装？ [Y/n]: " -NoNewline
-        $response = Read-Host
-        if ([string]::IsNullOrEmpty($response)) { $response = "Y" }
-        $response = $response.ToUpper()
-
-        if ($response -ne "Y") {
-            Write-Host ""
-            Write-Host "部署取消。请先手动安装缺少的依赖后，重新运行脚本。" -ForegroundColor Red
-            Write-Host ""
-            Write-Host "安装指引："
-            Write-Host "  下载 Node.js: https://nodejs.org/"
-            Write-Host "  下载 Git: https://git-scm.com/download/win"
-            exit 1
-        }
-
+        Write-Host "部署取消。请先手动安装缺少的依赖后，重新运行脚本。" -ForegroundColor Red
         Write-Host ""
-        Write-Host "正在安装依赖..."
-        Write-Host ""
-
-        # 安装 Git
-        if ($missingDeps -contains "git") {
-            Write-Host "正在安装 Git..."
-            $gitInstaller = "$env:TEMP\git-installer.exe"
-            Invoke-WebRequest -Uri "https://github.com/git-for-windows/git/releases/download/v2.45.1.windows.1/Git-2.45.1-64-bit.exe" -OutFile $gitInstaller
-            Start-Process -Wait -FilePath $gitInstaller -ArgumentList "/S", "/NOLICENSE"
-            Write-Status "ok" "Git 安装完成"
-            # 刷新 PATH
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
-        }
-
-        # 安装 Node.js
-        if ($missingDeps -contains "node") {
-            Write-Host "正在安装 Node.js..."
-            $nodeInstaller = "$env:TEMP\node-installer.msi"
-            $nodeVersion = "v22.12.0"
-            $nodeUrl = "https://nodejs.org/dist/$nodeVersion/node-$nodeVersion-x64.msi"
-            Invoke-WebRequest -Uri $nodeUrl -OutFile $nodeInstaller
-            Start-Process -Wait -FilePath "msiexec.exe" -ArgumentList "/i `"$nodeInstaller`" /quiet"
-            Write-Status "ok" "Node.js 安装完成"
-            # 刷新 PATH
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
-        }
-
-        Write-Host ""
-        Write-Host "所有依赖检测通过，继续部署..."
+        Write-Host "安装指引："
+        Write-Host "  下载 Node.js: https://nodejs.org/"
+        Write-Host "  下载 Git: https://git-scm.com/download/win"
+        exit 1
     } else {
         Write-Host ""
         Write-Host "所有依赖检测通过！" -ForegroundColor Green
@@ -186,8 +148,26 @@ function Initialize-Code {
     if (Test-Path "$script:DEPLOY_DIR\.git") {
         # 已有代码，走更新流程
         Write-Host "检测到已有代码，进入更新模式..."
+        Write-Host ""
+        Write-Host "即将更新现有部署：$script:DEPLOY_DIR"
+        Write-Host "是否继续？[Y: 更新，其他: 取消并退出] " -NoNewline
+        $confirm = Read-Host
+        if ([string]::IsNullOrEmpty($confirm)) { $confirm = "Y" }
+        if ($confirm.ToLower() -ne "y") {
+            Write-Host "已取消更新。请使用其他部署路径重新运行脚本。"
+            exit 0
+        }
         Set-Location $script:DEPLOY_DIR
         $script:UPDATE_MODE = $true
+
+        # 清理旧的构建缓存
+        if (Test-Path ".next") {
+            Write-Host "清理旧的构建缓存..."
+            Remove-Item -Recurse -Force ".next"
+        }
+        # 用本地正确版本覆盖
+        Copy-Item "$ScriptDir\deploy.ps1" "$script:DEPLOY_DIR\scripts\deploy.ps1" -Force
+        Write-Host "部署脚本已更新为最新版本"
     } else {
         # 首次部署
         if (Test-Path $script:DEPLOY_DIR) {
@@ -202,10 +182,13 @@ function Initialize-Code {
             Remove-Item -Recurse -Force $script:DEPLOY_DIR
         }
 
-        Write-Host "[1/7] 正在克隆代码仓库..."
+        Write-Host "[1/9] 正在克隆代码仓库..."
         git clone $REPO_URL $script:DEPLOY_DIR
         Set-Location $script:DEPLOY_DIR
         $script:UPDATE_MODE = $false
+
+        # 用本地正确版本覆盖
+        Copy-Item "$ScriptDir\deploy.ps1" "$script:DEPLOY_DIR\scripts\deploy.ps1" -Force
 
         # 替换 seed.ts 为支持命令行参数的版本
         $seedContent = @'
@@ -253,6 +236,164 @@ main()
 '@
         Set-Content -Path "prisma\seed.ts" -Value $seedContent -Encoding UTF8
         Write-Host "seed.ts 已更新为支持命令行参数的版本"
+
+        # 写入 import.ts（因为该文件未推送到 GitHub，需要内嵌）
+        $importContent = @'
+import { PrismaClient } from '@prisma/client'
+import * as fs from 'fs'
+import * as readline from 'readline'
+
+const prisma = new PrismaClient()
+
+type CliArgs = {
+  pipelines?: string
+  budgetItems?: string
+}
+
+function parseArgs(): CliArgs {
+  const args: CliArgs = {}
+  for (let i = 2; i < process.argv.length; i++) {
+    const arg = process.argv[i]
+    if (arg.startsWith('--pipelines=')) args.pipelines = arg.replace('--pipelines=', '')
+    if (arg.startsWith('--budget-items=')) args.budgetItems = arg.replace('--budget-items=', '')
+  }
+  return args
+}
+
+async function readCsvLines(input: string): Promise<string[]> {
+  if (input === '-') {
+    const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity })
+    const lines: string[] = []
+    for await (const line of rl) lines.push(line)
+    return lines
+  }
+  if (!fs.existsSync(input)) {
+    console.error('文件不存在: ' + input)
+    process.exit(1)
+  }
+  return fs.readFileSync(input, 'utf8').split('\n').filter((l) => l.trim())
+}
+
+function parsePipelinesCsv(lines: string[]): string[] {
+  if (lines.length < 2) return []
+  return lines.slice(1).filter((l) => l.trim())
+}
+
+function parseBudgetItemsCsv(lines: string[]): Array<{ pipeline: string; name: string }> {
+  if (lines.length < 2) return []
+  return lines.slice(1).map((line) => {
+    const firstComma = line.indexOf(',')
+    if (firstComma === -1) return { pipeline: '', name: line.trim() }
+    return {
+      pipeline: line.slice(0, firstComma).trim(),
+      name: line.slice(firstComma + 1).split(',')[0].trim(),
+    }
+  })
+}
+
+async function ensureOtherPipeline(): Promise<number> {
+  const existing = await prisma.pipelineSetting.findUnique({ where: { name: '其他' } })
+  if (existing) return existing.id
+  const created = await prisma.pipelineSetting.create({ data: { name: '其他' } })
+  console.log('  自动创建"其他"管线')
+  return created.id
+}
+
+async function importPipelines(args: CliArgs) {
+  if (!args.pipelines) {
+    console.log('跳过管线导入（未指定 --pipelines）')
+    return
+  }
+  const lines = await readCsvLines(args.pipelines)
+  const names = parsePipelinesCsv(lines)
+  if (names.length === 0) {
+    console.log('pipelines.csv 为空，跳过')
+    return
+  }
+  let created = 0, skipped = 0
+  for (const name of names) {
+    if (!name.trim()) continue
+    const existing = await prisma.pipelineSetting.findUnique({ where: { name } })
+    if (existing) {
+      skipped++
+    } else {
+      await prisma.pipelineSetting.create({ data: { name } })
+      created++
+    }
+  }
+  console.log('管线导入完成：跳过 ' + skipped + '，已创建 ' + created)
+}
+
+async function importBudgetItems(args: CliArgs) {
+  if (!args.budgetItems) {
+    console.log('跳过预算项导入（未指定 --budget-items）')
+    return
+  }
+  const otherPipelineId = await ensureOtherPipeline()
+  const lines = await readCsvLines(args.budgetItems)
+  const items = parseBudgetItemsCsv(lines)
+  if (items.length === 0) {
+    console.log('budget_items.csv 为空，跳过')
+    return
+  }
+  let created = 0, skipped = 0
+  const pipelineMap = new Map<string, number>()
+  const allPipelines = await prisma.pipelineSetting.findMany()
+  for (const p of allPipelines) pipelineMap.set(p.name, p.id)
+  for (const item of items) {
+    if (!item.name.trim()) continue
+    let pipelineId = item.pipeline ? pipelineMap.get(item.pipeline) : undefined
+    if (!pipelineId) {
+      if (item.pipeline) {
+        const createdPipeline = await prisma.pipelineSetting.create({ data: { name: item.pipeline } })
+        pipelineMap.set(item.pipeline, createdPipeline.id)
+        pipelineId = createdPipeline.id
+        console.log('  自动创建管线: ' + item.pipeline)
+      } else {
+        pipelineId = otherPipelineId
+      }
+    }
+    const existing = await prisma.budgetItemSetting.findFirst({
+      where: { pipelineId, name: item.name },
+    })
+    if (existing) {
+      skipped++
+    } else {
+      await prisma.budgetItemSetting.create({ data: { pipelineId, name: item.name } })
+      created++
+    }
+  }
+  console.log('预算项导入完成：跳过 ' + skipped + '，已创建 ' + created)
+}
+
+async function main() {
+  const args = parseArgs()
+  console.log('')
+  await importPipelines(args)
+  await importBudgetItems(args)
+  console.log('')
+}
+
+main()
+  .catch((e) => {
+    console.error(e)
+    process.exit(1)
+  })
+  .finally(() => prisma.`$disconnect())
+'@
+        Set-Content -Path "prisma\import.ts" -Value $importContent -Encoding UTF8
+        Write-Host "import.ts 已写入"
+
+        # 创建 .env 文件（如果不存在，git clone 不会复制 .gitignore 中的文件）
+        if (-not (Test-Path ".env")) {
+            $deployDirEscaped = $script:DEPLOY_DIR -replace '\\', '\\\\'
+            @"
+DATABASE_URL="file:$deployDirEscaped\\prisma\\prod.db"
+NEXTAUTH_SECRET="u-minus-dev-secret-change-in-production"
+NEXTAUTH_URL="http://localhost:3000"
+"@ | Set-Content ".env" -Encoding UTF8
+            Write-Host ".env 文件已创建"
+        }
     }
 }
 
@@ -260,7 +401,7 @@ main()
 # Step 3: 安装依赖
 # ============================================================
 function Install-Deps {
-    Write-Host "[2/7] 安装项目依赖..."
+    Write-Host "[2/9] 安装项目依赖..."
     npm install
 }
 
@@ -268,11 +409,11 @@ function Install-Deps {
 # Step 4: Prisma 初始化
 # ============================================================
 function Initialize-Prisma {
-    Write-Host "[3/7] 生成 Prisma 客户端..."
+    Write-Host "[3/9] 生成 Prisma 客户端..."
     npx prisma generate
 
-    Write-Host "[4/7] 应用数据库迁移..."
-    npx prisma migrate deploy
+    Write-Host "[4/9] 应用数据库迁移..."
+    npx prisma db push --accept-data-loss
 }
 
 # ============================================================
@@ -280,11 +421,11 @@ function Initialize-Prisma {
 # ============================================================
 function Initialize-Admin {
     if ($script:UPDATE_MODE) {
-        Write-Host "[5/7] 跳过管理员创建（更新模式）..."
+        Write-Host "[5/9] 跳过管理员创建（更新模式）..."
         return
     }
 
-    Write-Host "[5/7] 创建管理员账号..."
+    Write-Host "[5/9] 创建管理员账号..."
     Write-Host ""
     Write-Host "首次部署，创建管理员账号"
     Write-Host ""
@@ -327,57 +468,17 @@ function Initialize-Admin {
         }
     } while ($script:ADMIN_PASSWORD -ne $confirmPassword)
 
-    npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/seed.ts $script:ADMIN_NAME $script:ADMIN_PASSWORD
+    npx tsx "prisma\seed.ts" $script:ADMIN_NAME $script:ADMIN_PASSWORD
 }
 
 # ============================================================
-# Step 6: 构建并启动
-# ============================================================
-function Start-Service {
-    Write-Host "[6/7] 构建生产版本..."
-    npm run build
-
-    Write-Host "[7/7] 启动 PM2 服务..."
-
-    # 安装/更新 PM2
-    npm install -g pm2 --silent 2>$null
-
-    # 停止旧实例
-    pm2 delete u-plus-lite 2>$null
-
-    # 启动服务
-    $script:PORT = Find-AvailablePort
-    Write-Host "使用端口：$script:PORT"
-
-    $env:PORT = $script:PORT
-    pm2 start npm -- start --name u-plus-lite
-    pm2 save
-
-    # 自启配置
-    Write-Host ""
-    Write-Host "配置开机自启..."
-    $pm2Startup = pm2 startup 2>$null
-    Write-Host ""
-    Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host " 开机自启配置（只需执行一次）" -ForegroundColor Yellow
-    Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "请复制下方命令，以管理员身份运行 PowerShell："
-    Write-Host ""
-    Write-Host $pm2Startup -ForegroundColor Green
-    Write-Host ""
-    Write-Host "执行方法："
-    Write-Host "1. 右键点击 PowerShell 图标"
-    Write-Host "2. 选择 '以管理员身份运行'"
-    Write-Host "3. 粘贴并回车执行"
-    Write-Host "=========================================="
-}
-
-# ============================================================
-# Step 7: 配置 NEXTAUTH_URL
+# Step 6: 配置 NEXTAUTH_URL（必须在 build 前）
 # ============================================================
 function Set-NextAuthUrl {
-    Write-Host "[配置] 更新 NEXTAUTH_URL..."
+    Write-Host "[6/9] 配置 NEXTAUTH_URL..."
+
+    $script:PORT = Find-AvailablePort
+    Write-Host "使用端口：$script:PORT"
 
     $localIP = Get-LocalIP
 
@@ -387,6 +488,53 @@ function Set-NextAuthUrl {
         Set-Content ".env" -Value $content
         Write-Host "NEXTAUTH_URL 已更新为 http://$localIP`:$script:PORT"
     }
+
+    # 开机自启配置
+    Write-Host ""
+    Write-Host "是否配置开机自启？[Y/n] " -NoNewline
+    $enableAutostart = Read-Host
+    if ([string]::IsNullOrEmpty($enableAutostart)) { $enableAutostart = "Y" }
+    if ($enableAutostart.ToLower() -eq "y") {
+        Write-Host "（需要以管理员身份运行 PowerShell）"
+        $pm2Startup = pm2 startup 2>$null
+        Write-Host ""
+        Write-Host "==========================================" -ForegroundColor Cyan
+        Write-Host " 开机自启配置（只需执行一次）" -ForegroundColor Yellow
+        Write-Host "==========================================" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "请复制下方命令，以管理员身份运行 PowerShell："
+        Write-Host ""
+        Write-Host $pm2Startup -ForegroundColor Green
+        Write-Host ""
+        Write-Host "执行方法："
+        Write-Host "1. 右键点击 PowerShell 图标"
+        Write-Host "2. 选择 '以管理员身份运行'"
+        Write-Host "3. 粘贴并回车执行"
+        Write-Host "=========================================="
+    } else {
+        Write-Host "已跳过开机自启配置"
+    }
+}
+
+# ============================================================
+# Step 7: 构建并启动
+# ============================================================
+function Start-Service {
+    Write-Host "[7/9] 构建生产版本..."
+    npm run build
+
+    Write-Host "[8/9] 启动 PM2 服务..."
+
+    # 安装/更新 PM2
+    npm install -g pm2 --silent 2>$null
+
+    # 停止旧实例
+    pm2 delete u-plus-lite 2>$null
+
+    # 启动服务
+    $env:PORT = $script:PORT
+    pm2 start npm -- start --name u-plus-lite
+    pm2 save
 }
 
 # ============================================================
@@ -394,10 +542,10 @@ function Set-NextAuthUrl {
 # ============================================================
 function Import-CsvData {
     # 确保从项目根目录执行
-    Set-Location $ProjectRoot
+    Set-Location $script:DEPLOY_DIR
 
     Write-Host ""
-    Write-Host "[8/8] 是否导入预算项和管线数据？" -ForegroundColor Cyan
+    Write-Host "[9/9] 是否导入预算项和管线数据？" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  1 - 指定 CSV 文件路径"
     Write-Host "  2 - 直接粘贴 CSV 内容"
@@ -426,7 +574,7 @@ function Import-CsvData {
         }
 
         if (-not [string]::IsNullOrEmpty($cmdArgs)) {
-            Invoke-Expression "npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/import.ts $cmdArgs"
+            Invoke-Expression "npx tsx prisma/import.ts $cmdArgs"
         } else {
             Write-Host "未指定文件，跳过导入"
         }
@@ -445,11 +593,18 @@ function Import-CsvData {
         $input | ForEach-Object { $budgetContent += $_ }
         $budgetContent = $budgetContent -join "`n"
 
+        # 使用临时文件传递内容（避免 stdin pipe 与 tsx ESM 加载冲突）
         if (-not [string]::IsNullOrEmpty($pipelinesContent)) {
-            $pipelinesContent | npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/import.ts --pipelines=-
+            $pipelinesTmp = [System.IO.Path]::GetTempFileName() + ".csv"
+            $pipelinesContent | Set-Content $pipelinesTmp -Encoding UTF8
+            Invoke-Expression "npx tsx prisma/import.ts --pipelines=`"$pipelinesTmp`""
+            Remove-Item $pipelinesTmp -Force
         }
         if (-not [string]::IsNullOrEmpty($budgetContent)) {
-            $budgetContent | npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/import.ts --budget-items=-
+            $budgetTmp = [System.IO.Path]::GetTempFileName() + ".csv"
+            $budgetContent | Set-Content $budgetTmp -Encoding UTF8
+            Invoke-Expression "npx tsx prisma/import.ts --budget-items=`"$budgetTmp`""
+            Remove-Item $budgetTmp -Force
         }
     } else {
         Write-Host "跳过导入，管理员可在 Web 端手动添加管线/预算项"
@@ -493,9 +648,9 @@ function Main {
     Install-Deps        # Step 3: 安装依赖
     Initialize-Prisma   # Step 4: Prisma
     Initialize-Admin    # Step 5: 管理员
-    Start-Service       # Step 6: 构建并启动
-    Set-NextAuthUrl     # Step 7: 配置 NEXTAUTH_URL
-    Import-CsvData      # Step 8: CSV import
+    Set-NextAuthUrl     # Step 6: 配置 NEXTAUTH_URL（必须在 build 前）
+    Start-Service       # Step 7: 构建并启动
+    Import-CsvData      # Step 8: CSV 导入
     Show-Complete       # 完成
 }
 
