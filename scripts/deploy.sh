@@ -4,7 +4,7 @@ set -e
 # ============================================================
 # U-Plus-Lite 一键部署脚本（macOS 服务器用）
 # 使用方式：
-#   curl -sL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.sh -o /tmp/deploy.sh && bash /tmp/deploy.sh
 # ============================================================
 
 # 获取脚本自身所在目录，自动切换到项目根目录

@@ -14,10 +14,7 @@
 
 **macOS / Linux：**
 ```bash
-# 方式一：一键运行（推荐）
-bash <(curl -sL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.sh)
-
-# 方式二：先下载再运行（备用）
+# 下载到本地再运行（推荐）
 curl -fsSL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.sh -o /tmp/deploy.sh && bash /tmp/deploy.sh
 ```
 
