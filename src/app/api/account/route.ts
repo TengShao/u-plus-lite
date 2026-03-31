@@ -7,10 +7,10 @@ export async function PATCH(req: Request) {
   const session = await getSession()
   if (!session) return unauthorized()
 
-  const { name, currentPassword, newPassword, confirmPassword, primaryPipeline } = await req.json()
+  const { name, currentPassword, newPassword, confirmPassword, lastUsedPipeline } = await req.json()
   const userId = Number(session.user.id)
 
-  const updates: { name?: string; password?: string; primaryPipeline?: string } = {}
+  const updates: { name?: string; password?: string; lastUsedPipeline?: string } = {}
 
   if (name !== undefined) {
     const trimmed = String(name).trim()
@@ -24,8 +24,8 @@ export async function PATCH(req: Request) {
     updates.name = trimmed
   }
 
-  if (primaryPipeline !== undefined) {
-    updates.primaryPipeline = String(primaryPipeline)
+  if (lastUsedPipeline !== undefined) {
+    updates.lastUsedPipeline = String(lastUsedPipeline)
   }
 
   const wantsPasswordChange =
@@ -62,7 +62,7 @@ export async function PATCH(req: Request) {
   const updated = await prisma.user.update({
     where: { id: userId },
     data: updates,
-    select: { id: true, name: true, role: true, level: true, primaryPipeline: true },
+    select: { id: true, name: true, role: true, level: true, pipelines: true, lastUsedPipeline: true },
   })
 
   return NextResponse.json(updated)
