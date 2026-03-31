@@ -10,11 +10,32 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const { name } = await req.json()
   if (!name?.trim()) return NextResponse.json({ error: '名称不能为空' }, { status: 400 })
 
-  const pipeline = await prisma.pipelineSetting.update({
-    where: { id: parseInt(params.id) },
-    data: { name: name.trim() },
+  const pipelineId = parseInt(params.id)
+
+  // 获取旧名称
+  const oldPipeline = await prisma.pipelineSetting.findUnique({
+    where: { id: pipelineId },
   })
-  return NextResponse.json(pipeline)
+  if (!oldPipeline) return NextResponse.json({ error: '管线不存在' }, { status: 404 })
+
+  const oldName = oldPipeline.name
+  const newName = name.trim()
+
+  if (oldName === newName) return NextResponse.json(oldPipeline)
+
+  // 事务：更新管线名称 + 同步更新 RequirementGroup
+  await prisma.$transaction([
+    prisma.pipelineSetting.update({
+      where: { id: pipelineId },
+      data: { name: newName },
+    }),
+    prisma.requirementGroup.updateMany({
+      where: { pipeline: oldName },
+      data: { pipeline: newName },
+    }),
+  ])
+
+  return NextResponse.json({ ...oldPipeline, name: newName })
 }
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
