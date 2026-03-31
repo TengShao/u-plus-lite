@@ -48,6 +48,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json(updated)
 }
 
+// Update lastUsedPipeline for the user
+if (data.pipeline) {
+  await prisma.user.update({
+    where: { id: parseInt(session.user.id) },
+    data: { lastUsedPipeline: data.pipeline },
+  })
+}
+
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const session = await getSession()
   if (!session) return unauthorized()

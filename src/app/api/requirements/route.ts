@@ -25,3 +25,11 @@ export async function POST(req: Request) {
   })
   return NextResponse.json(rg)
 }
+
+// Update lastUsedPipeline for the user
+if (data.pipeline) {
+  await prisma.user.update({
+    where: { id: parseInt(session.user.id) },
+    data: { lastUsedPipeline: data.pipeline },
+  })
+}
