@@ -250,6 +250,12 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
               成员管理
             </button>
             <button
+              onClick={() => setActiveTab('pipelines')}
+              className={`text-lg font-bold ${activeTab === 'pipelines' ? 'text-black' : 'text-gray-400'}`}
+            >
+              管线管理
+            </button>
+            <button
               onClick={() => setActiveTab('budget')}
               className={`text-lg font-bold ${activeTab === 'budget' ? 'text-black' : 'text-gray-400'}`}
             >
