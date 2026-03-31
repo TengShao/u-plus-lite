@@ -497,15 +497,37 @@ setup_prisma() {
 }
 
 # ============================================================
-# Step 5: 创建管理员（仅首次）
+# ============================================================
+# Step 5: 创建管理员
 # ============================================================
 setup_admin() {
+    echo "[5/7] 检查管理员账号..."
+
+    # 检查数据库中是否已有 ADMIN 角色用户
+    local has_admin=false
+    local db_path="$PROJECT_ROOT/prisma/prod.db"
+    if [ -f "$db_path" ] && command_exists sqlite3; then
+        local admin_count
+        admin_count=$(sqlite3 "$db_path" "SELECT COUNT(*) FROM User WHERE role='ADMIN';" 2>/dev/null)
+        if [ -n "$admin_count" ] && [ "$admin_count" -gt 0 ]; then
+            has_admin=true
+        fi
+    fi
+
     if [ "$UPDATE_MODE" = true ]; then
-        echo "[5/7] 跳过管理员创建（更新模式）..."
+        if [ "$has_admin" = true ]; then
+            echo "  已存在管理员账号，跳过创建..."
+            return
+        else
+            echo "  更新模式但未检测到管理员账号，将为您创建..."
+        fi
+    fi
+
+    if [ "$has_admin" = true ]; then
+        echo "  已存在管理员账号，跳过创建..."
         return
     fi
 
-    echo "[5/7] 创建管理员账号..."
     echo ""
     echo "首次部署，创建管理员账号"
     echo ""
@@ -714,28 +736,16 @@ show_complete() {
     echo "局域网访问地址：http://$LOCAL_IP:$PORT"
     echo ""
 
-    if [ "$UPDATE_MODE" = false ]; then
+    if [ -n "$ADMIN_NAME" ]; then
         echo "管理员账号：$ADMIN_NAME"
-        echo "管理员密码：$ADMIN_PASSWORD"
-    else
-        # 更新模式：从数据库读取当前管理员账号
-        local db_path="$PROJECT_ROOT/prisma/prod.db"
-        echo "[调试] 数据库路径：$db_path"
-        echo "[调试] 文件存在：$(test -f "$db_path" && echo '是' || echo '否')"
-        echo "[调试] sqlite3 可用：$(command_exists sqlite3 && echo '是' || echo '否')"
-        if [ -f "$db_path" ] && command_exists sqlite3; then
-            local admin_name
-            admin_name=$(sqlite3 "$db_path" "SELECT name FROM User WHERE role='ADMIN' LIMIT 1;" 2>/dev/null)
-            echo "[调试] 查询结果：admin_name='$admin_name'"
-            if [ -n "$admin_name" ]; then
-                echo "管理员账号：$admin_name"
-                echo "管理员密码：（不变，沿用之前的设置）"
-            else
-                echo "（未找到管理员账号，请通过 Web 端确认）"
-            fi
+        if [ "$UPDATE_MODE" = false ]; then
+            echo "管理员密码：$ADMIN_PASSWORD"
         else
-            echo "（无法读取数据库，请通过 Web 端确认管理员账号）"
+            echo "管理员密码：（新创建）"
         fi
+    else
+        echo "管理员账号：（沿用之前的设置）"
+        echo "管理员密码：（沿用之前的设置）"
     fi
 
     echo ""
