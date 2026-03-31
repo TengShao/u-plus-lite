@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="88px" height="24px" viewBox="0 0 88 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>U-Plus Lite</title>
+    <defs>
+        <path d="M0,0 L87,0 L87,24 L0,24 L0,0 Z" id="path-1"></path>
+    </defs>
+    <g id="U-Plus-Lite" stroke="none" fill="none" xlink:href="#path-1" font-family="DIN-BlackItalicAlt" font-size="20" font-style="italic" font-weight="normal" letter-spacing="-1">
+        <text>
+            <tspan x="0" y="20" fill="color(display-p3 0.000 0.000 0.000)">U-Plus </tspan>
+            <tspan x="56.86" y="20" fill="color(display-p3 0.681 0.681 0.681)">Lite</tspan>
+        </text>
+    </g>
+</svg>

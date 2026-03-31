@@ -358,12 +358,7 @@ export default function Header({
       {/* left: logo + title + settings */}
       <div className="flex items-center" style={{ marginLeft: 33.5 }}>
         <Image src="/logo.png" alt="logo" width={26} height={26} className="shrink-0" />
-        <span
-          className="ml-[6.5px] text-[20px] leading-[28px] text-black"
-          style={{ fontWeight: 900, letterSpacing: '-1.3px' }}
-        >
-          U-Plus-Lite
-        </span>
+        <img src="/U-Plus Lite.svg" alt="U-Plus Lite" className="ml-[6px] shrink-0" style={{ height: 24 }} />
         {isAdmin && (
           <button
             onClick={() => setShowSettings(true)}
