@@ -144,6 +144,47 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
     setNewPipelineName('')
   }
 
+  function startEditPipeline(pipeline: Pipeline) {
+    setEditingPipeline({ id: pipeline.id, name: pipeline.name })
+  }
+
+  function cancelEditPipeline() {
+    setEditingPipeline(null)
+  }
+
+  async function confirmEditPipeline() {
+    if (!editingPipeline) return
+    if (!editingPipeline.name.trim()) {
+      alert('管线名称不能为空')
+      return
+    }
+    const res = await fetch(`/api/settings/pipelines/${editingPipeline.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editingPipeline.name.trim() }),
+    })
+    if (res.ok) {
+      setEditingPipeline(null)
+      fetchSettings()
+    } else {
+      const err = await res.json()
+      alert(err.error || '更新失败')
+    }
+  }
+
+  async function confirmDeletePipeline(pipeline: Pipeline) {
+    if (!confirm(`确定删除管线「${pipeline.name}」？\n删除后，该管线关联的预算项将移至"其他"管线，需求组中的管线信息也将更新。`)) {
+      return
+    }
+    const res = await fetch(`/api/settings/pipelines/${pipeline.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      fetchSettings()
+    } else {
+      const err = await res.json()
+      alert(err.error || '删除失败')
+    }
+  }
+
   async function confirmAddPipeline() {
     if (!newPipelineName.trim()) {
       alert('请填写管线名称')
@@ -418,6 +459,102 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                       )}
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </>
+          ) : activeTab === 'pipelines' ? (
+            <>
+              <div className="mb-4 flex justify-end">
+                <button
+                  onClick={startAddPipeline}
+                  disabled={isAddingPipeline}
+                  className="px-4 py-2 bg-black text-white rounded text-sm hover:bg-gray-800 disabled:bg-gray-400"
+                >
+                  新增管线
+                </button>
+              </div>
+
+              {/* 管线列表 */}
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-gray-500">
+                    <th className="pb-2">管线名称</th>
+                    <th className="pb-2">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isAddingPipeline && (
+                    <tr className="border-b bg-gray-50">
+                      <td className="py-2">
+                        <input
+                          type="text"
+                          value={newPipelineName}
+                          onChange={(e) => setNewPipelineName(e.target.value)}
+                          className="w-48 rounded border px-2 py-1 text-sm"
+                          placeholder="管线名称"
+                          autoFocus
+                        />
+                      </td>
+                      <td className="py-2">
+                        <div className="flex gap-2">
+                          <button onClick={confirmAddPipeline} className="text-green-600 hover:text-green-700 text-sm">确认</button>
+                          <button onClick={cancelAddPipeline} className="text-gray-500 hover:text-gray-700 text-sm">取消</button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  {pipelines
+                    .slice()
+                    .sort((a, b) => {
+                      if (a.name === '其他') return 1
+                      if (b.name === '其他') return -1
+                      return a.name.localeCompare(b.name, 'zh-CN')
+                    })
+                    .map((pl) => (
+                      <tr key={pl.id} className={`border-b ${editingPipeline?.id === pl.id ? 'bg-gray-50' : ''}`}>
+                        {editingPipeline?.id === pl.id ? (
+                          <>
+                            <td className="py-2">
+                              <input
+                                type="text"
+                                value={editingPipeline.name}
+                                onChange={(e) => setEditingPipeline({ ...editingPipeline, name: e.target.value })}
+                                className="w-48 rounded border px-2 py-1 text-sm"
+                                autoFocus
+                              />
+                            </td>
+                            <td className="py-2">
+                              <div className="flex gap-2">
+                                <button onClick={confirmEditPipeline} className="text-green-600 hover:text-green-700 text-sm">确认</button>
+                                <button onClick={cancelEditPipeline} className="text-gray-500 hover:text-gray-700 text-sm">取消</button>
+                              </div>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="py-2 font-medium">{pl.name}</td>
+                            <td className="py-2">
+                              <div className="flex gap-3">
+                                <button
+                                  onClick={() => startEditPipeline(pl)}
+                                  className="text-blue-500 hover:text-blue-700 text-xs"
+                                  disabled={pl.name === '其他'}
+                                >
+                                  编辑
+                                </button>
+                                <button
+                                  onClick={() => confirmDeletePipeline(pl)}
+                                  className="text-red-500 hover:text-red-700 text-xs"
+                                  disabled={pl.name === '其他'}
+                                >
+                                  删除
+                                </button>
+                              </div>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </>
