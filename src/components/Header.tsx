@@ -78,20 +78,21 @@ function ArrowIcon({ flipped }: { flipped?: boolean }) {
 
 function AccountSettingsModal({
   initialName,
-  initialPrimaryPipeline,
+  lastUsedPipeline,
   onClose,
   onUpdated,
 }: {
   initialName: string
-  initialPrimaryPipeline: string
+  lastUsedPipeline: string | null
   onClose: () => void
-  onUpdated: (name: string, primaryPipeline: string) => Promise<void>
+  onUpdated: (name: string, lastUsedPipeline: string) => Promise<void>
 }) {
   const [name, setName] = useState(initialName)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [primaryPipeline, setPrimaryPipeline] = useState(initialPrimaryPipeline)
+  const [lastUsedPipeline, setLastUsedPipeline] = useState(lastUsedPipeline || '')
+  const initialLastUsedPipeline = lastUsedPipeline || ''
   const [pipelines, setPipelines] = useState<string[]>([])
   const [pipelineOpen, setPipelineOpen] = useState(false)
   const pipelineRef = useRef<HTMLDivElement>(null)
@@ -124,8 +125,8 @@ function AccountSettingsModal({
       payload.name = trimmedName
     }
 
-    if (primaryPipeline !== initialPrimaryPipeline) {
-      payload.primaryPipeline = primaryPipeline
+    if (lastUsedPipeline !== initialLastUsedPipeline) {
+      payload.lastUsedPipeline = lastUsedPipeline
     }
 
     const wantsPasswordChange = Boolean(currentPassword || newPassword || confirmPassword)
@@ -159,7 +160,7 @@ function AccountSettingsModal({
       return
     }
 
-    await onUpdated(result.name, result.primaryPipeline || '')
+    await onUpdated(result.name, result.lastUsedPipeline || '')
     setCurrentPassword('')
     setNewPassword('')
     setConfirmPassword('')
@@ -242,9 +243,9 @@ function AccountSettingsModal({
                 >
                   <span
                     className="absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center leading-[22px]"
-                    style={{ color: primaryPipeline ? '#000' : '#C3C3C3', fontSize: 16, fontWeight: 800 }}
+                    style={{ color: lastUsedPipeline ? '#000' : '#C3C3C3', fontSize: 16, fontWeight: 800 }}
                   >
-                    {primaryPipeline || '请选择'}
+                    {lastUsedPipeline || '请选择'}
                   </span>
                   <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon /></span>
                 </button>
@@ -254,7 +255,7 @@ function AccountSettingsModal({
                   {pipelines.map((p) => (
                     <button
                       key={p}
-                      onClick={() => { setPrimaryPipeline(p); setPipelineOpen(false) }}
+                      onClick={() => { setLastUsedPipeline(p); setPipelineOpen(false) }}
                       className="flex h-[30px] w-full items-center justify-center text-[14px] hover:bg-[rgba(142,202,46,0.15)]"
                       style={{ fontWeight: 800 }}
                     >
@@ -333,8 +334,8 @@ export default function Header({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showUserMenu])
 
-  async function handleAccountUpdated(name: string, primaryPipeline: string) {
-    await update({ name, primaryPipeline })
+  async function handleAccountUpdated(name: string, lastUsedPipeline: string) {
+    await update({ name, lastUsedPipeline })
   }
 
   async function handleSignOut() {
@@ -449,7 +450,7 @@ export default function Header({
       {showAccountSettings && (
         <AccountSettingsModal
           initialName={session?.user?.name || ''}
-          initialPrimaryPipeline={session?.user?.lastUsedPipeline || ''}
+          lastUsedPipeline={session?.user?.lastUsedPipeline}
           onClose={() => setShowAccountSettings(false)}
           onUpdated={handleAccountUpdated}
         />
