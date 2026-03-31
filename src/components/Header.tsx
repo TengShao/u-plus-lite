@@ -362,7 +362,7 @@ export default function Header({
           className="ml-[6.5px] text-[20px] leading-[28px] text-black"
           style={{ fontWeight: 900, letterSpacing: '-1.3px' }}
         >
-          结了吗你
+          U-Plus-Lite
         </span>
         {isAdmin && (
           <button

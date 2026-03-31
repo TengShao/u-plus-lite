@@ -2,7 +2,7 @@
 set -e
 
 # ============================================================
-# U-Minus 一键部署脚本（macOS 服务器用）
+# U-Plus-Lite 一键部署脚本（macOS 服务器用）
 # 使用方式：
 #   curl -sL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.sh | bash
 # ============================================================
@@ -189,7 +189,7 @@ check_dependencies() {
 setup_path() {
     echo ""
     echo "=========================================="
-    echo " U-Minus 部署脚本"
+    echo " U-Plus-Lite 部署脚本"
     echo "=========================================="
     echo ""
     echo "部署路径 [默认: ~/u-plus-lite]: "
@@ -235,7 +235,7 @@ setup_code() {
     else
         # 首次部署
         if [ -d "$DEPLOY_DIR" ]; then
-            echo -e "${YELLOW}警告：$DEPLOY_DIR 目录已存在，但不是 U-Minus 项目目录${NC}"
+            echo -e "${YELLOW}警告：$DEPLOY_DIR 目录已存在，但不是 U-Plus-Lite 项目目录${NC}"
             echo "是否删除并重新克隆？ [y/N]: "
             read -r response
             response=${response:-N}

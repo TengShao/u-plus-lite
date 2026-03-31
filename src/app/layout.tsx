@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import Providers from '@/components/Providers'
 
 export const metadata: Metadata = {
-  title: '结了吗你',
+  title: 'U-Plus-Lite',
   description: '团队月结工作量记录工具',
 }
 

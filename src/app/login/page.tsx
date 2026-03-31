@@ -23,7 +23,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <form onSubmit={handleSubmit} className="w-80 space-y-4 rounded-lg bg-white p-8 shadow">
-        <h1 className="text-center text-xl font-bold">结了吗你</h1>
+        <h1 className="text-center text-xl font-bold">U-Plus-Lite</h1>
         <input
           type="text" placeholder="姓名" value={name}
           onChange={(e) => setName(e.target.value)}

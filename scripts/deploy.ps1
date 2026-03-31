@@ -1,5 +1,5 @@
 # ============================================================
-# U-Minus 一键部署脚本（Windows 服务器用）
+# U-Plus-Lite 一键部署脚本（Windows 服务器用）
 # 使用方式：
 #   irm https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.ps1 | iex
 # ============================================================
@@ -165,7 +165,7 @@ function Test-Dependencies {
 function Set-DeployPath {
     Write-Host ""
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host " U-Minus 部署脚本 (Windows)" -ForegroundColor Cyan
+    Write-Host " U-Plus-Lite 部署脚本 (Windows)" -ForegroundColor Cyan
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "部署路径 [默认: $DEFAULT_DIR]: " -NoNewline
@@ -191,7 +191,7 @@ function Initialize-Code {
     } else {
         # 首次部署
         if (Test-Path $script:DEPLOY_DIR) {
-            Write-Host "警告：$script:DEPLOY_DIR 目录已存在，但不是 U-Minus 项目目录" -ForegroundColor Yellow
+            Write-Host "警告：$script:DEPLOY_DIR 目录已存在，但不是 U-Plus-Lite 项目目录" -ForegroundColor Yellow
             Write-Host "是否删除并重新克隆？ [y/N]: " -NoNewline
             $response = Read-Host
             if ([string]::IsNullOrEmpty($response)) { $response = "N" }

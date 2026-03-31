@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-U-Minus (结了吗你) — a team monthly workload tracking web app. Designers log man-days per requirement group per billing cycle. Admins manage cycles, complete requirements, and assign member levels/roles.
+U-Plus-Lite — a team monthly workload tracking web app. Designers log man-days per requirement group per billing cycle. Admins manage cycles, complete requirements, and assign member levels/roles.
 
 ## Commands
 
