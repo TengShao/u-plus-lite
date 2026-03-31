@@ -53,7 +53,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
     })
     if (res.ok) {
       const updated = await res.json()
-      setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
+      setUsers((prev) => prev.map((u) => (u.id === Number(updated.id) ? updated : u)))
     }
   }
 
