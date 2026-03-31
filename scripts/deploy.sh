@@ -38,7 +38,7 @@ read_secret() {
     # 使用 stty 禁用终端回显，trap 确保退出时恢复
     trap 'stty echo 2>/dev/null' EXIT INT TERM
     stty -echo 2>/dev/null
-    read -r "$var_name" </dev/tty
+    read -r "$var_name"
     stty echo 2>/dev/null
     trap - EXIT INT TERM
     # 打印换行（因为输入时没有回显换行）
@@ -140,7 +140,7 @@ check_dependencies() {
         echo -e "$dep_info"
         echo ""
         echo "是否自动安装？ [Y/n]: "
-        read -r response </dev/tty
+        read -r response
         response=${response:-Y}
         response=$(echo "$response" | tr '[:lower:]' '[:upper:]')
 
@@ -200,7 +200,7 @@ setup_path() {
     echo "=========================================="
     echo ""
     echo "部署路径 [默认: ~/u-plus-lite]: "
-    read -r input </dev/tty
+    read -r input
     DEPLOY_DIR=${input:-$DEFAULT_DIR}
     DEPLOY_DIR=$(eval echo "$DEPLOY_DIR")  # 展开 ~ 等
 
@@ -222,7 +222,7 @@ setup_code() {
         echo ""
         echo "即将更新现有部署：$DEPLOY_DIR"
         echo "是否继续？[Y: 更新，其他: 取消并退出]"
-        read -r confirm </dev/tty
+        read -r confirm
         confirm=${confirm:-Y}
         if [ "$(echo "$confirm" | tr '[:upper:]' '[:lower:]')" != "y" ]; then
             echo "已取消更新。请使用其他部署路径重新运行脚本。"
@@ -249,7 +249,7 @@ setup_code() {
         if [ -d "$DEPLOY_DIR" ]; then
             echo -e "${YELLOW}警告：$DEPLOY_DIR 目录已存在，但不是 U-Plus-Lite 项目目录${NC}"
             echo "是否删除并重新克隆？ [y/N]: "
-            read -r response </dev/tty
+            read -r response
             response=${response:-N}
             if [ "$(echo "$response" | tr '[:upper:]' '[:lower:]')" = "y" ]; then
                 rm -rf "$DEPLOY_DIR"
@@ -509,10 +509,10 @@ setup_admin() {
     echo "首次部署，创建管理员账号"
     echo ""
 
-    read -p "  管理员姓名: " ADMIN_NAME </dev/tty
+    read -p "  管理员姓名: " ADMIN_NAME
     while [ -z "$ADMIN_NAME" ]; do
         echo "  错误：管理员姓名不能为空"
-        read -p "  管理员姓名: " ADMIN_NAME </dev/tty
+        read -p "  管理员姓名: " ADMIN_NAME
     done
 
     read_secret "  密码: " ADMIN_PASSWORD
@@ -586,7 +586,7 @@ config_nextauth() {
     # 自启配置
     echo ""
     echo "是否配置开机自启？[Y/n]: "
-    read -r enable_autostart </dev/tty
+    read -r enable_autostart
     enable_autostart=${enable_autostart:-Y}
     if [ "$(echo "$enable_autostart" | tr '[:upper:]' '[:lower:]')" = "y" ]; then
         echo "（需要输入本机管理员密码）"
@@ -611,7 +611,7 @@ import_csv_data() {
     echo "  3 - 跳过（稍后通过 Web 端手动添加）"
     echo ""
     echo "请选择（直接回车跳过）: "
-    read -r choice </dev/tty
+    read -r choice
     choice=${choice:-3}
 
     if [ "$choice" = "1" ]; then
@@ -622,14 +622,14 @@ import_csv_data() {
         echo "    UGC运营"
         echo "    玩法"
         echo ""
-        read -r pipelines_path </dev/tty
+        read -r pipelines_path
         echo ""
         echo "请输入预算项文件路径（CSV格式，直接回车跳过）: "
         echo "  格式示例：管线名称,预算项名称，如："
         echo "    UGC研发,UGC商业化功能"
         echo "    UGC运营,乐园会员体系"
         echo ""
-        read -r budget_path </dev/tty
+        read -r budget_path
 
         local cmd_args=""
         if [ -n "$pipelines_path" ]; then
