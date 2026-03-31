@@ -3,16 +3,77 @@ import { useState, useEffect, useRef } from 'react'
 import { signIn } from 'next-auth/react'
 
 const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
+const GREEN = '#8ECA2E'
+
+function fitDropdownTextSize(text: string, width: number) {
+  const available = Math.max(width - 48, 40)
+  const units = text.split('').reduce((sum, ch) => sum + (/^[\x20-\x7E]$/.test(ch) ? 0.55 : 1), 0)
+  const size = Math.floor(available / Math.max(units, 1))
+  return Math.max(10, Math.min(16, size))
+}
 
 function ArrowIcon({ flipped }: { flipped?: boolean }) {
   return (
-    <svg
-      width="7" height="5" viewBox="0 0 7 5" fill="#000" xmlns="http://www.w3.org/2000/svg"
-      className="opacity-20" style={flipped ? { transform: 'scaleY(-1)' } : undefined}
-      aria-hidden="true"
-    >
-      <path d="M0.5 0.5 L3.5 4.5 L6.5 0.5 Z" rx="0.5" />
+    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ transform: flipped ? 'rotate(180deg)' : undefined }}>
+      <path d="M1 1L5 5L9 1" stroke={GREEN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
+  )
+}
+
+function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onToggle }: { width: number; value: string; placeholder?: string; isOpen: boolean; onToggle: () => void }) {
+  const borderColor = isOpen ? 'transparent' : '#EEEEEE'
+  const boxShadow = 'none'
+  const displayText = value || placeholder
+  const fontSize = fitDropdownTextSize(displayText, width)
+  return (
+    <button
+      type="button"
+      data-dropdown-root="true"
+      onClick={onToggle}
+      className={`relative z-10 flex h-[36px] items-center rounded-[8px] border bg-white px-[10px]`}
+      style={{ width, borderColor, boxShadow, fontWeight: 800, transition: 'border-color 0.15s', gap: 8 }}
+    >
+      <span
+        className="flex-1 overflow-hidden whitespace-nowrap text-center text-[16px] leading-[22px]"
+        style={{ color: value ? undefined : '#C3C3C3', fontSize }}
+      >
+        {displayText}
+      </span>
+      <ArrowIcon flipped={isOpen} />
+    </button>
+  )
+}
+
+function PipelineMultiMenu({ width, value, options, selected, onToggle }: { width: number; value: string; options: readonly string[]; selected: string[]; onToggle: (v: string) => void }) {
+  return (
+    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid #8ECA2E', width }}>
+      {/* Trigger clone (arrow flipped) */}
+      <div className="relative flex h-[36px] items-center justify-center px-[10px]">
+        <span className="flex-1 overflow-hidden whitespace-nowrap text-center text-[16px] leading-[22px]" style={{ fontWeight: 800 }}>
+          {value}
+        </span>
+        <ArrowIcon flipped />
+      </div>
+      <div className="h-px bg-[#0000000B] mx-px" />
+      {/* Options */}
+      <div className="overflow-y-auto" style={{ maxHeight: 260, scrollbarWidth: 'thin', scrollbarColor: 'rgba(0,0,0,0.2) transparent' }}>
+        {options.map((opt) => {
+          const checked = selected.includes(opt)
+          return (
+            <button
+              key={opt}
+              onClick={() => onToggle(opt)}
+              className={`flex h-[30px] w-full items-center px-[8px] text-[14px] ${checked ? 'bg-[rgba(142,202,46,0.15)]' : 'hover:bg-[rgba(142,202,46,0.15)]'}`}
+            >
+              <span className="mr-[8px] flex h-[12px] w-[12px] items-center justify-center rounded-[4px] border border-[#EEEEEE] bg-[#FDFDFD]">
+                {checked && <span className="h-[6px] w-[6px] rounded-[1px] bg-[#8ECA2E]" />}
+              </span>
+              <span className="mx-auto truncate" style={{ fontWeight: 800 }}>{opt}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -30,14 +91,6 @@ export default function AuthModal({
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [selectedPipelines, setSelectedPipelines] = useState<string[]>([])
-
-  function togglePipeline(pipeline: string) {
-    setSelectedPipelines(prev =>
-      prev.includes(pipeline)
-        ? prev.filter(p => p !== pipeline)
-        : [...prev, pipeline]
-    )
-  }
   const [pipelines, setPipelines] = useState<string[]>([])
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -46,6 +99,14 @@ export default function AuthModal({
   const [level, setLevel] = useState('')
   const [levelOpen, setLevelOpen] = useState(false)
   const levelRef = useRef<HTMLDivElement>(null)
+
+  function togglePipeline(pipeline: string) {
+    setSelectedPipelines(prev =>
+      prev.includes(pipeline)
+        ? prev.filter(p => p !== pipeline)
+        : [...prev, pipeline]
+    )
+  }
 
   // Clear error and form when switching modes
   useEffect(() => {
@@ -61,7 +122,7 @@ export default function AuthModal({
   useEffect(() => {
     fetch('/api/settings')
       .then(r => r.json())
-      .then((data: { name: string }[]) => setPipelines(data.map(p => p.name)))
+      .then((data: { name: string }[]) => setPipelines(data.map((p: any) => p.name)))
       .catch(() => {})
   }, [])
 
@@ -142,6 +203,8 @@ export default function AuthModal({
       onSuccess()
     }
   }
+
+  const pipelineDisplayValue = selectedPipelines.length > 0 ? selectedPipelines.join(' / ') : ''
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" style={FONT}>
@@ -266,21 +329,25 @@ export default function AuthModal({
 
               {/* 主要管线和职级 - 同一行并排，标题和下拉框上下结构 */}
               <div className="mt-[24px] flex gap-[28px]">
-                {/* 管线 */}
+                {/* 管线 - 下拉多选 */}
                 <div style={{ width: 139 }}>
                   <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>管线</div>
-                  <div className="flex flex-col gap-[4px]">
-                    {pipelines.map((p) => (
-                      <label key={p} className="flex items-center gap-[6px] cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedPipelines.includes(p)}
-                          onChange={() => togglePipeline(p)}
-                          className="w-[16px] h-[16px] accent-[#8ECA2E]"
-                        />
-                        <span className="text-[14px]" style={{ fontWeight: 800 }}>{p}</span>
-                      </label>
-                    ))}
+                  <div className="relative" ref={pipelineRef}>
+                    <SelectTrigger
+                      width={139}
+                      value={pipelineDisplayValue}
+                      isOpen={pipelineOpen}
+                      onToggle={() => setPipelineOpen(!pipelineOpen)}
+                    />
+                    {pipelineOpen && (
+                      <PipelineMultiMenu
+                        width={139}
+                        value={pipelineDisplayValue}
+                        options={pipelines as readonly string[]}
+                        selected={selectedPipelines}
+                        onToggle={togglePipeline}
+                      />
+                    )}
                   </div>
                 </div>
 
