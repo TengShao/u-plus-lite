@@ -14,6 +14,12 @@ SCRIPT_DIR="$(cd -P "$(dirname "$_script")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
+# 检测是否通过管道/文件描述符运行（bash <(curl ...) 或 curl ... | bash）
+# 这种情况下 $0 是 /dev/fd/* 而非真实路径，脚本无法自我复制
+is_piped_script() {
+    [[ "$0" == /dev/fd/* ]] || [[ "$0" == /dev/pipe/* ]] || [[ "$0" == /dev/stdin ]]
+}
+
 REPO_URL="https://github.com/TengShao/u-plus-lite.git"
 DEFAULT_DIR="$HOME/u-plus-lite"
 DEPLOY_DIR=""
@@ -230,8 +236,13 @@ setup_code() {
             rm -rf .next
         fi
         # 用本地正确版本覆盖（GitHub 上的版本可能较旧）
-        cp "$SCRIPT_DIR/deploy.sh" "$DEPLOY_DIR/scripts/deploy.sh"
-        echo "部署脚本已更新为最新版本"
+        # 注意：如果脚本是通过管道运行的（bash <(curl ...），则跳过此步骤，因为 $SCRIPT_DIR 是文件描述符而非真实路径
+        if is_piped_script; then
+            echo "（跳过脚本更新，请在项目目录运行 git pull 获取更新）"
+        else
+            cp "$SCRIPT_DIR/deploy.sh" "$DEPLOY_DIR/scripts/deploy.sh"
+            echo "部署脚本已更新为最新版本"
+        fi
     else
         # 首次部署
         if [ -d "$DEPLOY_DIR" ]; then
@@ -256,7 +267,10 @@ setup_code() {
         PROJECT_ROOT="$DEPLOY_DIR"
 
         # 用本地正确版本的 deploy.sh 覆盖克隆的版本（防止 GitHub 上的旧版本有问题）
-        cp "$SCRIPT_DIR/deploy.sh" "$DEPLOY_DIR/scripts/deploy.sh"
+        # 注意：如果脚本是通过管道运行的（bash <(curl ...)），则跳过此步骤
+        if ! is_piped_script; then
+            cp "$SCRIPT_DIR/deploy.sh" "$DEPLOY_DIR/scripts/deploy.sh"
+        fi
 
         # 替换 seed.ts 为支持命令行参数的版本
         cat > prisma/seed.ts << 'SEED_EOF'

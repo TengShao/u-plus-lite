@@ -53,7 +53,7 @@
 
 ### 问题 8：测试指南内容与当前脚本不同步
 **描述：** 指南中的 Step 描述、步骤编号与当前脚本不一致（如 Step 8 提示格式过时）。
-**状态：** 待修复
+**状态：** ✅ 已修复（2026-03-31 完全重写 deploy-guide.md，修复 tsx/ts-node 引用、添加 Windows 双平台支持、重写 CSV 导入章节）
 
 ### 问题 9：目录已存在时的判断逻辑不合理
 **描述：** 应区分新部署（直接用）和更新（二次确认），当前逻辑会警告不需要警告的情况。
@@ -108,6 +108,12 @@
 **修复：** 在 setup_code() 的 UPDATE_MODE 分支中，cd 后立即删除 .next 目录。
 **状态：** ✅ 已修复
 
+### 问题 22：bash <(curl ...) 方式运行脚本时 self-copy 失败
+**错误：** `cp: /dev/fd/deploy.sh: No such file or directory`
+**原因：** `bash <(curl ...)` 使用进程替换，`$0` 变成 `/dev/fd/63`（文件描述符），而非真实文件路径。脚本中 `cp "$SCRIPT_DIR/deploy.sh"` 试图从 `/dev/fd/deploy.sh` 复制自身但路径不存在。
+**修复：** 新增 `is_piped_script()` 函数检测是否在管道模式运行，在 UPDATE_MODE 和首次部署分支中跳过 self-copy 步骤（pipe 版本的脚本已包含所有嵌入文件，无需覆盖）。
+**状态：** ✅ 已修复（2026-03-31）
+
 ---
 
 ## 测试进度
@@ -119,11 +125,12 @@
 4. 输入自定义部署路径如 `/Users/tengshao/Downloads/deploy-test/testDir`
 
 ### CSV 文件
-- `prisma/exports/pipelines.csv` — 7 条管线
+- `prisma/exports/pipelines.csv` — 6 条管线
 - `prisma/exports/budget_items.csv` — 135 条预算项
 
 ### 测试流程卡点
-- Step 5（创建管理员）→ ts-node 编译错误 ❌ 卡住
+- Step 1（克隆代码）→ bash <(curl ...) 方式 /dev/fd 错误 ❌ → ✅ 已修复
+- Step 5（创建管理员）→ ts-node 编译错误 ❌ → ✅ 已修复
 - Step 8（CSV 导入）→ 未测试
 
 ---

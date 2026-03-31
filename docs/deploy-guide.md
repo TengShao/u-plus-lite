@@ -2,229 +2,174 @@
 
 ## 环境要求
 
-- macOS 作为服务器
+- macOS 或 Windows 作为服务器
 - Node.js 18+
 - 团队成员在同一局域网内
 
-## 一、服务器配置（Mac）
+---
 
-### 1. 确认 Node.js 版本
+## 一、一键部署（推荐）
+
+### 1. 运行部署脚本
+
+**macOS / Linux：**
 ```bash
-node -v   # 需要 v18 以上
-npm -v
-```
-
-### 2. 获取局域网 IP
-```bash
-hostname -I
-```
-记录输出的 IP，例如 `192.168.1.100`，后续团队成员通过此地址访问。
-
-### 3. 开放端口
-macOS 默认防火墙会阻止非 App Store 应用使用端口 3000。确认方法：
-
-**方式一：临时关闭防火墙（推荐测试时用）**
-- 系统设置 → 隐私与安全性 → 防火墙 → 关闭
-
-**方式二：永久允许**
-```bash
-sudo /usr/libexec/ApplicationFirewall/socketfilterfw --add /usr/local/bin/node
-sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp /usr/local/bin/node
-```
-
-## 二、一键部署（推荐）
-
-脚本自动完成：代码拉取 → 依赖安装 → 构建 → PM2 启动。数据库初始化请参考"手动部署"步骤。
-
-**前提：服务器 Mac 需配置 GitHub SSH 访问（见下方"服务器配置"第四步）**
-
-```bash
+# 方式一：一键运行（推荐）
 bash <(curl -sL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.sh)
+
+# 方式二：先下载再运行（备用）
+curl -fsSL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.sh -o /tmp/deploy.sh && bash /tmp/deploy.sh
 ```
 
-运行后显示局域网访问地址。**首次部署后需初始化数据库并导入管线和预算项**（见下方"CSV 导入"章节）。
+**Windows（PowerShell）：**
+```powershell
+irm https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.ps1 | iex
+```
+
+脚本自动完成：依赖检测 → 代码克隆 → 依赖安装 → 数据库初始化 → 管理员创建 → 构建 → PM2 启动 → CSV 导入。
+
+### 2. 部署步骤说明
+
+| 步骤 | 内容 | 说明 |
+|------|------|------|
+| Step 0 | 依赖检测 | 检查 Git、Node.js，未安装则提示安装 |
+| Step 1 | 路径配置 | 输入部署路径（默认 `~/u-plus-lite`，输入任意路径会自动在其下创建 `u-plus-lite` 子目录） |
+| Step 2 | 克隆/更新代码 | 首次部署克隆；已有 .git 则进入更新模式 |
+| Step 3 | 安装依赖 | `npm install` |
+| Step 4 | Prisma 初始化 | `prisma generate` + `db push` |
+| Step 5 | 创建管理员 | 仅首次部署，交互式输入账号密码（密码输入不回显） |
+| Step 6 | 配置 NEXTAUTH_URL | 自动检测局域网 IP 和可用端口，更新 .env |
+| Step 7 | 构建并启动 | `npm run build` + PM2 启动 |
+| Step 8 | CSV 导入 | 可选导入管线和预算项（文件路径或直接粘贴） |
+
+### 3. 端口说明
+
+脚本自动查找 3000 起未被占用的端口。如需指定端口，可手动修改 `.env` 后重启：
+```bash
+# 编辑 .env 中的 NEXTAUTH_URL 和 DATABASE_URL 端口
+pm2 restart u-plus-lite
+```
+
+Windows 用户修改 `.env` 后重启：
+```powershell
+pm2 restart u-plus-lite
+```
+
+### 4. 开机自启
+
+Step 6 会询问是否配置开机自启。已配置则服务在服务器重启后自动恢复。
 
 ---
 
-## 三、手动部署步骤
+## 二、更新部署（不丢失数据）
 
-### 1. 配置 GitHub SSH 访问（私有仓库必需）
+已有部署目录重新运行脚本：
 
-如果仓库是 private，必须通过 SSH 方式访问。
-
-**生成 SSH 密钥：**
+macOS / Linux：
 ```bash
-ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
-```
-连续回车使用默认路径和空密码。
-
-**查看公钥：**
-```bash
-cat ~/.ssh/id_rsa.pub
+bash ~/u-plus-lite/scripts/deploy.sh
 ```
 
-**添加到 GitHub：**
-- 打开 https://github.com/settings/keys
-- 点击 "New SSH key"
-- Title 填入描述（如 "Mac Server"）
-- Key 填入上面 `cat` 命令输出的完整内容
-
-**验证连接：**
-```bash
-ssh -T git@github.com
-```
-显示 "Hi TengShao! You've successfully authenticated" 即成功。
-
-### 2. 上传代码到服务器
-```bash
-# 通过 SSH 方式克隆（私有仓库必须用此格式）
-git clone git@github.com:TengShao/u-plus-lite.git
-cd u-plus-lite
+Windows：
+```powershell
+~\u-plus-lite\scripts\deploy.ps1
 ```
 
-### 3. 安装依赖
-```bash
-npm install
-```
-
-### 4. 生成 Prisma 客户端 & 构建生产版本
-```bash
-npx prisma generate
-npm run build
-```
-
-### 5. 初始化数据库 & 导入数据
-```bash
-# 创建数据库表结构
-npx prisma db push
-
-# 导入管线和预算项（见下方"CSV 导入"章节）
-npx ts-node prisma/import.ts --pipelines=<path> --budget-items=<path>
-```
-
-### 6. 安装 PM2（后台进程管理）
-```bash
-npm install -g pm2
-```
-
-### 7. 启动服务
-```bash
-pm2 start npm -- start
-```
-
-### 8. 确认运行状态
-```bash
-pm2 list
-pm2 logs                   # 查看日志
-```
-
-### 9. 开机自启
-```bash
-pm2 save
-pm2 startup
-```
-按提示执行输出的命令即可。
+数据库文件完全不受影响。
 
 ---
 
-## 四、CSV 导入（管线和预算项）
-
-部署完成后，管线和预算项需要通过 CSV 文件导入，或在 Web 端手动添加。
+## 三、CSV 导入（管线和预算项）
 
 ### 导出当前数据
 
-如果已有数据，可导出为 CSV 格式进行备份或迁移：
-
 ```bash
-npx ts-node prisma/export.ts
+npx tsx prisma/export.ts
 ```
+输出：`prisma/exports/pipelines.csv`、`prisma/exports/budget_items.csv`（具体数量取决于当前数据）
 
 ### 导入管线和预算项
 
-```bash
-npx ts-node prisma/import.ts --pipelines=<path> --budget-items=<path>
+脚本 Step 8 支持导入 CSV 文件。CSV 格式如下：
+
+**管线文件**（示例）：
+```csv
+name
+UGC研发
+UGC运营
+玩法
 ```
 
-**输入模式（二选一）：**
+**预算项文件**（示例）：
+```csv
+pipeline,name
+UGC研发,UGC商业化功能
+UGC研发,编辑器WEB端功能开发
+玩法,超燃相关体验设计与优化Q1
+```
 
-- **文件路径**：传入 CSV 文件路径，如 `--pipelines=./pipelines.csv`
-- **粘贴内容**：传入 `-` 符号，然后粘贴 CSV 内容，如 `--pipelines=-`，工具会提示输入
+导入命令：
+```bash
+npx tsx prisma/import.ts --pipelines=管线.csv --budget-items=预算项.csv
+```
 
 **行为说明：**
 
 - 管线不存在时自动创建
-- 预算项关联的管线必须已存在（未创建的管线会报错）
-- 预算项可选择不关联管线（留空管线字段即可）
+- 预算项关联的管线不存在时，自动创建该管线
+- 预算项可选择不关联管线（留空管线字段，自动归入"其他"管线）
+- 已存在的管线/预算项跳过，不会重复创建
 
 ### Web 端管理
 
 管理员也可在 Web 端手动管理：
-
-- 进入 **Admin Settings → 管线管理**：添加、编辑管线
-- 进入 **Admin Settings → 预算项管理**：添加、编辑预算项，可选择关联或不关联管线
-
-## 五、团队访问
-
-### 局域网访问
-
-部署完成后，在服务器 Mac 上运行以下命令获取局域网 IP：
-
-```bash
-hostname -I | awk '{print $1}'
-```
-
-将输出的 IP 告知团队成员。同一网络下浏览器打开：
-
-```
-http://<服务器IP>:3000
-```
-
-例如输出是 `192.168.1.100`，则访问地址为 `http://192.168.1.100:3000`
-
-### 管理员登录
-
-首次部署后需通过 `npx prisma db seed` 创建管理员账号。
-
-## 六、远程成员访问（临时方案）
-
-目前远程成员需要先连 VPN 回办公室网络，再通过局域网 IP 访问。
-
-## 七、数据备份
-
-SQLite 数据库文件位置：
-```
-/Users/xxx/u-plus-lite/prisma/dev.db
-```
-
-建议定期备份此文件，可加入 crontab：
-```bash
-# 每天凌晨 3 点备份
-0 3 * * * cp /path/to/prisma/dev.db /path/to/backup/dev.db.$(date +\%Y\%m\%d)
-```
-
-## 八、后续功能更新（不丢失数据）
-
-本地开发新功能并推送到 GitHub 后，在服务器 Mac 上运行：
-
-```bash
-bash ~/u-plus-lite/scripts/update.sh
-```
-
-脚本自动完成：拉取代码 → 重构建 → 重启服务，数据库文件完全不受影响。
+- **设置 → 管线管理**：添加、编辑管线
+- **设置 → 预算项管理**：添加、编辑预算项
 
 ---
 
-## 九、重启服务器后恢复服务
+## 四、常用命令
 
-如果 PM2 已配置开机自启，服务会自动恢复。否则手动：
 ```bash
-cd ~/u-plus-lite
-pm2 start npm -- start
+pm2 status              # 查看服务状态
+pm2 logs u-plus-lite   # 查看日志
+pm2 restart u-plus-lite # 重启服务
 ```
 
-## 十、后续优化方向
+---
 
-- **HTTPS**：用 Nginx 反向代理 + Let's Encrypt 证书，外网访问更安全
-- **域名**：配置局域网域名（如 `uplus.internal`），避免记 IP
-- **数据库迁移**：从 SQLite 迁到 PostgreSQL，支持多实例部署
-- **CI/CD**：GitHub Actions 自动构建部署
+## 五、数据备份
+
+SQLite 数据库文件位置：
+
+- macOS / Linux：`~/u-plus-lite/prisma/dev.db`
+- Windows：`%USERPROFILE%\u-plus-lite\prisma\dev.db`
+
+建议定期备份：
+
+macOS / Linux：
+```bash
+cp ~/u-plus-lite/prisma/dev.db ~/backup/dev.db.$(date +\%Y\%m\%d)
+```
+
+Windows：
+```powershell
+Copy-Item "$env:USERPROFILE\u-plus-lite\prisma\dev.db" "$env:USERPROFILE\backup\dev.db.$(Get-Date -Format 'yyyyMMdd')"
+```
+
+---
+
+## 六、团队访问
+
+### 局域网访问
+
+同一网络下浏览器打开 `http://<服务器IP>:<端口>`。
+
+### 管理员登录
+
+首次部署由脚本 Step 5 创建。后续可 Web 端修改密码。
+
+### 远程成员访问
+
+目前远程成员需要先连 VPN 回办公室网络，再通过局域网 IP 访问。
+
