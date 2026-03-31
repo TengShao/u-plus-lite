@@ -6,6 +6,7 @@ import type { PipelineSettingData } from './RequirementPanel'
 import { MODULES, RATINGS, RATING_STANDARDS, TYPES } from '@/lib/constants'
 import { getHealthStatus } from '@/lib/compute'
 import ConfirmDialog from './ConfirmDialog'
+import { useTips } from './Tips'
 
 const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
 const GREEN = '#8ECA2E'
@@ -68,6 +69,7 @@ export default function RequirementCardExpanded({
   defaultPipeline?: string | null
 }) {
   const { data: session } = useSession()
+  const { showTips } = useTips()
   const isAdmin = session?.user?.role === 'ADMIN'
   const userId = session?.user?.id ? parseInt(session.user.id) : 0
 
@@ -195,6 +197,8 @@ export default function RequirementCardExpanded({
       body: JSON.stringify({ billingCycleId: cycleId, manDays }),
     })
 
+    showTips('positive')
+    console.log('[RequirementCardExpanded] showTips called')
     onRefresh()
     onDraftResolved(data.id)
     collapseWithAnimation()
