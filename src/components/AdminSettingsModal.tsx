@@ -1,6 +1,7 @@
 'use client'
 import { Fragment, useEffect, useState } from 'react'
 import { LEVELS } from '@/lib/constants'
+import ConfirmDialog from './ConfirmDialog'
 
 type User = { id: number; name: string; role: string; level: string | null; primaryPipeline: string | null }
 type BudgetItem = { id: number; name: string }
@@ -25,6 +26,8 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
   const [newItemName, setNewItemName] = useState('')
   const [editingBudgetItem, setEditingBudgetItem] = useState<EditingBudgetItem | null>(null)
   const [editingPipeline, setEditingPipeline] = useState<EditingPipeline | null>(null)
+  const [pendingEditPipeline, setPendingEditPipeline] = useState<Pipeline | null>(null)
+  const [pendingDeletePipeline, setPendingDeletePipeline] = useState<Pipeline | null>(null)
   const [budgetItemSearch, setBudgetItemSearch] = useState('')
   const [expandedPipelines, setExpandedPipelines] = useState<Record<number, boolean>>({})
 
@@ -158,6 +161,15 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
       alert('管线名称不能为空')
       return
     }
+    // Find the pipeline object for the confirmation dialog
+    const pipeline = pipelines.find((p) => p.id === editingPipeline.id)
+    if (pipeline) {
+      setPendingEditPipeline(pipeline)
+    }
+  }
+
+  async function doEditPipeline() {
+    if (!editingPipeline) return
     const res = await fetch(`/api/settings/pipelines/${editingPipeline.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -165,6 +177,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
     })
     if (res.ok) {
       setEditingPipeline(null)
+      setPendingEditPipeline(null)
       fetchSettings()
     } else {
       const err = await res.json()
@@ -173,11 +186,14 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
   }
 
   async function confirmDeletePipeline(pipeline: Pipeline) {
-    if (!confirm(`确定删除管线「${pipeline.name}」？\n删除后，该管线关联的预算项将移至"其他"管线，需求组中的管线信息也将更新。`)) {
-      return
-    }
-    const res = await fetch(`/api/settings/pipelines/${pipeline.id}`, { method: 'DELETE' })
+    setPendingDeletePipeline(pipeline)
+  }
+
+  async function doDeletePipeline() {
+    if (!pendingDeletePipeline) return
+    const res = await fetch(`/api/settings/pipelines/${pendingDeletePipeline.id}`, { method: 'DELETE' })
     if (res.ok) {
+      setPendingDeletePipeline(null)
       fetchSettings()
     } else {
       const err = await res.json()
@@ -694,6 +710,28 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
           )}
         </div>
       </div>
+      {pendingEditPipeline && (
+        <ConfirmDialog
+          title="编辑管线"
+          message={`确定将管线「${pendingEditPipeline.name}」名称修改为「${editingPipeline?.name}」？`}
+          onConfirm={doEditPipeline}
+          onCancel={() => {
+            setPendingEditPipeline(null)
+          }}
+          confirmText="确认"
+          cancelText="取消"
+        />
+      )}
+      {pendingDeletePipeline && (
+        <ConfirmDialog
+          title="删除管线"
+          message={`确定删除管线「${pendingDeletePipeline.name}」？\n删除后，该管线关联的预算项将移至"其他"管线，需求组中的管线信息也将更新。`}
+          onConfirm={doDeletePipeline}
+          onCancel={() => setPendingDeletePipeline(null)}
+          confirmText="删除"
+          cancelText="取消"
+        />
+      )}
     </div>
   )
 }
