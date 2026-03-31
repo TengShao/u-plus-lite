@@ -45,15 +45,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       lastSubmittedAt: new Date(),
     },
   })
+  // Update lastUsedPipeline for the user
+  if (data.pipeline) {
+    await prisma.user.update({
+      where: { id: parseInt(session.user.id) },
+      data: { lastUsedPipeline: data.pipeline },
+    })
+  }
   return NextResponse.json(updated)
-}
-
-// Update lastUsedPipeline for the user
-if (data.pipeline) {
-  await prisma.user.update({
-    where: { id: parseInt(session.user.id) },
-    data: { lastUsedPipeline: data.pipeline },
-  })
 }
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
