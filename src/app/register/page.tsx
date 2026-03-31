@@ -7,10 +7,18 @@ export default function RegisterPage() {
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [primaryPipeline, setPrimaryPipeline] = useState('')
+  const [selectedPipelines, setSelectedPipelines] = useState<string[]>([])
   const [pipelines, setPipelines] = useState<string[]>([])
   const [error, setError] = useState('')
   const router = useRouter()
+
+  function togglePipeline(pipeline: string) {
+    setSelectedPipelines(prev =>
+      prev.includes(pipeline)
+        ? prev.filter(p => p !== pipeline)
+        : [...prev, pipeline]
+    )
+  }
 
   useEffect(() => {
     fetch('/api/settings')
@@ -28,7 +36,7 @@ export default function RegisterPage() {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, password, confirmPassword, primaryPipeline }),
+      body: JSON.stringify({ name, password, confirmPassword, pipelines: selectedPipelines }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -64,14 +72,20 @@ export default function RegisterPage() {
           onChange={(e) => setConfirmPassword(e.target.value)}
           className="w-full rounded border px-3 py-2 outline-none focus:border-blue-500"
         />
-        <select
-          value={primaryPipeline}
-          onChange={(e) => setPrimaryPipeline(e.target.value)}
-          className="w-full rounded border px-3 py-2 outline-none focus:border-blue-500"
-        >
-          <option value="">选择主要负责管线（可选）</option>
-          {pipelines.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">选择负责管线（可多选）</label>
+          {pipelines.map(p => (
+            <label key={p} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedPipelines.includes(p)}
+                onChange={() => togglePipeline(p)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm">{p}</span>
+            </label>
+          ))}
+        </div>
         {error && <p className="text-sm text-red-500">{error}</p>}
         <button type="submit" className="w-full rounded bg-blue-600 py-2 text-white hover:bg-blue-700">
           注册
