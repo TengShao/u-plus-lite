@@ -744,11 +744,7 @@ show_complete() {
 
     if [ -n "$ADMIN_NAME" ]; then
         echo "管理员账号：$ADMIN_NAME"
-        if [ "$UPDATE_MODE" = false ]; then
-            echo "管理员密码：$ADMIN_PASSWORD"
-        else
-            echo "管理员密码：（新创建）"
-        fi
+        echo "管理员密码：$ADMIN_PASSWORD"
     else
         echo "管理员账号：（沿用之前的设置）"
         echo "管理员密码：（沿用之前的设置）"
