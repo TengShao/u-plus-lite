@@ -35,7 +35,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }),
   ])
 
-  return NextResponse.json({ ...oldPipeline, name: newName })
+  // 事务完成后，查询更新后的记录
+  const updatedPipeline = await prisma.pipelineSetting.findUnique({
+    where: { id: pipelineId },
+  })
+  return NextResponse.json(updatedPipeline)
 }
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
