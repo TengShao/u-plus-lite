@@ -720,13 +720,21 @@ show_complete() {
     else
         # 更新模式：从数据库读取当前管理员账号
         local db_path="$PROJECT_ROOT/prisma/prod.db"
-        if [ -f "$db_path" ]; then
+        echo "[调试] 数据库路径：$db_path"
+        echo "[调试] 文件存在：$(test -f "$db_path" && echo '是' || echo '否')"
+        echo "[调试] sqlite3 可用：$(command_exists sqlite3 && echo '是' || echo '否')"
+        if [ -f "$db_path" ] && command_exists sqlite3; then
             local admin_name
             admin_name=$(sqlite3 "$db_path" "SELECT name FROM User WHERE role='ADMIN' LIMIT 1;" 2>/dev/null)
+            echo "[调试] 查询结果：admin_name='$admin_name'"
             if [ -n "$admin_name" ]; then
                 echo "管理员账号：$admin_name"
                 echo "管理员密码：（不变，沿用之前的设置）"
+            else
+                echo "（未找到管理员账号，请通过 Web 端确认）"
             fi
+        else
+            echo "（无法读取数据库，请通过 Web 端确认管理员账号）"
         fi
     fi
 
