@@ -29,7 +29,15 @@ export default function AuthModal({
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [primaryPipeline, setPrimaryPipeline] = useState('')
+  const [selectedPipelines, setSelectedPipelines] = useState<string[]>([])
+
+  function togglePipeline(pipeline: string) {
+    setSelectedPipelines(prev =>
+      prev.includes(pipeline)
+        ? prev.filter(p => p !== pipeline)
+        : [...prev, pipeline]
+    )
+  }
   const [pipelines, setPipelines] = useState<string[]>([])
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -45,7 +53,7 @@ export default function AuthModal({
     setName('')
     setPassword('')
     setConfirmPassword('')
-    setPrimaryPipeline('')
+    setSelectedPipelines([])
     setLevel('')
   }, [mode])
 
@@ -109,10 +117,6 @@ export default function AuthModal({
       setError('两次密码输入不一致')
       return
     }
-    if (!primaryPipeline) {
-      setError('请选择主要管线')
-      return
-    }
     if (!level) {
       setError('请选择职级')
       return
@@ -121,7 +125,7 @@ export default function AuthModal({
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, password, confirmPassword, primaryPipeline, level }),
+      body: JSON.stringify({ name, password, confirmPassword, pipelines: selectedPipelines, level }),
     })
     const data = await res.json()
     if (!res.ok) {
@@ -262,46 +266,21 @@ export default function AuthModal({
 
               {/* 主要管线和职级 - 同一行并排，标题和下拉框上下结构 */}
               <div className="mt-[24px] flex gap-[28px]">
-                {/* 主要管线 */}
+                {/* 管线 */}
                 <div style={{ width: 139 }}>
-                  <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>主要管线</div>
-                  <div className="relative" ref={pipelineRef}>
-                    <button
-                      type="button"
-                      onClick={() => setPipelineOpen(!pipelineOpen)}
-                      className="relative z-10 h-[36px] w-full rounded-[8px] border border-[#EEEEEE] bg-white px-[10px] hover:border-[#8ECA2E]"
-                      style={{ boxShadow: 'none', transition: 'border-color 0.15s' }}
-                    >
-                      <span
-                        className="absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center leading-[22px]"
-                        style={{ color: primaryPipeline ? '#000' : '#C3C3C3', fontSize: 16, fontWeight: 800 }}
-                      >
-                        {primaryPipeline || '请选择'}
-                      </span>
-                      <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon flipped={pipelineOpen} /></span>
-                    </button>
-                    {pipelineOpen && (
-                      <div className="absolute left-0 top-0 z-20 w-full overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid #8ECA2E' }}>
-                        {/* Trigger clone */}
-                        <div className="relative h-[36px] px-[10px]">
-                          <span className="absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center text-[16px] leading-[22px]" style={{ fontWeight: 800 }}>
-                            {primaryPipeline || '请选择'}
-                          </span>
-                          <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon flipped /></span>
-                        </div>
-                        <div className="h-px bg-[#0000000B] mx-px" />
-                        {pipelines.map((p) => (
-                          <button
-                            key={p}
-                            onClick={() => { setPrimaryPipeline(p); setPipelineOpen(false) }}
-                            className="flex h-[30px] w-full items-center justify-center text-[14px] hover:bg-[rgba(142,202,46,0.15)]"
-                            style={{ fontWeight: 800 }}
-                          >
-                            {p}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                  <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>管线</div>
+                  <div className="flex flex-col gap-[4px]">
+                    {pipelines.map((p) => (
+                      <label key={p} className="flex items-center gap-[6px] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedPipelines.includes(p)}
+                          onChange={() => togglePipeline(p)}
+                          className="w-[16px] h-[16px] accent-[#8ECA2E]"
+                        />
+                        <span className="text-[14px]" style={{ fontWeight: 800 }}>{p}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
 
