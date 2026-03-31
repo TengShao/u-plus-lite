@@ -15,7 +15,7 @@ $REPO_URL = "https://github.com/TengShao/u-plus-lite.git"
 $DEFAULT_DIR = "$env:USERPROFILE\u-plus-lite"
 $DEPLOY_DIR = ""
 $UPDATE_MODE = $false
-$PORT = 3000
+$PORT = 0
 
 # 获取局域网 IP (Windows)
 function Get-LocalIP {
@@ -477,10 +477,25 @@ function Initialize-Admin {
 function Set-NextAuthUrl {
     Write-Host "[6/9] 配置 NEXTAUTH_URL..."
 
-    $script:PORT = Find-AvailablePort
-    Write-Host "使用端口：$script:PORT"
-
     $localIP = Get-LocalIP
+
+    # 更新模式下优先使用上次配置的端口，避免链接变化
+    if ($script:UPDATE_MODE -and (Test-Path ".env")) {
+        $existingUrl = Select-String -Path ".env" -Pattern "^NEXTAUTH_URL=" | ForEach-Object { $_ -replace 'NEXTAUTH_URL=', '' -replace '"', '' }
+        if ($existingUrl -match ':\d+$') {
+            $existingPort = $existingUrl -replace '.*:', ''
+            if (-not (Test-PortUsed -Port $existingPort)) {
+                $script:PORT = $existingPort
+                Write-Host "保留原有端口：$script:PORT"
+            }
+        }
+    }
+
+    # 如果没有保留端口，查找新的
+    if ($script:PORT -eq 0) {
+        $script:PORT = Find-AvailablePort
+    }
+    Write-Host "使用端口：$script:PORT"
 
     if (Test-Path ".env") {
         $content = Get-Content ".env" -Raw

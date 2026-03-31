@@ -573,11 +573,26 @@ config_nextauth() {
     # 在 build 前更新 .env 中的 NEXTAUTH_URL（Next.js build 时会嵌入环境变量）
     echo "[配置] 更新 NEXTAUTH_URL..."
 
-    # 查找可用端口
-    PORT=$(find_available_port)
-    echo "使用端口：$PORT"
-
     LOCAL_IP=$(get_local_ip)
+
+    # 更新模式下优先使用上次配置的端口，避免链接变化
+    if [ "$UPDATE_MODE" = true ] && [ -f ".env" ]; then
+        # 从现有 .env 中提取端口
+        EXISTING_URL=$(grep "^NEXTAUTH_URL=" .env | sed 's/NEXTAUTH_URL=//' | tr -d '"')
+        if [ -n "$EXISTING_URL" ]; then
+            EXISTING_PORT=$(echo "$EXISTING_URL" | sed 's|.*:||')
+            if [ -n "$EXISTING_PORT" ] && ! is_port_used "$EXISTING_PORT"; then
+                PORT="$EXISTING_PORT"
+                echo "保留原有端口：$PORT"
+            fi
+        fi
+    fi
+
+    # 如果没有保留端口，查找新的
+    if [ -z "$PORT" ]; then
+        PORT=$(find_available_port)
+    fi
+    echo "使用端口：$PORT"
 
     if [ -f ".env" ]; then
         sed -i '' "s|NEXTAUTH_URL=.*|NEXTAUTH_URL=\"http://$LOCAL_IP:$PORT\"|" .env
