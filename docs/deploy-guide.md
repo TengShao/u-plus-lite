@@ -14,7 +14,6 @@
 
 **macOS / Linux：**
 ```bash
-# 下载到本地再运行（推荐）
 curl -fsSL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.sh -o /tmp/deploy.sh && bash /tmp/deploy.sh
 ```
 
