@@ -528,9 +528,15 @@ setup_admin() {
         return
     fi
 
-    echo ""
-    echo "首次部署，创建管理员账号"
-    echo ""
+    if [ "$UPDATE_MODE" = true ]; then
+        echo ""
+        echo "未检测到管理员账号，请重新设定"
+        echo ""
+    else
+        echo ""
+        echo "首次部署，创建管理员账号"
+        echo ""
+    fi
 
     read -p "  管理员姓名: " ADMIN_NAME
     while [ -z "$ADMIN_NAME" ]; do
