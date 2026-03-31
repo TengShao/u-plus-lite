@@ -449,7 +449,7 @@ export default function Header({
       {showAccountSettings && (
         <AccountSettingsModal
           initialName={session?.user?.name || ''}
-          initialPrimaryPipeline={session?.user?.primaryPipeline || ''}
+          initialPrimaryPipeline={session?.user?.lastUsedPipeline || ''}
           onClose={() => setShowAccountSettings(false)}
           onUpdated={handleAccountUpdated}
         />
