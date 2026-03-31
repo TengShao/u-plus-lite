@@ -114,6 +114,11 @@
 **修复：** 新增 `is_piped_script()` 函数检测是否在管道模式运行，在 UPDATE_MODE 和首次部署分支中跳过 self-copy 步骤（pipe 版本的脚本已包含所有嵌入文件，无需覆盖）。
 **状态：** ✅ 已修复（2026-03-31）
 
+### 问题 23：bash <(curl ...) 无法支持交互式输入
+**原因：** `bash <(curl ...)` 使 stdin 成为管道（curl 的输出）。当 stdin 被重定向时，`/dev/tty` 不可用（报错 "Device not configured"），导致所有交互式 `read` 调用挂起。这是 bash 进程替换的固有限制，无法通过脚本修复。
+**修复：** 更新文档推荐使用 `curl ... -o /tmp/deploy.sh && bash /tmp/deploy.sh` 方式运行，避免 stdin 被 curl 输出占用。
+**状态：** ✅ 已修复（2026-03-31）
+
 ---
 
 ## 测试进度
