@@ -560,38 +560,15 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
             </>
           ) : (
             <>
-              <div className="mb-4 flex gap-2">
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={budgetItemSearch}
-                    onChange={(e) => setBudgetItemSearch(e.target.value)}
-                    placeholder="搜索预算项"
-                    className="w-full rounded border px-3 py-2 text-sm"
-                  />
-                </div>
-                <button
-                  onClick={startAddPipeline}
-                  className="px-4 py-2 bg-black text-white rounded text-sm whitespace-nowrap"
-                >
-                  + 新增管线
-                </button>
+              <div className="mb-4">
+                <input
+                  type="text"
+                  value={budgetItemSearch}
+                  onChange={(e) => setBudgetItemSearch(e.target.value)}
+                  placeholder="搜索预算项"
+                  className="w-full rounded border px-3 py-2 text-sm"
+                />
               </div>
-
-              {isAddingPipeline && (
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={newPipelineName}
-                    onChange={(e) => setNewPipelineName(e.target.value)}
-                    placeholder="管线名称"
-                    className="border rounded px-2 py-1 text-sm"
-                    autoFocus
-                  />
-                  <button onClick={confirmAddPipeline} className="text-green-600 hover:text-green-700 text-sm">确认</button>
-                  <button onClick={cancelAddPipeline} className="text-gray-500 hover:text-gray-700 text-sm">取消</button>
-                </div>
-              )}
 
               <table className="w-full text-sm">
                 <thead>
