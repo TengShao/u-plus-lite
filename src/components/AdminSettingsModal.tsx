@@ -6,10 +6,11 @@ type User = { id: number; name: string; role: string; level: string | null; prim
 type BudgetItem = { id: number; name: string }
 type Pipeline = { id: number; name: string; budgetItems: BudgetItem[] }
 
-type Tab = 'members' | 'budget'
+type Tab = 'members' | 'pipelines' | 'budget'
 
 type EditingMember = { id: number; name: string; level: string; role: string; primaryPipeline: string }
 type EditingBudgetItem = { id: number; pipelineId: number; name: string }
+type EditingPipeline = { id: number; name: string }
 
 export default function AdminSettingsModal({ onClose }: { onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<Tab>('members')
@@ -23,6 +24,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
   const [isAddingBudgetItemPipelineId, setIsAddingBudgetItemPipelineId] = useState<number | null>(null)
   const [newItemName, setNewItemName] = useState('')
   const [editingBudgetItem, setEditingBudgetItem] = useState<EditingBudgetItem | null>(null)
+  const [editingPipeline, setEditingPipeline] = useState<EditingPipeline | null>(null)
   const [budgetItemSearch, setBudgetItemSearch] = useState('')
   const [expandedPipelines, setExpandedPipelines] = useState<Record<number, boolean>>({})
 
