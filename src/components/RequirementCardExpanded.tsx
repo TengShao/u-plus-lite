@@ -256,7 +256,7 @@ export default function RequirementCardExpanded({
                   </button>
                 )}
               </div>
-              {!readOnly && <RequiredDot className="left-[604px] top-[19px]" />}
+              {!readOnly && !name.trim() && <RequiredDot className="left-[604px] top-[19px]" />}
             </div>
           </div>
         </div>
