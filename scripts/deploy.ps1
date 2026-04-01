@@ -496,8 +496,16 @@ function Set-NextAuthUrl {
         if (Test-PortUsed -Port 3000) {
             Write-Host ""
             Write-Host "[错误] 端口 3000 被占用，请先关闭占用端口的进程后再部署" -ForegroundColor Red
-            Write-Host "  常见原因：本地开发服务器未关闭（运行 npm run dev）" -ForegroundColor DarkGray
-            Write-Host "  解决方法：Ctrl+C 关闭 dev 服务器后，重新运行部署脚本" -ForegroundColor DarkGray
+            Write-Host ""
+            Write-Host "占用 3000 端口的进程：" -ForegroundColor Yellow
+            $connections = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue
+            foreach ($conn in $connections) {
+                $proc = Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue
+                Write-Host "  PID: $($conn.OwningProcess)  命令: $($proc.ProcessName)" -ForegroundColor DarkGray
+            }
+            Write-Host ""
+            Write-Host "快速解决方法（复制执行）：" -ForegroundColor Yellow
+            Write-Host "  Stop-Process -Id (Get-NetTCPConnection -LocalPort 3000).OwningProcess -Force" -ForegroundColor Green
             Write-Host ""
             exit 1
         }

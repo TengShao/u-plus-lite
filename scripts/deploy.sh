@@ -621,8 +621,12 @@ config_nextauth() {
         if is_port_used 3000; then
             echo ""
             echo -e "${RED}[错误] 端口 3000 被占用，请先关闭占用端口的进程后再部署${NC}"
-            echo "  常见原因：本地开发服务器未关闭（运行 npm run dev）"
-            echo "  解决方法：Ctrl+C 关闭 dev 服务器后，重新运行部署脚本"
+            echo ""
+            echo "占用 3000 端口的进程："
+            lsof -i :3000 | grep LISTEN | awk '{print "  PID: " $2 "  命令: " $1 "  运行时间: " $9}'
+            echo ""
+            echo "快速解决方法（复制执行）："
+            echo "  kill \$(lsof -ti:3000)"
             echo ""
             exit 1
         fi
