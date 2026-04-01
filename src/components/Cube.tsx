@@ -11,13 +11,14 @@ export function DesignerChip({ name, days, mine, nameWeight }: { name: string; d
   )
 }
 
-export function Cube({ label, value, labelColor, valueColor, width, required, children }: {
+export function Cube({ label, value, labelColor, valueColor, width, required, disabled, children }: {
   label: string
   value?: string
   labelColor?: string
   valueColor?: string
   width?: number
   required?: boolean
+  disabled?: boolean
   children?: React.ReactNode
 }) {
   return (
@@ -27,7 +28,7 @@ export function Cube({ label, value, labelColor, valueColor, width, required, ch
     >
       <span className="mt-[14px] text-[12px] leading-[17px]" style={{ fontWeight: 400, color: labelColor || '#8C8C8C' }}>{label}</span>
       {required && <span className="absolute right-[8px] top-[8px] h-[4px] w-[4px] rounded-full bg-[#FF0000]" />}
-      {children
+      {children && !disabled
         ? <div className="relative mt-[5px]">{children}</div>
         : <span className="mt-[12px] text-[16px] leading-[22px] text-black" style={{ fontWeight: 600, color: valueColor }}>{value}</span>
       }

@@ -55,6 +55,7 @@ export default function RequirementPanel({
   const [pendingDuplicateId, setPendingDuplicateId] = useState<number | null>(null)
   const [pendingDuplicateName, setPendingDuplicateName] = useState<string>('')
   const [pendingCompleteId, setPendingCompleteId] = useState<number | null>(null)
+  const [pendingReopenId, setPendingReopenId] = useState<number | null>(null)
   const [cycle, setCycle] = useState<{ id: number; status: string } | null>(null)
   const [filters, setFilters] = useState<Record<string, string[]>>({})
   const [isScrolled, setIsScrolled] = useState(false)
@@ -488,6 +489,18 @@ export default function RequirementPanel({
     setExpandedId(null)
   }
 
+  async function handleReopenRequest(id: number) {
+    setPendingReopenId(id)
+  }
+
+  async function doReopenRequest() {
+    if (pendingReopenId === null) return
+    await fetch(`/api/requirements/${pendingReopenId}/reopen`, { method: 'PATCH' })
+    setPendingReopenId(null)
+    onRefresh()
+    setExpandedId(null)
+  }
+
   async function handleViewDuplicate() {
     // Delete the draft before viewing the duplicate
     const savedDraft = sessionStorage.getItem(`draft_${cycleId}`)
@@ -618,6 +631,7 @@ export default function RequirementPanel({
                   onDiscardRequest={(id) => setPendingDiscardId(id)}
                   onDuplicateRequest={(id, name) => { setPendingDuplicateId(id); setPendingDuplicateName(name) }}
                   onCompleteRequest={handleCompleteRequest}
+                  onReopenRequest={handleReopenRequest}
                   isDraft={rg.id === activeDraftId}
                   defaultPipeline={rg.id === activeDraftId ? userPrimaryPipeline : undefined}
                 />
@@ -629,6 +643,7 @@ export default function RequirementPanel({
                   onRefresh={onRefresh}
                   onDeleteRequest={(id) => setPendingDeleteId(id)}
                   onCompleteRequest={handleCompleteRequest}
+                  onReopenRequest={handleReopenRequest}
                 />
               )}
               </div>
@@ -706,6 +721,15 @@ export default function RequirementPanel({
           message="确定标记该需求组为完成？"
           onConfirm={doCompleteRequest}
           onCancel={() => setPendingCompleteId(null)}
+        />
+      )}
+      {pendingReopenId !== null && (
+        <ConfirmDialog
+          title="重启需求组"
+          message="确定要重启该需求组吗？重启后该需求组将恢复为未完成状态。"
+          onConfirm={doReopenRequest}
+          onCancel={() => setPendingReopenId(null)}
+          confirmText="重启"
         />
       )}
     </div>

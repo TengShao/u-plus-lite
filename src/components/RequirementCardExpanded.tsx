@@ -5,7 +5,6 @@ import { type RequirementData } from './RequirementPanel'
 import type { PipelineSettingData } from './RequirementPanel'
 import { LEVEL_COEFFICIENTS, MODULES, RATINGS, RATING_STANDARDS, TYPES } from '@/lib/constants'
 import { getHealthStatus, getSuitableRating } from '@/lib/compute'
-import ConfirmDialog from './ConfirmDialog'
 import { useTips } from './Tips'
 import { DeleteIcon, ConfirmIcon, SubmitIcon, ClockIcon, ActionIconButton } from './icons'
 import { Cube, DesignerChip } from './Cube'
@@ -50,6 +49,7 @@ export default function RequirementCardExpanded({
   onDiscardRequest,
   onDuplicateRequest,
   onCompleteRequest,
+  onReopenRequest,
   defaultPipeline,
   isDraft,
 }: {
@@ -69,11 +69,13 @@ export default function RequirementCardExpanded({
   onCompleteRequest?: (id: number) => void
   isDraft?: boolean
   defaultPipeline?: string | null
+  onReopenRequest?: (id: number) => void
 }) {
   const { data: session } = useSession()
   const { showTips } = useTips()
   const isAdmin = session?.user?.role === 'ADMIN'
   const userId = session?.user?.id ? parseInt(session.user.id) : 0
+  const isComplete = data.status === 'COMPLETE'
 
   const [name, setName] = useState(data.name)
   const [rating, setRating] = useState(data.rating || '')
@@ -140,13 +142,14 @@ export default function RequirementCardExpanded({
     setTimeout(() => setIncreaseAnim(null), 1000)
   }
 
-  const readOnly = cycleStatus === 'CLOSED' && !isAdmin
+  const readOnly = (cycleStatus === 'CLOSED' && !isAdmin) || isComplete
   const pipelineNames = pipelineSettings.map((p) => p.name)
   const pipelineOptions = pipeline && !pipelineNames.includes(pipeline) ? [...pipelineNames, pipeline] : pipelineNames
   const budgetMap: Record<string, string[]> = Object.fromEntries(pipelineSettings.map((p) => [p.name, p.budgetItems.map((b) => b.name)]))
   const rawBudgetOptions = pipeline ? (budgetMap[pipeline] || []) : Object.values(budgetMap).flat()
   const budgetOptions = budgetItem && !rawBudgetOptions.includes(budgetItem) ? [...rawBudgetOptions, budgetItem] : rawBudgetOptions
   const userEditable = !readOnly
+  const deleteDisabled = cycleStatus === 'CLOSED' && !isAdmin
 
   const nameInvalid = triedSubmit && !name.trim()
   const ratingInvalid = triedSubmit && !rating
@@ -240,13 +243,13 @@ export default function RequirementCardExpanded({
             <div className="relative w-[600px]">
               <div
                 className={`relative h-[42px] rounded-[8px] border ${nameInvalid ? 'bg-[rgba(255,0,0,0.08)] shadow-[0_0_3px_rgba(0,0,0,0.06)]' : 'bg-white'}`}
-                style={{ borderColor: nameInvalid ? '#FF7D7D' : nameFocused ? GREEN : nameHovered ? GREEN : '#EEEEEE', transition: 'border-color 0.15s' }}
+                style={{ borderColor: nameInvalid ? '#FF7D7D' : isComplete ? 'transparent' : nameFocused ? GREEN : nameHovered ? GREEN : '#EEEEEE', transition: 'border-color 0.15s' }}
                 onMouseEnter={() => setNameHovered(true)}
                 onMouseLeave={() => setNameHovered(false)}
               >
                 <input
                   value={name}
-                  disabled={!userEditable}
+                  disabled={!userEditable || isComplete}
                   onFocus={() => setNameFocused(true)}
                   onBlur={() => setNameFocused(false)}
                   onChange={(e) => { setName(e.target.value); markDirty() }}
@@ -286,7 +289,7 @@ export default function RequirementCardExpanded({
       </div>
 
       <div className="mt-[10px] flex gap-[8px]">
-        <Cube label="管线" required invalid={pipelineInvalid} isOpen={openMenu === 'pipeline'} isEmpty={!pipeline} width={160}>
+        <Cube label="管线" required invalid={pipelineInvalid} isOpen={openMenu === 'pipeline'} isEmpty={!pipeline} width={160} disabled={isComplete} value={pipeline}>
           <SelectTrigger width={144} value={pipeline} isOpen={openMenu === 'pipeline'} onToggle={() => userEditable && setOpenMenu(openMenu === 'pipeline' ? null : 'pipeline')} invalid={pipelineInvalid} isHovered={triggerHovered === 'pipeline'} onMouseEnter={() => setTriggerHovered('pipeline')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'pipeline' && userEditable && (
             <MenuSingle width={144} value={pipeline} options={pipelineOptions as readonly string[]} selected={pipeline} onPick={(v) => { setPipeline(v); setBudgetItem(''); setOpenMenu(null); markDirty() }} />
@@ -294,7 +297,7 @@ export default function RequirementCardExpanded({
         </Cube>
 
         <div className="relative">
-          <Cube label="评级" required invalid={ratingInvalid} isOpen={openMenu === 'rating'} isEmpty={!rating} width={120}>
+          <Cube label="评级" required invalid={ratingInvalid} isOpen={openMenu === 'rating'} isEmpty={!rating} width={120} disabled={isComplete} value={rating}>
             <SelectTrigger
               width={104}
               value={rating}
@@ -310,7 +313,7 @@ export default function RequirementCardExpanded({
               <MenuSingle width={104} value={rating} options={RATINGS as readonly string[]} selected={rating} onPick={(v) => { setRating(v); setOpenMenu(null); markDirty() }} />
             )}
           </Cube>
-          {computedRecommendedRating && computedRecommendedRating !== rating && (
+          {!isComplete && computedRecommendedRating && computedRecommendedRating !== rating && (
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-[2px] whitespace-nowrap">
               <TipsBadge
                 label="推荐"
@@ -321,28 +324,28 @@ export default function RequirementCardExpanded({
           )}
         </div>
 
-        <Cube label="设计模块" required invalid={moduleInvalid} isOpen={openMenu === 'module'} isEmpty={!module} width={160}>
+        <Cube label="设计模块" required invalid={moduleInvalid} isOpen={openMenu === 'module'} isEmpty={!module} width={160} disabled={isComplete} value={module}>
           <SelectTrigger width={144} value={module} isOpen={openMenu === 'module'} onToggle={() => userEditable && setOpenMenu(openMenu === 'module' ? null : 'module')} invalid={moduleInvalid} isHovered={triggerHovered === 'module'} onMouseEnter={() => setTriggerHovered('module')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'module' && userEditable && (
             <MenuSingle width={144} value={module} options={MODULES as readonly string[]} selected={module} onPick={(v) => { setModule(v); setOpenMenu(null); markDirty() }} />
           )}
         </Cube>
 
-        <Cube label="类型" isOpen={openMenu === 'types'} isEmpty={types.length === 0} width={160}>
+        <Cube label="类型" isOpen={openMenu === 'types'} isEmpty={types.length === 0} width={160} disabled={isComplete} value={types.join(' / ')}>
           <SelectTrigger width={144} value={types.join(' / ')} isOpen={openMenu === 'types'} onToggle={() => userEditable && setOpenMenu(openMenu === 'types' ? null : 'types')} isHovered={triggerHovered === 'types'} onMouseEnter={() => setTriggerHovered('types')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'types' && userEditable && (
             <MenuMulti width={144} value={types.join(' / ')} options={TYPES as readonly string[]} selected={types} onToggle={(v) => toggleType(v)} />
           )}
         </Cube>
 
-        <Cube label="预算项" required invalid={budgetInvalid} isOpen={openMenu === 'budgetItem'} isEmpty={!budgetItem} width={280}>
+        <Cube label="预算项" required invalid={budgetInvalid} isOpen={openMenu === 'budgetItem'} isEmpty={!budgetItem} width={280} disabled={isComplete} value={budgetItem}>
           <SelectTrigger width={264} value={budgetItem} isOpen={openMenu === 'budgetItem'} onToggle={() => userEditable && setOpenMenu(openMenu === 'budgetItem' ? null : 'budgetItem')} invalid={budgetInvalid} truncate isHovered={triggerHovered === 'budgetItem'} onMouseEnter={() => setTriggerHovered('budgetItem')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'budgetItem' && userEditable && (
             <MenuSingle width={264} value={budgetItem} options={budgetOptions} selected={budgetItem} onPick={(v) => { setBudgetItem(v); setOpenMenu(null); markDirty() }} />
           )}
         </Cube>
 
-        <Cube label="本月可关闭" required isOpen={openMenu === 'canClose'} isEmpty={false} width={120}>
+        <Cube label="本月可关闭" required isOpen={openMenu === 'canClose'} isEmpty={false} width={120} disabled={isComplete} value={canClose ? '是' : '否'}>
           <SelectTrigger width={104} value={canClose ? '是' : '否'} isOpen={openMenu === 'canClose'} onToggle={() => userEditable && setOpenMenu(openMenu === 'canClose' ? null : 'canClose')} isHovered={triggerHovered === 'canClose'} onMouseEnter={() => setTriggerHovered('canClose')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'canClose' && userEditable && (
             <MenuSingle width={104} value={canClose ? '是' : '否'} options={['是', '否']} selected={canClose ? '是' : '否'} onPick={(v) => { setCanClose(v === '是'); setOpenMenu(null); markDirty() }} />
@@ -350,7 +353,7 @@ export default function RequirementCardExpanded({
         </Cube>
       </div>
 
-      <div className="mt-[40px] flex items-center gap-[8px]">
+      <div className="mt-[20px] flex items-center gap-[8px]">
         <div className="ml-[9px]">
           <SectionTitle icon="info" text="其他信息" weight={600} />
         </div>
@@ -358,7 +361,7 @@ export default function RequirementCardExpanded({
 
       <div className="mt-[10px] flex gap-[8px]">
         <div className="relative">
-          <Cube label="功能点数" required invalid={funcPointsInvalid} isOpen={false} isEmpty={!funcPoints} width={120}>
+          <Cube label="功能点数" required invalid={funcPointsInvalid} isOpen={false} isEmpty={!funcPoints} width={120} disabled={isComplete} value={String(funcPoints)}>
             <CubeInput
               width={104}
               value={funcPoints}
@@ -368,7 +371,7 @@ export default function RequirementCardExpanded({
               invalid={funcPointsInvalid}
             />
           </Cube>
-          {computedTotalManDays > 0 && funcPoints !== computedFuncPointsRecommended && (
+          {!isComplete && computedTotalManDays > 0 && funcPoints !== computedFuncPointsRecommended && (
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-[2px] whitespace-nowrap">
               <TipsBadge
                 label="推荐"
@@ -380,7 +383,7 @@ export default function RequirementCardExpanded({
         </div>
 
         <div className="relative">
-          <Cube label="界面数" required invalid={pageCountInvalid} isOpen={false} isEmpty={!pageCount} width={120}>
+          <Cube label="界面数" required invalid={pageCountInvalid} isOpen={false} isEmpty={!pageCount} width={120} disabled={isComplete} value={String(pageCount)}>
             <CubeInput
               width={104}
               value={pageCount}
@@ -390,7 +393,7 @@ export default function RequirementCardExpanded({
               invalid={pageCountInvalid}
             />
           </Cube>
-          {computedTotalManDays > 0 && pageCount !== Math.round(computedTotalManDays * 1.75) && (
+          {!isComplete && computedTotalManDays > 0 && pageCount !== Math.round(computedTotalManDays * 1.75) && (
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-[2px] whitespace-nowrap">
               <TipsBadge
                 label="推荐"
@@ -402,7 +405,7 @@ export default function RequirementCardExpanded({
         </div>
       </div>
 
-      <div className="mt-[40px] h-px w-full bg-[#0000000A]" />
+      <div className="mt-[20px] h-px w-full bg-[#0000000A]" />
 
       <div className="mt-[20px]">
         <div className="ml-[9px]">
@@ -435,20 +438,22 @@ export default function RequirementCardExpanded({
       </div>
 
       <div className="mt-[20px] flex items-end justify-between">
-        <div className="relative flex h-[60px] w-[176px] items-center rounded-[8px] border border-[#EEEEEE] bg-white px-[12px]">
-          {/* Decrease button with animation */}
-          <div className="relative">
-            <StepButton onClick={() => { setManDays((v) => Math.max(0, round1(v - 0.1))); markDirty(); triggerDecreaseAnim() }} disabled={!userEditable}>🦴</StepButton>
-            {decreaseAnim && (
-              <span
-                key={decreaseAnim}
-                className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-[4px] text-[16px] animate-fade-out"
-                style={{ fontWeight: 800, color: '#E96631' }}
-              >
-                🦴
-              </span>
-            )}
-          </div>
+        <div className={`relative flex h-[60px] items-center rounded-[8px] border border-[#EEEEEE] px-[12px] ${isComplete ? 'w-[64px] justify-center bg-transparent' : 'w-[176px] bg-white'}`}>
+          {/* Decrease button with animation — hidden when COMPLETE */}
+          {!isComplete && (
+            <div className="relative">
+              <StepButton onClick={() => { setManDays((v) => Math.max(0, round1(v - 0.1))); markDirty(); triggerDecreaseAnim() }} disabled={!userEditable}>🦴</StepButton>
+              {decreaseAnim && (
+                <span
+                  key={decreaseAnim}
+                  className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-[4px] text-[16px] animate-fade-out"
+                  style={{ fontWeight: 800, color: '#E96631' }}
+                >
+                  🦴
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Input */}
           <input
@@ -456,29 +461,32 @@ export default function RequirementCardExpanded({
             step="0.1"
             min="0"
             value={manDaysFocused && manDays === 0 ? '' : manDays === 0 ? '0' : manDays || ''}
-            disabled={!userEditable}
+            disabled={!userEditable || isComplete}
+            readOnly={isComplete}
             onChange={(e) => { setManDays(parseFloat(e.target.value) || 0); markDirty() }}
             onFocus={() => setManDaysFocused(true)}
             onBlur={() => setManDaysFocused(false)}
-            className="no-spin mx-[8px] h-[36px] w-[64px] rounded-[8px] border border-[#EEEEEE] text-center text-[20px] leading-[36px] outline-none"
+            className={`mx-[8px] h-[36px] w-[64px] rounded-[8px] text-center text-[20px] leading-[36px] outline-none ${isComplete ? 'border-transparent bg-transparent' : 'border border-[#EEEEEE]'}`}
             style={{ fontWeight: 800 }}
           />
 
-          {/* Increase button with animation */}
-          <div className="relative">
-            <StepButton onClick={() => { setManDays((v) => round1(v + 0.1)); markDirty(); triggerIncreaseAnim() }} disabled={!userEditable}>
-              <span className="inline-block scale-y-[-1]">🍗</span>
-            </StepButton>
-            {increaseAnim && (
-              <span
-                key={increaseAnim}
-                className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-[4px] text-[16px] animate-fade-out"
-                style={{ fontWeight: 800, color: '#8ECA2E' }}
-              >
+          {/* Increase button with animation — hidden when COMPLETE */}
+          {!isComplete && (
+            <div className="relative">
+              <StepButton onClick={() => { setManDays((v) => round1(v + 0.1)); markDirty(); triggerIncreaseAnim() }} disabled={!userEditable}>
                 <span className="inline-block scale-y-[-1]">🍗</span>
-              </span>
-            )}
-          </div>
+              </StepButton>
+              {increaseAnim && (
+                <span
+                  key={increaseAnim}
+                  className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-[4px] text-[16px] animate-fade-out"
+                  style={{ fontWeight: 800, color: '#8ECA2E' }}
+                >
+                  <span className="inline-block scale-y-[-1]">🍗</span>
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-end gap-[8px]">
@@ -486,19 +494,22 @@ export default function RequirementCardExpanded({
             {isAdmin && data.status !== 'COMPLETE' && (
               <ActionIconButton type="confirm" disabled={!userEditable} onClick={() => onCompleteRequest?.(data.id)} />
             )}
-            <ActionIconButton type="delete" disabled={!userEditable} onClick={() => onDeleteRequest(data.id)} />
+            <ActionIconButton type="delete" disabled={deleteDisabled} onClick={() => onDeleteRequest(data.id)} />
           </div>
 
           <ActionButton
             variant="cancel"
             onClick={() => (dirty || isDraft ? onDiscardRequest(data.id) : collapseWithAnimation(() => onDraftResolved(data.id)))}
+            completeText="收起"
           />
 
           <ActionButton
             variant="submit"
-            disabled={!userEditable}
+            disabled={!userEditable && !isComplete}
             lastSubmittedAt={data.lastSubmittedAt}
-            onClick={handleSubmit}
+            onClick={isComplete ? () => onReopenRequest?.(data.id) : handleSubmit}
+            completeText={isComplete ? '重启' : undefined}
+            hideIcon={isComplete}
           />
         </div>
       </div>
@@ -630,7 +641,7 @@ function CubeInput({ width, value, onChange, placeholder = '请输入', disabled
   )
 }
 
-function ActionButton({ variant, disabled, lastSubmittedAt, onClick }: { variant: 'cancel' | 'submit'; disabled?: boolean; lastSubmittedAt?: string | null; onClick: () => void }) {
+function ActionButton({ variant, disabled, lastSubmittedAt, onClick, completeText, hideIcon }: { variant: 'cancel' | 'submit'; disabled?: boolean; lastSubmittedAt?: string | null; onClick: () => void; completeText?: string; hideIcon?: boolean }) {
   const [hover, setHover] = useState(false)
   const [active, setActive] = useState(false)
   const isCancel = variant === 'cancel'
@@ -638,7 +649,7 @@ function ActionButton({ variant, disabled, lastSubmittedAt, onClick }: { variant
   if (!isCancel) {
     return (
       <div className="relative flex h-[60px] w-[159px] items-center justify-center">
-        {lastSubmittedAt && (
+        {lastSubmittedAt && !hideIcon && (
           <div className="absolute bottom-[68px] left-1/2 flex -translate-x-1/2 items-center whitespace-nowrap text-[12px] text-black/30" style={{ fontWeight: 400 }}>
             <span className="mr-[4px]"><ClockIcon /></span>
             {new Date(lastSubmittedAt).toLocaleString('zh-CN', {
@@ -657,8 +668,8 @@ function ActionButton({ variant, disabled, lastSubmittedAt, onClick }: { variant
           style={{ fontWeight: 900, transform: active ? 'scale(1)' : hover ? 'scale(1.03)' : 'scale(1)', transition: 'transform 0.15s' }}
         >
           <span className="inline-flex items-center gap-[10px]">
-            提交
-            <SubmitIcon />
+            {completeText || '提交'}
+            {!hideIcon && <SubmitIcon />}
           </span>
         </button>
       </div>
@@ -675,7 +686,7 @@ function ActionButton({ variant, disabled, lastSubmittedAt, onClick }: { variant
       className="h-[60px] w-[159px] rounded-[12px] bg-[#F2F2F2] text-[18px] leading-[25px] text-black transition-transform active:bg-[#E5E5E5]"
       style={{ fontWeight: 900, transform: active ? 'scale(1)' : hover ? 'scale(1.03)' : 'scale(1)', transition: 'transform 0.15s' }}
     >
-      取消
+      {completeText || '取消'}
     </button>
   )
 }

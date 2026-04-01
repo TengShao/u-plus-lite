@@ -23,6 +23,7 @@ export default function RequirementCardCollapsed({
   onRefresh,
   onDeleteRequest,
   onCompleteRequest,
+  onReopenRequest,
 }: {
   data: RequirementData
   cycleStatus: string
@@ -30,13 +31,15 @@ export default function RequirementCardCollapsed({
   onRefresh: () => void
   onDeleteRequest: (id: number) => void
   onCompleteRequest?: (id: number) => void
+  onReopenRequest?: (id: number) => void
 }) {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'
   const myUserId = session?.user?.id ? parseInt(session.user.id) : 0
   const isComplete = data.status === 'COMPLETE'
   const isClosed = cycleStatus === 'CLOSED'
-  const buttonsDisabled = isComplete || isClosed
+  const buttonsDisabled = isClosed
+  const completeDisabled = isComplete || isClosed
 
   // Display up to 5 designers, or first 4 + "其他x人" if more than 5
   const displayCount = data.cycleWorkloads.length > 5 ? 4 : Math.min(5, data.cycleWorkloads.length)
@@ -56,8 +59,12 @@ export default function RequirementCardCollapsed({
       data-req-id={String(data.id)}
       onClick={onExpand}
       className="animate-card-collapse relative cursor-pointer rounded-[24px] bg-white transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.15)] min-w-[1200px]"
-      style={{ ...FONT, height: 152, opacity: isComplete ? 0.6 : 1 }}
+      style={{ ...FONT, height: 152 }}
     >
+      {/* Disabled overlay */}
+      {isComplete && (
+        <div className="pointer-events-none absolute inset-0 z-10 rounded-[24px] bg-black/5" />
+      )}
       {/* Name + info tags — top-left */}
       <div className="absolute left-[25px] top-[18px] flex items-center gap-[12px]" style={{ right: 200 }}>
         <span className="shrink-0 text-[16px] leading-[22px] text-black" style={{ fontWeight: 900 }}>
@@ -121,8 +128,8 @@ export default function RequirementCardCollapsed({
 
       {/* Action buttons — right side, vertically centered with cubes row (y=66 in 152h card) */}
       <div className="absolute right-[22px] top-[66px] flex items-center" onClick={(e) => e.stopPropagation()}>
-        {isAdmin && (
-          <ActionIconButton type="confirm" disabled={buttonsDisabled} onClick={() => onCompleteRequest?.(data.id)} />
+        {isAdmin && !isComplete && (
+          <ActionIconButton type="confirm" disabled={completeDisabled} onClick={() => onCompleteRequest?.(data.id)} />
         )}
         <ActionIconButton type="delete" disabled={buttonsDisabled} onClick={() => onDeleteRequest(data.id)} />
       </div>
