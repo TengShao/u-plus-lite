@@ -1,7 +1,8 @@
 'use client'
-import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { type RequirementData } from './RequirementPanel'
+import { ActionIconButton } from './icons'
+import { Cube, DesignerChip } from './Cube'
 
 const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
 
@@ -9,28 +10,6 @@ const HEALTH_COLORS: Record<string, string> = {
   '适合': '#8ECA2E',
   '欠饱和': '#F8CF33',
   '过饱和': '#E96631',
-}
-
-function IconDelete() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <g stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="10" y1="11" x2="10" y2="17" />
-        <line x1="14" y1="11" x2="14" y2="17" />
-        <path d="M19,6 L19,20 C19,21.1 18.1,22 17,22 L7,22 C5.9,22 5,21.1 5,20 L5,6" />
-        <line x1="3" y1="6" x2="21" y2="6" />
-        <path d="M8,6 L8,4 C8,2.9 8.9,2 10,2 L14,2 C15.1,2 16,2.9 16,4 L16,6" />
-      </g>
-    </svg>
-  )
-}
-
-function IconConfirm() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <polyline points="20 6 9 17 4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
 }
 
 function Divider() {
@@ -54,10 +33,7 @@ export default function RequirementCardCollapsed({
 }) {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'
-  const [deleteHover, setDeleteHover] = useState(false)
-  const [confirmHover, setConfirmHover] = useState(false)
-  const [deleteActive, setDeleteActive] = useState(false)
-  const [confirmActive, setConfirmActive] = useState(false)
+  const myUserId = session?.user?.id ? parseInt(session.user.id) : 0
   const isComplete = data.status === 'COMPLETE'
   const isClosed = cycleStatus === 'CLOSED'
   const buttonsDisabled = isComplete || isClosed
@@ -116,11 +92,11 @@ export default function RequirementCardCollapsed({
 
       {/* Info cubes + designer area — bottom-left */}
       <div className="absolute bottom-[20px] left-[20px] flex items-start gap-[8px]">
-        <InfoCube label="评级" value={data.rating || '-'} />
-        <InfoCube label="本月可关闭" value={data.canClose ? '是' : '否'} />
-        <InfoCube label="总投入人天" value={String(data.totalManDays)} />
-        <InfoCube label="投入比" value={data.rating ? `${data.inputRatio}%` : '-'} />
-        <InfoCube label="参与人数" value={String(data.participantCount)} />
+        <Cube label="评级" value={data.rating || '-'} />
+        <Cube label="本月可关闭" value={data.canClose ? '是' : '否'} />
+        <Cube label="总投入人天" value={String(data.totalManDays)} />
+        <Cube label="投入比" value={data.rating ? `${data.inputRatio}%` : '-'} />
+        <Cube label="参与人数" value={String(data.participantCount)} />
         <div className="flex h-[80px] min-w-[110px] shrink-0 flex-col rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] w-fit">
           <span className="mt-[14px] text-center text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>参与设计师</span>
           <div className="flex flex-1 items-center justify-center overflow-hidden px-[10px]">
@@ -130,11 +106,12 @@ export default function RequirementCardCollapsed({
               </span>
             ) : (
               <div className="flex items-center gap-[8px]">
-                {displayWorkloads.map((w) => (
-                  <DesignerChip key={w.userId} name={w.userName} days={String(w.manDays)} />
-                ))}
+                {displayWorkloads.map((w) => {
+                  const isMe = w.userId === myUserId
+                  return <DesignerChip key={w.userId} name={isMe ? '你' : w.userName} days={String(w.manDays)} mine={isMe} nameWeight={isMe ? 600 : undefined} />
+                })}
                 {extraCount > 0 && (
-                  <DesignerChip name={`其他${extraCount}人`} days={String(data.cycleWorkloads.slice(4).reduce((s, w) => s + w.manDays, 0))} muted />
+                  <DesignerChip name={`其他${extraCount}人`} days={String(data.cycleWorkloads.slice(4).reduce((s, w) => s + w.manDays, 0))} />
                 )}
               </div>
             )}
@@ -145,62 +122,11 @@ export default function RequirementCardCollapsed({
       {/* Action buttons — right side, vertically centered with cubes row (y=66 in 152h card) */}
       <div className="absolute right-[22px] top-[66px] flex items-center" onClick={(e) => e.stopPropagation()}>
         {isAdmin && (
-          <button
-            onClick={() => !buttonsDisabled && onCompleteRequest?.(data.id)}
-            onMouseEnter={() => setConfirmHover(true)}
-            onMouseLeave={() => { setConfirmHover(false); setConfirmActive(false) }}
-            onMouseDown={() => setConfirmActive(true)}
-            onMouseUp={() => setConfirmActive(false)}
-            className="flex h-[52px] w-[52px] items-center justify-center rounded-full"
-            style={{
-              background: !buttonsDisabled && (confirmHover || confirmActive) ? '#8ECA2E2F' : 'transparent',
-              color: '#8ECA2E',
-            }}
-          >
-            <span style={{ opacity: buttonsDisabled ? 0.08 : confirmActive ? 0.4 : 1 }}>
-              <IconConfirm />
-            </span>
-          </button>
+          <ActionIconButton type="confirm" disabled={buttonsDisabled} onClick={() => onCompleteRequest?.(data.id)} />
         )}
-        <button
-          onClick={() => !buttonsDisabled && onDeleteRequest(data.id)}
-          onMouseEnter={() => setDeleteHover(true)}
-          onMouseLeave={() => { setDeleteHover(false); setDeleteActive(false) }}
-          onMouseDown={() => setDeleteActive(true)}
-          onMouseUp={() => setDeleteActive(false)}
-          className="flex h-[52px] w-[52px] items-center justify-center rounded-full"
-          style={{
-            background: !buttonsDisabled && (deleteHover || deleteActive) ? '#FF000017' : 'transparent',
-            color: deleteHover || deleteActive ? '#E91B1B' : '#000000',
-          }}
-        >
-          <span style={{ opacity: buttonsDisabled ? 0.08 : deleteActive ? 0.4 : deleteHover ? 1 : 0.3 }}>
-            <IconDelete />
-          </span>
-        </button>
+        <ActionIconButton type="delete" disabled={buttonsDisabled} onClick={() => onDeleteRequest(data.id)} />
       </div>
 
-    </div>
-  )
-}
-
-function InfoCube({ label, value, labelColor }: { label: string; value: string; labelColor?: string }) {
-  return (
-    <div className="flex h-[80px] w-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD]" style={FONT}>
-      <span className="mt-[14px] text-[12px] leading-[17px]" style={{ fontWeight: 400, color: labelColor || '#8C8C8C' }}>{label}</span>
-      <div className="flex flex-1 items-center justify-center">
-        <span className="text-[16px] leading-[22px] text-black" style={{ fontWeight: 600 }}>{value}</span>
-      </div>
-    </div>
-  )
-}
-
-function DesignerChip({ name, days, muted }: { name: string; days: string; muted?: boolean }) {
-  return (
-    <div className="flex h-[33px] shrink-0 items-center rounded-[8px] border border-[#EEEEEE] bg-white px-[8px]" style={FONT}>
-      <span className="text-[12px] leading-[17px]" style={{ fontWeight: 400, color: '#8C8C8C' }}>{name}</span>
-      <span className="mx-[6px] h-[10px] w-px bg-[#00000013]" />
-      <span className="text-[12px] leading-[17px] text-black" style={{ fontWeight: 600 }}>{days}</span>
     </div>
   )
 }

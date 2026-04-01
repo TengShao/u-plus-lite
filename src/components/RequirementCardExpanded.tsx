@@ -7,6 +7,8 @@ import { LEVEL_COEFFICIENTS, MODULES, RATINGS, RATING_STANDARDS, TYPES } from '@
 import { getHealthStatus, getSuitableRating } from '@/lib/compute'
 import ConfirmDialog from './ConfirmDialog'
 import { useTips } from './Tips'
+import { DeleteIcon, ConfirmIcon, SubmitIcon, ClockIcon, ActionIconButton } from './icons'
+import { Cube, DesignerChip } from './Cube'
 
 const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
 const GREEN = '#8ECA2E'
@@ -270,7 +272,7 @@ export default function RequirementCardExpanded({
         </div>
         <div className="ml-auto flex gap-[9px]">
           {readonlyCubes.map((c) => (
-            <ReadonlyCube key={c.label} label={c.label} value={c.value} valueColor={c.color} />
+            <Cube key={c.label} label={c.label} value={c.value} valueColor={c.color} />
           ))}
         </div>
       </div>
@@ -284,15 +286,15 @@ export default function RequirementCardExpanded({
       </div>
 
       <div className="mt-[10px] flex gap-[8px]">
-        <EditableCube label="管线" required invalid={pipelineInvalid} isOpen={openMenu === 'pipeline'} isEmpty={!pipeline} width={160}>
+        <Cube label="管线" required invalid={pipelineInvalid} isOpen={openMenu === 'pipeline'} isEmpty={!pipeline} width={160}>
           <SelectTrigger width={144} value={pipeline} isOpen={openMenu === 'pipeline'} onToggle={() => userEditable && setOpenMenu(openMenu === 'pipeline' ? null : 'pipeline')} invalid={pipelineInvalid} isHovered={triggerHovered === 'pipeline'} onMouseEnter={() => setTriggerHovered('pipeline')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'pipeline' && userEditable && (
             <MenuSingle width={144} value={pipeline} options={pipelineOptions as readonly string[]} selected={pipeline} onPick={(v) => { setPipeline(v); setBudgetItem(''); setOpenMenu(null); markDirty() }} />
           )}
-        </EditableCube>
+        </Cube>
 
         <div className="relative">
-          <EditableCube label="评级" required invalid={ratingInvalid} isOpen={openMenu === 'rating'} isEmpty={!rating} width={120}>
+          <Cube label="评级" required invalid={ratingInvalid} isOpen={openMenu === 'rating'} isEmpty={!rating} width={120}>
             <SelectTrigger
               width={104}
               value={rating}
@@ -307,7 +309,7 @@ export default function RequirementCardExpanded({
             {openMenu === 'rating' && userEditable && (
               <MenuSingle width={104} value={rating} options={RATINGS as readonly string[]} selected={rating} onPick={(v) => { setRating(v); setOpenMenu(null); markDirty() }} />
             )}
-          </EditableCube>
+          </Cube>
           {computedRecommendedRating && computedRecommendedRating !== rating && (
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-[2px] whitespace-nowrap">
               <TipsBadge
@@ -319,33 +321,33 @@ export default function RequirementCardExpanded({
           )}
         </div>
 
-        <EditableCube label="设计模块" required invalid={moduleInvalid} isOpen={openMenu === 'module'} isEmpty={!module} width={160}>
+        <Cube label="设计模块" required invalid={moduleInvalid} isOpen={openMenu === 'module'} isEmpty={!module} width={160}>
           <SelectTrigger width={144} value={module} isOpen={openMenu === 'module'} onToggle={() => userEditable && setOpenMenu(openMenu === 'module' ? null : 'module')} invalid={moduleInvalid} isHovered={triggerHovered === 'module'} onMouseEnter={() => setTriggerHovered('module')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'module' && userEditable && (
             <MenuSingle width={144} value={module} options={MODULES as readonly string[]} selected={module} onPick={(v) => { setModule(v); setOpenMenu(null); markDirty() }} />
           )}
-        </EditableCube>
+        </Cube>
 
-        <EditableCube label="类型" isOpen={openMenu === 'types'} isEmpty={types.length === 0} width={160}>
+        <Cube label="类型" isOpen={openMenu === 'types'} isEmpty={types.length === 0} width={160}>
           <SelectTrigger width={144} value={types.join(' / ')} isOpen={openMenu === 'types'} onToggle={() => userEditable && setOpenMenu(openMenu === 'types' ? null : 'types')} isHovered={triggerHovered === 'types'} onMouseEnter={() => setTriggerHovered('types')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'types' && userEditable && (
             <MenuMulti width={144} value={types.join(' / ')} options={TYPES as readonly string[]} selected={types} onToggle={(v) => toggleType(v)} />
           )}
-        </EditableCube>
+        </Cube>
 
-        <EditableCube label="预算项" required invalid={budgetInvalid} isOpen={openMenu === 'budgetItem'} isEmpty={!budgetItem} width={280}>
+        <Cube label="预算项" required invalid={budgetInvalid} isOpen={openMenu === 'budgetItem'} isEmpty={!budgetItem} width={280}>
           <SelectTrigger width={264} value={budgetItem} isOpen={openMenu === 'budgetItem'} onToggle={() => userEditable && setOpenMenu(openMenu === 'budgetItem' ? null : 'budgetItem')} invalid={budgetInvalid} truncate isHovered={triggerHovered === 'budgetItem'} onMouseEnter={() => setTriggerHovered('budgetItem')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'budgetItem' && userEditable && (
             <MenuSingle width={264} value={budgetItem} options={budgetOptions} selected={budgetItem} onPick={(v) => { setBudgetItem(v); setOpenMenu(null); markDirty() }} />
           )}
-        </EditableCube>
+        </Cube>
 
-        <EditableCube label="本月可关闭" required isOpen={openMenu === 'canClose'} isEmpty={false} width={120}>
+        <Cube label="本月可关闭" required isOpen={openMenu === 'canClose'} isEmpty={false} width={120}>
           <SelectTrigger width={104} value={canClose ? '是' : '否'} isOpen={openMenu === 'canClose'} onToggle={() => userEditable && setOpenMenu(openMenu === 'canClose' ? null : 'canClose')} isHovered={triggerHovered === 'canClose'} onMouseEnter={() => setTriggerHovered('canClose')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'canClose' && userEditable && (
             <MenuSingle width={104} value={canClose ? '是' : '否'} options={['是', '否']} selected={canClose ? '是' : '否'} onPick={(v) => { setCanClose(v === '是'); setOpenMenu(null); markDirty() }} />
           )}
-        </EditableCube>
+        </Cube>
       </div>
 
       <div className="mt-[40px] flex items-center gap-[8px]">
@@ -356,7 +358,7 @@ export default function RequirementCardExpanded({
 
       <div className="mt-[10px] flex gap-[8px]">
         <div className="relative">
-          <EditableCube label="功能点数" required invalid={funcPointsInvalid} isOpen={false} isEmpty={!funcPoints} width={120}>
+          <Cube label="功能点数" required invalid={funcPointsInvalid} isOpen={false} isEmpty={!funcPoints} width={120}>
             <CubeInput
               width={104}
               value={funcPoints}
@@ -365,7 +367,7 @@ export default function RequirementCardExpanded({
               disabled={!userEditable}
               invalid={funcPointsInvalid}
             />
-          </EditableCube>
+          </Cube>
           <div className="absolute top-full left-1/2 -translate-x-1/2 mt-[2px] whitespace-nowrap">
             <TipsBadge
               label="推荐"
@@ -375,7 +377,7 @@ export default function RequirementCardExpanded({
           </div>
         </div>
 
-        <EditableCube label="界面数" required invalid={pageCountInvalid} isOpen={false} isEmpty={!pageCount} width={120}>
+        <Cube label="界面数" required invalid={pageCountInvalid} isOpen={false} isEmpty={!pageCount} width={120}>
           <CubeInput
             width={104}
             value={pageCount}
@@ -384,7 +386,7 @@ export default function RequirementCardExpanded({
             disabled={!userEditable}
             invalid={pageCountInvalid}
           />
-        </EditableCube>
+        </Cube>
       </div>
 
       <div className="mt-[40px] h-px w-full bg-[#0000000A]" />
@@ -402,10 +404,10 @@ export default function RequirementCardExpanded({
         ) : (
           <div className="flex h-[33px] flex-wrap items-center gap-[8px]">
             {data.cycleWorkloads.map((w) => (
-              <DesignerChip key={w.userId} name={w.userId === userId ? '你' : w.userName} days={String(w.userId === userId ? manDays : w.manDays)} mine={w.userId === userId} />
+              <DesignerChip key={w.userId} name={w.userId === userId ? '你' : w.userName} days={String(w.userId === userId ? manDays : w.manDays)} mine={w.userId === userId} nameWeight={w.userId === userId ? 600 : undefined} />
             ))}
             {manDays > 0 && !data.cycleWorkloads.some((w) => w.userId === userId) && (
-              <DesignerChip name="你" days={String(manDays)} mine />
+              <DesignerChip name="你" days={String(manDays)} mine nameWeight={600} />
             )}
           </div>
         )}
@@ -474,43 +476,17 @@ export default function RequirementCardExpanded({
             <ActionIconButton type="delete" disabled={!userEditable} onClick={() => onDeleteRequest(data.id)} />
           </div>
 
-          <button
+          <ActionButton
+            variant="cancel"
             onClick={() => (dirty || isDraft ? onDiscardRequest(data.id) : collapseWithAnimation(() => onDraftResolved(data.id)))}
-            className="h-[60px] w-[159px] rounded-[12px] bg-[#F2F2F2] text-[18px] leading-[25px] text-black transition-transform active:bg-[#E5E5E5]"
-            style={{ fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s' }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
-            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
-            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
-          >
-            取消
-          </button>
+          />
 
-          <div className="relative flex h-[60px] w-[159px] items-center justify-center">
-            {data.lastSubmittedAt && (
-              <div className="absolute bottom-[68px] left-1/2 flex -translate-x-1/2 items-center whitespace-nowrap text-[12px] text-black/30" style={{ fontWeight: 400 }}>
-                <span className="mr-[4px]"><ClockIcon /></span>
-                {new Date(data.lastSubmittedAt).toLocaleString('zh-CN', {
-                  year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                })}
-              </div>
-            )}
-            <button
-              disabled={!userEditable}
-              onClick={handleSubmit}
-              className="flex h-[60px] w-[159px] items-center justify-center rounded-[12px] bg-black text-[18px] leading-[25px] text-white transition-transform active:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
-              style={{ fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s' }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
-              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
-              onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
-            >
-              <span className="inline-flex items-center gap-[10px]">
-                提交
-                <SubmitIcon />
-              </span>
-            </button>
-          </div>
+          <ActionButton
+            variant="submit"
+            disabled={!userEditable}
+            lastSubmittedAt={data.lastSubmittedAt}
+            onClick={handleSubmit}
+          />
         </div>
       </div>
 
@@ -527,35 +503,6 @@ function SectionTitle({ icon, text, weight }: { icon: 'name' | 'info' | 'designe
       {icon === 'designers' && <TitleDesignersIcon />}
       {icon === 'mine' && <TitleMineIcon />}
       <span className="text-[12px] leading-[17px] text-[#8ECA2E]" style={{ fontWeight: weight }}>{text}</span>
-    </div>
-  )
-}
-
-function ReadonlyCube({ label, value, valueColor }: { label: string; value: string; valueColor: string }) {
-  return (
-    <div className="flex h-[80px] w-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD]" style={FONT}>
-      <span className="mt-[14px] text-[12px] leading-[17px]" style={{ fontWeight: 400, color: '#8C8C8C' }}>{label}</span>
-      <div className="flex flex-1 items-center justify-center">
-        <span className="text-[16px] leading-[22px] text-black" style={{ fontWeight: 600, color: valueColor }}>{value}</span>
-      </div>
-    </div>
-  )
-}
-
-function EditableCube({ label, width, required, invalid, isOpen, isEmpty, children }: { label: string; width: number; required?: boolean; invalid?: boolean; isOpen?: boolean; isEmpty?: boolean; children: React.ReactNode }) {
-  // Border: always show, color does not change when dropdown is open
-  return (
-    <div
-      className="relative h-[80px] rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] px-[8px] pt-[14px]"
-      style={{
-        width,
-      }}
-    >
-      <div className="relative flex items-center justify-center">
-        <span className="text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>{label}</span>
-      </div>
-      {required && <span className="absolute right-[8px] top-[8px] h-[4px] w-[4px] rounded-full bg-[#FF0000]" />}
-      <div className="relative mt-[5px]">{children}</div>
     </div>
   )
 }
@@ -670,37 +617,52 @@ function CubeInput({ width, value, onChange, placeholder = '请输入', disabled
   )
 }
 
-function DesignerChip({ name, days, mine }: { name: string; days: string; mine?: boolean }) {
-  return (
-    <div className="flex h-[33px] items-center rounded-[8px] border border-[#EEEEEE] bg-white px-[8px]">
-      <span className="text-[12px] leading-[17px]" style={{ fontWeight: 400, color: mine ? GREEN : '#8C8C8C' }}>{name}</span>
-      <span className="mx-[6px] h-[10px] w-px bg-[#00000013]" />
-      <span className="text-[12px] leading-[17px] text-black" style={{ fontWeight: 800 }}>{days}</span>
-    </div>
-  )
-}
-
-function ActionIconButton({ type, disabled, onClick }: { type: 'confirm' | 'delete'; disabled: boolean; onClick: () => void }) {
+function ActionButton({ variant, disabled, lastSubmittedAt, onClick }: { variant: 'cancel' | 'submit'; disabled?: boolean; lastSubmittedAt?: string | null; onClick: () => void }) {
   const [hover, setHover] = useState(false)
   const [active, setActive] = useState(false)
-  const isDelete = type === 'delete'
-  const showTint = !disabled && (hover || active)
-  const color = isDelete ? (hover || active ? '#E91B1B' : '#000000') : '#8ECA2E'
-  const iconOpacity = disabled ? 0.08 : isDelete ? (active ? 0.4 : hover ? 1 : 0.3) : (active ? 0.4 : 1)
+  const isCancel = variant === 'cancel'
+
+  if (!isCancel) {
+    return (
+      <div className="relative flex h-[60px] w-[159px] items-center justify-center">
+        {lastSubmittedAt && (
+          <div className="absolute bottom-[68px] left-1/2 flex -translate-x-1/2 items-center whitespace-nowrap text-[12px] text-black/30" style={{ fontWeight: 400 }}>
+            <span className="mr-[4px]"><ClockIcon /></span>
+            {new Date(lastSubmittedAt).toLocaleString('zh-CN', {
+              year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
+            })}
+          </div>
+        )}
+        <button
+          disabled={disabled}
+          onClick={onClick}
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => { setHover(false); setActive(false) }}
+          onMouseDown={() => setActive(true)}
+          onMouseUp={() => setActive(false)}
+          className="flex h-[60px] w-[159px] items-center justify-center rounded-[12px] bg-black text-[18px] leading-[25px] text-white transition-transform active:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
+          style={{ fontWeight: 900, transform: active ? 'scale(1)' : hover ? 'scale(1.03)' : 'scale(1)', transition: 'transform 0.15s' }}
+        >
+          <span className="inline-flex items-center gap-[10px]">
+            提交
+            <SubmitIcon />
+          </span>
+        </button>
+      </div>
+    )
+  }
+
   return (
     <button
-      disabled={disabled}
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => { setHover(false); setActive(false) }}
       onMouseDown={() => setActive(true)}
       onMouseUp={() => setActive(false)}
-      className="flex h-[52px] w-[52px] items-center justify-center rounded-full"
-      style={{ background: showTint ? (isDelete ? '#FF000017' : '#8ECA2E2F') : 'transparent', color }}
+      className="h-[60px] w-[159px] rounded-[12px] bg-[#F2F2F2] text-[18px] leading-[25px] text-black transition-transform active:bg-[#E5E5E5]"
+      style={{ fontWeight: 900, transform: active ? 'scale(1)' : hover ? 'scale(1.03)' : 'scale(1)', transition: 'transform 0.15s' }}
     >
-      <span style={{ opacity: iconOpacity }}>
-        {type === 'confirm' ? <ConfirmIcon /> : <DeleteIcon />}
-      </span>
+      取消
     </button>
   )
 }
@@ -727,23 +689,6 @@ function TitleNameIcon() { return <svg width="12" height="12" viewBox="0 0 12 12
 function TitleInfoIcon() { return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke={GREEN} /><path d="M6 8V6" stroke={GREEN} /><path d="M6 4h.005" stroke={GREEN} /></svg> }
 function TitleDesignersIcon() { return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 10.5C9 8.29 7.21 6.5 5 6.5S1 8.29 1 10.5" stroke={GREEN} /><circle cx="5" cy="4" r="2.5" stroke={GREEN} /><path d="M11 10c0-1.685-1-3.25-2-4" stroke={GREEN} /></svg> }
 function TitleMineIcon() { return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6.2 6.5C6.67 5.42 7.84 4.81 9 5.05 10.17 5.29 11 6.31 11 7.5 11 9.43 9 11 6.5 11 4.46 11 2.42 10.59 1.31 9.77c-.21-.16-.31-.42-.31-.68C1.06 6.36 1.31 1 5 1a1.5 1.5 0 1 1 0 3c-.55 0-.82-.22-1-0.5" stroke={GREEN} /><path d="M7.5 7c-.61-.46-1.4-.61-2.14-.42-.74.2-1.35.72-1.65 1.42" stroke={GREEN} /><path d="M4.98 3.41C4.01 3.99 4.75 6.5 4 7.5" stroke={GREEN} /></svg> }
-function DeleteIcon() { return <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><g stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></g></svg> }
-function ConfirmIcon() { return <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg> }
-function SubmitIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <g stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="22" x2="12" y2="12" />
-        <polyline points="16 17 18 19 22 15" />
-        <path d="M21 11.127V8C20.9993 7.2862 20.6182 6.6269 20 6.27L13 2.27C12.3812 1.91273 11.6188 1.91273 11 2.27L4 6.27C3.38183 6.6269 3.00073 7.2862 3 8V16C3.00109 16.7134 3.38214 17.3723 4 17.729L11 21.729C11.6186 22.0866 12.381 22.087 13 21.73L14.32 20.977" />
-        <polyline points="3.29 7 12 12 20.71 7" />
-        <line x1="7.5" y1="4.27" x2="16.497" y2="9.418" />
-      </g>
-    </svg>
-  )
-}
-function ClockIcon() { return <svg width="12" height="12" viewBox="0 0 12 12" fill="none" opacity="0.3"><g stroke="black" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><polyline points="8 7 8 8.1 8.8 8.6" /><path d="M8 2h1a1 1 0 0 1 1 1v.4" /><path d="M4 2H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h1" /><circle cx="8" cy="8" r="3" /><rect x="4" y="1" width="4" height="2" rx=".5" /></g></svg> }
-
 function TipsBadge({ label, value, onClick }: { label: string; value: string | number; onClick?: () => void }) {
   const [hovered, setHovered] = useState(false)
   const [active, setActive] = useState(false)
