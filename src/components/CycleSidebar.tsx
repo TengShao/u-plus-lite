@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import ConfirmDialog from './ConfirmDialog'
+import CycleCard from './CycleCard'
 
 type Cycle = {
   id: number; label: string; startDate: string; endDate: string; status: string
@@ -67,7 +68,7 @@ export default function CycleSidebar({
   }, [])
 
   const grouped = cycles.reduce<Record<string, Cycle[]>>((acc, c) => {
-    const year = new Date(c.startDate).getFullYear().toString()
+    const year = new Date(c.endDate).getFullYear().toString()
     ;(acc[year] ||= []).push(c)
     return acc
   }, {})
@@ -96,9 +97,18 @@ export default function CycleSidebar({
     }
   }
 
-  function formatDate(d: string) {
-    const date = new Date(d)
-    return `${date.getMonth() + 1}.${date.getDate()}`
+  // Toggle cycle
+  const [showToggleConfirm, setShowToggleConfirm] = useState(false)
+  const [pendingToggleId, setPendingToggleId] = useState<number | null>(null)
+  const [pendingToggleStatus, setPendingToggleStatus] = useState<'OPEN' | 'CLOSED'>('CLOSED')
+
+  async function doToggleCycle(cycleId: number, newStatus: 'OPEN' | 'CLOSED') {
+    await fetch(`/api/cycles/${cycleId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    })
+    onCycleCreated()
   }
 
   return (
@@ -119,9 +129,11 @@ export default function CycleSidebar({
                   const isSelected = selectedCycleId === c.id
                   const isOpen = c.status === 'OPEN'
                   return (
-                    <button
+                    <CycleCard
                       key={c.id}
-                      onClick={() => {
+                      cycle={c}
+                      isSelected={isSelected}
+                      onSelect={() => {
                         if (hasDraft && c.id !== selectedCycleId) {
                           setPendingSwitchId(c.id)
                           setShowSwitchConfirm(true)
@@ -129,26 +141,12 @@ export default function CycleSidebar({
                           onSelectCycle(c.id)
                         }
                       }}
-                      className={`flex h-[78px] w-[284px] items-center justify-between rounded-[12px] px-[18px] text-left transition-shadow ${
-                        isSelected
-                          ? 'bg-white shadow-[0_0_8px_0_rgba(0,0,0,0.10)]'
-                          : 'bg-transparent hover:shadow-[0_0_6px_0_rgba(0,0,0,0.15)]'
-                      }`}
-                      style={{ fontFamily: 'Alibaba PuHuiTi 2.0' }}
-                    >
-                      <div className="flex items-end gap-[6px]">
-                        <span className="text-[16px] leading-[22px] text-black" style={{ fontWeight: 800 }}>
-                          {c.label}
-                        </span>
-                        <span className="text-[16px] leading-[22px] text-black opacity-[0.21]" style={{ fontWeight: 500 }}>
-                          {formatDate(c.startDate)} ~ {formatDate(c.endDate)}
-                        </span>
-                      </div>
-                      <span className={`flex shrink-0 h-5 items-center justify-end gap-2 text-[14px] leading-5 ${isOpen ? 'text-[#8ECA2E]' : 'text-[#B6B6B6]'}`} style={{ fontWeight: 700 }}>
-                        {isOpen ? 'OPEN' : 'CLOSE'}
-                        <span className={`h-2 w-2 rounded-full ${isOpen ? 'bg-[#8ECA2E]' : 'bg-[#B6B6B6]'}`} />
-                      </span>
-                    </button>
+                      onToggle={() => {
+                        setPendingToggleId(c.id)
+                        setPendingToggleStatus(c.status === 'OPEN' ? 'CLOSED' : 'OPEN')
+                        setShowToggleConfirm(true)
+                      }}
+                    />
                   )
                 })}
               </div>
@@ -194,6 +192,14 @@ export default function CycleSidebar({
           message="有未保存的修改，是否放弃？"
           onConfirm={() => { onSelectCycle(pendingSwitchId); setShowSwitchConfirm(false); setPendingSwitchId(null) }}
           onCancel={() => { setShowSwitchConfirm(false); setPendingSwitchId(null) }}
+        />
+      )}
+      {showToggleConfirm && pendingToggleId !== null && (
+        <ConfirmDialog
+          title={pendingToggleStatus === 'CLOSED' ? '关闭月结' : '开启月结'}
+          message={pendingToggleStatus === 'CLOSED' ? '确定关闭当前月结周期？关闭后普通成员将无法编辑数据。' : '确定开启当前月结周期？开启后普通成员可以编辑数据。'}
+          onConfirm={() => { doToggleCycle(pendingToggleId, pendingToggleStatus); setShowToggleConfirm(false); setPendingToggleId(null) }}
+          onCancel={() => { setShowToggleConfirm(false); setPendingToggleId(null) }}
         />
       )}
     </div>

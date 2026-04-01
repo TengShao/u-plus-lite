@@ -5,6 +5,7 @@ import FilterBar from './FilterBar'
 import RequirementCardCollapsed from './RequirementCardCollapsed'
 import RequirementCardExpanded from './RequirementCardExpanded'
 import ConfirmDialog from './ConfirmDialog'
+import { useTips } from './Tips'
 
 export type PipelineSettingData = {
   id: number; name: string; budgetItems: { id: number; name: string }[]
@@ -40,12 +41,12 @@ export default function RequirementPanel({
   userPrimaryPipeline?: string | null
 }) {
   const { data: session } = useSession()
+  const { showTips } = useTips()
   const [requirements, setRequirements] = useState<RequirementData[]>([])
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [hasUnsaved, setHasUnsaved] = useState(false)
   const [pendingExpandId, setPendingExpandId] = useState<number | null>(null)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
-  const [showCloseCycleConfirm, setShowCloseCycleConfirm] = useState(false)
   const [showDraftExistsConfirm, setShowDraftExistsConfirm] = useState(false)
   const [showSwitchCycleConfirm, setShowSwitchCycleConfirm] = useState(false)
   const [pendingCycleId, setPendingCycleId] = useState<number | null>(null)
@@ -347,28 +348,12 @@ export default function RequirementPanel({
     setHasUnsaved(false)
   }
 
-  async function handleToggleCycle() {
-    if (!cycle) return
-    if (cycle.status === 'OPEN') {
-      setShowCloseCycleConfirm(true)
-      return
-    }
-    await doToggleCycle()
-  }
-
-  async function doToggleCycle() {
-    if (!cycle) return
-    const newStatus = cycle.status === 'OPEN' ? 'CLOSED' : 'OPEN'
-    await fetch(`/api/cycles/${cycle.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
-    })
-    onRefresh()
-  }
-
   async function handleCreateRequirement() {
     if (!cycleId) return
+    if (cycle?.status === 'CLOSED') {
+      showTips('negative', '当前月结已关闭，无法新建需求组')
+      return
+    }
 
     // If there's an unsubmitted draft (in sessionStorage), show confirmation instead of deleting
     const savedDraft = sessionStorage.getItem(`draft_${cycleId}`)
@@ -554,39 +539,20 @@ export default function RequirementPanel({
             />
           </div>
           <div className="ml-auto flex gap-[10px]">
-            {isAdmin && cycle?.status === 'OPEN' && (
-              <button
-                onClick={handleToggleCycle}
-                className="h-[46px] w-[159px] rounded-[12px] bg-[#F2F2F2] text-[18px] leading-[25px] text-black transition-transform active:bg-[#D7D7D7] disabled:bg-[#B6B6B6] disabled:text-white/50"
-                style={{ fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s' }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
-                onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
-                onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
-              >
-                关闭月结
-              </button>
-            )}
-            {isAdmin && cycle?.status === 'CLOSED' && (
-              <button
-                onClick={handleToggleCycle}
-                className="h-[46px] w-[159px] rounded-[12px] bg-[#F2F2F2] text-[18px] leading-[25px] text-black transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.25)] active:bg-[#D7D7D7]"
-                style={{ fontWeight: 900 }}
-              >
-                开启月结
-              </button>
-            )}
             <button
               onClick={handleCreateRequirement}
-              disabled={!cycleId || cycle?.status === 'CLOSED'}
-              className="flex h-[46px] w-[159px] items-center justify-center rounded-[12px] bg-[#000000] text-[18px] leading-[25px] text-white transition-transform active:bg-[#3A3A3A] disabled:bg-[#B6B6B6] disabled:text-white/50"
+              className={`flex h-[46px] w-[159px] items-center justify-center rounded-[12px] text-[18px] leading-[25px] text-white transition-transform ${
+                !cycleId || cycle?.status === 'CLOSED'
+                  ? 'bg-[#B6B6B6] cursor-not-allowed'
+                  : 'bg-[#000000] active:bg-[#3A3A3A]'
+              }`}
               style={{ fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s' }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
+              onMouseEnter={(e) => { if (!cycleId || cycle?.status === 'CLOSED') return; e.currentTarget.style.transform = 'scale(1.03)' }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
-              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
-              onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
+              onMouseDown={(e) => { if (!cycleId || cycle?.status === 'CLOSED') return; e.currentTarget.style.transform = 'scale(1)' }}
+              onMouseUp={(e) => { if (!cycleId || cycle?.status === 'CLOSED') return; e.currentTarget.style.transform = 'scale(1.03)' }}
             >
-              <span className="inline-flex items-center gap-[10px]" style={!cycleId || cycle?.status === 'CLOSED' ? { opacity: 0.5 } : undefined}>
+              <span className="inline-flex items-center gap-[10px]">
                 新建
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <g stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -679,14 +645,6 @@ export default function RequirementPanel({
           onCancel={() => setShowDraftExistsConfirm(false)}
           confirmText="查看"
           cancelText="取消"
-        />
-      )}
-      {showCloseCycleConfirm && (
-        <ConfirmDialog
-          title="关闭月结"
-          message="确定关闭当前月结周期？关闭后普通成员将无法编辑数据。"
-          onConfirm={() => { setShowCloseCycleConfirm(false); doToggleCycle() }}
-          onCancel={() => setShowCloseCycleConfirm(false)}
         />
       )}
       {pendingDeleteId !== null && (

@@ -276,7 +276,7 @@ export default function RequirementCardExpanded({
       </div>
 
       <div className="mt-[10px] flex gap-[8px]">
-        <Cube label="管线" required invalid={pipelineInvalid} isOpen={openMenu === 'pipeline'} isEmpty={!pipeline} width={160} disabled={isComplete} value={pipeline}>
+        <Cube label="管线" required isEmpty={!pipeline} width={160} disabled={isComplete} value={pipeline}>
           <SelectTrigger width={144} value={pipeline} isOpen={openMenu === 'pipeline'} onToggle={() => userEditable && setOpenMenu(openMenu === 'pipeline' ? null : 'pipeline')} invalid={pipelineInvalid} isHovered={triggerHovered === 'pipeline'} onMouseEnter={() => setTriggerHovered('pipeline')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'pipeline' && userEditable && (
             <MenuSingle width={144} value={pipeline} options={pipelineOptions as readonly string[]} selected={pipeline} onPick={(v) => { setPipeline(v); setBudgetItem(''); setOpenMenu(null); markDirty() }} />
@@ -284,7 +284,7 @@ export default function RequirementCardExpanded({
         </Cube>
 
         <div className="relative">
-          <Cube label="评级" required invalid={ratingInvalid} isOpen={openMenu === 'rating'} isEmpty={!rating} width={120} disabled={isComplete} value={rating}>
+          <Cube label="评级" required isEmpty={!rating} width={120} disabled={isComplete} value={rating}>
             <SelectTrigger
               width={104}
               value={rating}
@@ -311,28 +311,28 @@ export default function RequirementCardExpanded({
           )}
         </div>
 
-        <Cube label="设计模块" required invalid={moduleInvalid} isOpen={openMenu === 'module'} isEmpty={!module} width={160} disabled={isComplete} value={module}>
+        <Cube label="设计模块" required isEmpty={!module} width={160} disabled={isComplete} value={module}>
           <SelectTrigger width={144} value={module} isOpen={openMenu === 'module'} onToggle={() => userEditable && setOpenMenu(openMenu === 'module' ? null : 'module')} invalid={moduleInvalid} isHovered={triggerHovered === 'module'} onMouseEnter={() => setTriggerHovered('module')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'module' && userEditable && (
             <MenuSingle width={144} value={module} options={MODULES as readonly string[]} selected={module} onPick={(v) => { setModule(v); setOpenMenu(null); markDirty() }} />
           )}
         </Cube>
 
-        <Cube label="类型" isOpen={openMenu === 'types'} isEmpty={types.length === 0} width={160} disabled={isComplete} value={types.join(' / ')}>
+        <Cube label="类型" isEmpty={types.length === 0} width={160} disabled={isComplete} value={types.join(' / ')}>
           <SelectTrigger width={144} value={types.join(' / ')} isOpen={openMenu === 'types'} onToggle={() => userEditable && setOpenMenu(openMenu === 'types' ? null : 'types')} isHovered={triggerHovered === 'types'} onMouseEnter={() => setTriggerHovered('types')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'types' && userEditable && (
             <MenuMulti width={144} value={types.join(' / ')} options={TYPES as readonly string[]} selected={types} onToggle={(v) => toggleType(v)} />
           )}
         </Cube>
 
-        <Cube label="预算项" required invalid={budgetInvalid} isOpen={openMenu === 'budgetItem'} isEmpty={!budgetItem} width={280} disabled={isComplete} value={budgetItem}>
+        <Cube label="预算项" required isEmpty={!budgetItem} width={280} disabled={isComplete} value={budgetItem}>
           <SelectTrigger width={264} value={budgetItem} isOpen={openMenu === 'budgetItem'} onToggle={() => userEditable && setOpenMenu(openMenu === 'budgetItem' ? null : 'budgetItem')} invalid={budgetInvalid} truncate isHovered={triggerHovered === 'budgetItem'} onMouseEnter={() => setTriggerHovered('budgetItem')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'budgetItem' && userEditable && (
             <MenuSingle width={264} value={budgetItem} options={budgetOptions} selected={budgetItem} onPick={(v) => { setBudgetItem(v); setOpenMenu(null); markDirty() }} />
           )}
         </Cube>
 
-        <Cube label="本月可关闭" required isOpen={openMenu === 'canClose'} isEmpty={false} width={120} disabled={isComplete} value={canClose ? '是' : '否'}>
+        <Cube label="本月可关闭" required isEmpty={false} width={120} disabled={isComplete} value={canClose ? '是' : '否'}>
           <SelectTrigger width={104} value={canClose ? '是' : '否'} isOpen={openMenu === 'canClose'} onToggle={() => userEditable && setOpenMenu(openMenu === 'canClose' ? null : 'canClose')} isHovered={triggerHovered === 'canClose'} onMouseEnter={() => setTriggerHovered('canClose')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'canClose' && userEditable && (
             <MenuSingle width={104} value={canClose ? '是' : '否'} options={['是', '否']} selected={canClose ? '是' : '否'} onPick={(v) => { setCanClose(v === '是'); setOpenMenu(null); markDirty() }} />
@@ -348,7 +348,7 @@ export default function RequirementCardExpanded({
 
       <div className="mt-[10px] flex gap-[8px]">
         <div className="relative">
-          <Cube label="功能点数" required invalid={funcPointsInvalid} isOpen={false} isEmpty={!funcPoints} width={120} disabled={isComplete} value={String(funcPoints)}>
+          <Cube label="功能点数" required isEmpty={!funcPoints} width={120} disabled={isComplete} value={String(funcPoints)}>
             <CubeInput
               width={104}
               value={funcPoints}
@@ -370,7 +370,7 @@ export default function RequirementCardExpanded({
         </div>
 
         <div className="relative">
-          <Cube label="界面数" required invalid={pageCountInvalid} isOpen={false} isEmpty={!pageCount} width={120} disabled={isComplete} value={String(pageCount)}>
+          <Cube label="界面数" required isEmpty={!pageCount} width={120} disabled={isComplete} value={String(pageCount)}>
             <CubeInput
               width={104}
               value={pageCount}
