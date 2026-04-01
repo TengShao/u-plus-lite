@@ -219,7 +219,7 @@ export default function RequirementCardExpanded({
   ], [computedTotalManDays, computedParticipantCount, computedInputRatio, computedHealthStatus, rating])
 
   return (
-    <div data-req-id={String(data.id)} ref={cardRef} className={`${isCollapsing ? 'animate-card-fold-up' : 'animate-card-expand'} mx-auto max-w-[1200px] min-w-[1200px] rounded-[24px] bg-white px-[20px] pb-[20px] pt-[20px] shadow-[0_0_8px_0_rgba(0,0,0,0.15)]`} style={FONT}>
+    <div data-req-id={String(data.id)} ref={cardRef} className={`${isCollapsing ? 'animate-card-fold-up' : 'animate-card-expand'} mx-auto max-w-[1100px] min-w-[1100px] rounded-[24px] bg-white px-[20px] pb-[20px] pt-[20px] shadow-[0_0_8px_0_rgba(0,0,0,0.15)]`} style={FONT}>
       {/* 需求名称区域: 标题+输入框+信息方块 一行布局 */}
       <div className="flex items-start">
         <div className="w-[600px]">
