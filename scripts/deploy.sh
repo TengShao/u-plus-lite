@@ -616,9 +616,17 @@ config_nextauth() {
         fi
     fi
 
-    # 如果没有保留端口，查找新的
+    # 如果没有保留端口，强制使用 3000
     if [ -z "$PORT" ]; then
-        PORT=$(find_available_port)
+        if is_port_used 3000; then
+            echo ""
+            echo -e "${RED}[错误] 端口 3000 被占用，请先关闭占用端口的进程后再部署${NC}"
+            echo "  常见原因：本地开发服务器未关闭（运行 npm run dev）"
+            echo "  解决方法：Ctrl+C 关闭 dev 服务器后，重新运行部署脚本"
+            echo ""
+            exit 1
+        fi
+        PORT=3000
     fi
     echo "使用端口：$PORT"
 
