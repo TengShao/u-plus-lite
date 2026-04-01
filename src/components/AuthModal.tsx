@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { signIn } from 'next-auth/react'
 
-const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
 const GREEN = '#8ECA2E'
 
 function fitDropdownTextSize(text: string, width: number) {
@@ -207,7 +206,7 @@ export default function AuthModal({
   const pipelineDisplayValue = selectedPipelines.length > 0 ? selectedPipelines.join(' / ') : ''
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" style={FONT}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 font-alibaba">
       <div
         className="flex flex-col items-center rounded-[24px] bg-[#F4F4F4]"
         style={{

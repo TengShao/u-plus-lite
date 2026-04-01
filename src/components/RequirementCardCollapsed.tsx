@@ -4,8 +4,6 @@ import { type RequirementData } from './RequirementPanel'
 import { ActionIconButton } from './icons'
 import { Cube, DesignerChip } from './Cube'
 
-const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
-
 const HEALTH_COLORS: Record<string, string> = {
   '适合': '#8ECA2E',
   '欠饱和': '#F8CF33',
@@ -58,8 +56,8 @@ export default function RequirementCardCollapsed({
     <div
       data-req-id={String(data.id)}
       onClick={onExpand}
-      className="animate-card-collapse relative cursor-pointer rounded-[24px] bg-white transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.15)] min-w-[1100px]"
-      style={{ ...FONT, height: 152 }}
+      className="animate-card-collapse relative cursor-pointer rounded-[24px] bg-white transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.15)] min-w-[1100px] font-alibaba"
+      style={{ height: 152 }}
     >
       {/* Disabled overlay */}
       {isComplete && (
@@ -108,7 +106,7 @@ export default function RequirementCardCollapsed({
           <span className="mt-[14px] text-center text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>参与设计师</span>
           <div className="flex flex-1 items-center justify-center overflow-hidden px-[10px]">
             {data.cycleWorkloads.length === 0 ? (
-              <span className="text-[14px] text-black/30" style={{ fontWeight: 800, fontFamily: 'Alibaba PuHuiTi 2.0' }}>
+              <span className="text-[14px] text-black/30 font-alibaba" style={{ fontWeight: 800 }}>
                 暂无
               </span>
             ) : (

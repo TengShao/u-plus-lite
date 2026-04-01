@@ -1,11 +1,10 @@
 import { RequiredDot } from './RequiredDot'
 
-const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
 const GREEN = '#8ECA2E'
 
 export function DesignerChip({ name, days, mine, nameWeight }: { name: string; days: string; mine?: boolean; nameWeight?: number }) {
   return (
-    <div className="flex h-[33px] items-center rounded-[8px] border border-[#EEEEEE] bg-white px-[8px]" style={FONT}>
+    <div className="flex h-[33px] items-center rounded-[8px] border border-[#EEEEEE] bg-white px-[8px] font-alibaba">
       <span className="text-[12px] leading-[17px]" style={{ fontWeight: nameWeight ?? 400, color: mine ? GREEN : '#8C8C8C' }}>{name}</span>
       <span className="mx-[6px] h-[10px] w-px bg-[#00000013]" />
       <span className="text-[12px] leading-[17px] text-black" style={{ fontWeight: 800 }}>{days}</span>
@@ -26,8 +25,8 @@ export function Cube({ label, value, labelColor, valueColor, width, required, di
 }) {
   return (
     <div
-      className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] px-[8px]"
-      style={{ width: width ?? 80, ...FONT }}
+      className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] px-[8px] font-alibaba"
+      style={{ width: width ?? 80 }}
     >
       <span className="mt-[14px] text-[12px] leading-[17px]" style={{ fontWeight: 400, color: labelColor || '#8C8C8C' }}>{label}</span>
       {required && !disabled && isEmpty && <RequiredDot className="right-[8px] top-[8px]" />}

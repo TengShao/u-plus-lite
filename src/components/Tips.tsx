@@ -71,7 +71,7 @@ export function TipsProvider({ children }: { children: React.ReactNode }) {
           }}
         >
           <div
-            className="flex items-center justify-center"
+            className="flex items-center justify-center font-alibaba"
             style={{
               minWidth: 134,
               height: 40,
@@ -82,7 +82,6 @@ export function TipsProvider({ children }: { children: React.ReactNode }) {
               borderStyle: 'solid',
               borderColor: type === 'positive' ? '#8ECA2E' : '#FF7D7D',
               borderRadius: 8,
-              fontFamily: 'Alibaba PuHuiTi 2.0',
               fontSize: 14,
               fontWeight: 500,
               color: type === 'positive' ? '#8ECA2E' : '#FF7D7D',

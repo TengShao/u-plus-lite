@@ -528,7 +528,7 @@ export default function RequirementPanel({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className={`relative h-[60px] bg-[#F9F9F9] z-20 ${isScrolled ? ''/* 'after:content-[""] after:absolute after:-bottom-[12px] after:left-0 after:right-0 after:h-[12px] after:bg-gradient-to-b after:from-[rgba(0,0,0,0.08)] after:to-transparent' */ : ''}`}>
         <div className="h-full px-[20px]">
-          <div className="mx-auto h-full w-full min-w-[1100px] max-w-[1100px] flex items-center" style={{ fontFamily: 'Alibaba PuHuiTi 2.0' }}>
+          <div className="mx-auto h-full w-full min-w-[1100px] max-w-[1100px] flex items-center font-alibaba">
           <div className="flex items-center">
             <FilterBar
               designers={designers}

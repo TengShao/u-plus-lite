@@ -169,7 +169,7 @@ function AccountSettingsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" style={{ fontFamily: 'Alibaba PuHuiTi 2.0' }} onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 font-alibaba" onClick={onClose}>
       <div
         className="flex flex-col items-center rounded-[24px] bg-[#F9F9F9]"
         style={{
@@ -350,8 +350,7 @@ export default function Header({
 
   return (
     <header
-      className="relative flex h-[71px] shrink-0 items-center"
-      style={{ fontFamily: 'Alibaba PuHuiTi 2.0' }}
+      className="relative flex h-[71px] shrink-0 items-center font-alibaba"
     >
       {/* bottom line */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-[#0000000B]" />
@@ -391,8 +390,8 @@ export default function Header({
             onChange={(e) => onSearchChange(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            className="h-full w-full bg-transparent pl-[38px] pr-[40px] text-[16px] leading-[22px] text-black outline-none placeholder:text-black/20"
-            style={{ fontFamily: 'Alibaba PuHuiTi 2.0', fontWeight: 900, letterSpacing: '-1px' }}
+            className="h-full w-full bg-transparent pl-[38px] pr-[40px] text-[16px] leading-[22px] text-black outline-none placeholder:text-black/20 font-alibaba"
+            style={{ fontWeight: 900, letterSpacing: '-1px' }}
           />
           {/* right clear icon (input state only) */}
           {hasValue && (

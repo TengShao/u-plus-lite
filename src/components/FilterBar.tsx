@@ -4,7 +4,7 @@ import { RATINGS } from '@/lib/constants'
 
 const HEALTH_OPTIONS = ['适合', '欠饱和', '过饱和']
 
-const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
+
 
 /* ---------- Arrow icon (7x5 triangle) ---------- */
 function ArrowIcon({ flipped }: { flipped?: boolean }) {
@@ -130,9 +130,8 @@ function DropdownTrigger({
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="flex h-[36px] min-w-[120px] items-center rounded-[8px] bg-white shadow-[0_0_3px_0_rgba(0,0,0,0.10)]"
+      className="flex h-[36px] min-w-[120px] items-center rounded-[8px] bg-white shadow-[0_0_3px_0_rgba(0,0,0,0.10)] font-alibaba"
       style={{
-        ...FONT,
         border: showBorder ? '1px solid #8ECA2E' : '1px solid transparent',
         transition: 'border-color 0.15s',
       }}
@@ -189,8 +188,8 @@ function MultiDropdown({
       />
       {open && (
         <div
-          className="absolute left-0 top-0 z-20 min-w-[120px] rounded-[8px] bg-white shadow-[0_0_3px_0_rgba(0,0,0,0.10)]"
-          style={{ border: '1px solid #8ECA2E', ...FONT }}
+          className="absolute left-0 top-0 z-20 min-w-[120px] rounded-[8px] bg-white shadow-[0_0_3px_0_rgba(0,0,0,0.10)] font-alibaba"
+          style={{ border: '1px solid #8ECA2E' }}
         >
           {/* header — same as trigger */}
           <div className="flex h-[36px] items-center">
@@ -266,8 +265,8 @@ function SingleDropdown({
       />
       {open && (
         <div
-          className="absolute left-0 top-0 z-20 min-w-[120px] rounded-[8px] bg-white shadow-[0_0_3px_0_rgba(0,0,0,0.10)]"
-          style={{ border: '1px solid #8ECA2E', ...FONT }}
+          className="absolute left-0 top-0 z-20 min-w-[120px] rounded-[8px] bg-white shadow-[0_0_3px_0_rgba(0,0,0,0.10)] font-alibaba"
+          style={{ border: '1px solid #8ECA2E' }}
         >
           <div className="flex h-[36px] items-center">
             <div className="flex items-center pl-[8px]">
@@ -325,8 +324,8 @@ function DropdownItem({
         </span>
       )}
       <span
-        className="flex-1 truncate text-left text-[12px] leading-[17px] text-black"
-        style={{ fontWeight: 600, ...FONT }}
+        className="flex-1 truncate text-left text-[12px] leading-[17px] text-black font-alibaba"
+        style={{ fontWeight: 600 }}
       >
         {label}
       </span>

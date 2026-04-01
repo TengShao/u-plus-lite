@@ -119,7 +119,7 @@ export default function CycleSidebar({
           .map(([year, items], gi) => (
             <div key={year}>
               {gi > 0 && (
-                <div className="mx-[16px] my-[4px] flex h-[34px] w-[252px] items-center" style={{ fontFamily: 'Alibaba PuHuiTi 2.0' }}>
+                <div className="mx-[16px] my-[4px] flex h-[34px] w-[252px] items-center font-alibaba">
                   <span className="text-[14px] leading-[20px] text-[#C8C8C8]" style={{ fontWeight: 500, letterSpacing: '-0.91px' }}>{year}</span>
                   <span className="ml-[9px] h-px flex-1 bg-[#E9E9E9]" />
                 </div>
@@ -157,8 +157,8 @@ export default function CycleSidebar({
         <div className="p-[18px]">
           <button
             onClick={createCycle}
-            className="relative mx-auto block h-[60px] w-[284px] rounded-[12px] bg-[#000000] text-[18px] leading-[25px] text-white transition-transform active:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
-            style={{ fontFamily: 'Alibaba PuHuiTi 2.0', fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s' }}
+            className="relative mx-auto block h-[60px] w-[284px] rounded-[12px] bg-[#000000] text-[18px] leading-[25px] text-white transition-transform active:bg-[#3A3A3A] disabled:bg-[#B6B6B6] font-alibaba"
+            style={{ fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s' }}
             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
             onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(1)' }}

@@ -11,7 +11,6 @@ import { Cube, DesignerChip } from './Cube'
 import { RequiredDot } from './RequiredDot'
 import ManDayStepper from './ManDayStepper'
 
-const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
 const GREEN = '#8ECA2E'
 
 const HEALTH_COLORS: Record<string, string> = {
@@ -219,7 +218,7 @@ export default function RequirementCardExpanded({
   ], [computedTotalManDays, computedParticipantCount, computedInputRatio, computedHealthStatus, rating])
 
   return (
-    <div data-req-id={String(data.id)} ref={cardRef} className={`${isCollapsing ? 'animate-card-fold-up' : 'animate-card-expand'} mx-auto max-w-[1100px] min-w-[1100px] rounded-[24px] bg-white px-[20px] pb-[20px] pt-[20px] shadow-[0_0_8px_0_rgba(0,0,0,0.15)]`} style={FONT}>
+    <div data-req-id={String(data.id)} ref={cardRef} className={`${isCollapsing ? 'animate-card-fold-up' : 'animate-card-expand'} mx-auto max-w-[1100px] min-w-[1100px] rounded-[24px] bg-white px-[20px] pb-[20px] pt-[20px] shadow-[0_0_8px_0_rgba(0,0,0,0.15)] font-alibaba`}>
       {/* 需求名称区域: 标题+输入框+信息方块 一行布局 */}
       <div className="flex items-start">
         <div className="w-[600px]">
@@ -401,7 +400,7 @@ export default function RequirementCardExpanded({
       </div>
       <div className="mt-[12px] min-h-[33px]">
         {data.cycleWorkloads.length === 0 && manDays === 0 ? (
-          <div className="flex h-[33px] w-full items-center justify-center text-[14px]" style={{ fontWeight: 800, fontFamily: 'Alibaba PuHuiTi 2.0', color: '#EEEEEE' }}>
+          <div className="flex h-[33px] w-full items-center justify-center text-[14px] font-alibaba" style={{ fontWeight: 800, color: '#EEEEEE' }}>
             暂无设计师参与，怎么回事
           </div>
         ) : (

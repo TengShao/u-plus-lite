@@ -2,6 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   Alibaba PuHuiTi 2.0 Font Stack
+   CDN: https://cdn.jsdelivr.net/npm/@fontpkg/alibaba-pu-hui-ti-2-0/
+   ============================================ */
+
+:root {
+  --font-alibaba: 'Alibaba PuHuiTi 2.0', 'PingFang SC', 'Microsoft YaHei',
+    'Helvetica Neue', sans-serif;
+}
+
+@font-face {
+  font-family: 'Alibaba PuHuiTi 2.0';
+  src: url('https://cdn.jsdelivr.net/npm/@fontpkg/alibaba-pu-hui-ti-2-0@2.0.2/AlibabaPuHuiTi-2-55-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Alibaba PuHuiTi 2.0';
+  src: url('https://cdn.jsdelivr.net/npm/@fontpkg/alibaba-pu-hui-ti-2-0@2.0.2/AlibabaPuHuiTi-2-65-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Alibaba PuHuiTi 2.0';
+  src: url('https://cdn.jsdelivr.net/npm/@fontpkg/alibaba-pu-hui-ti-2-0@2.0.2/AlibabaPuHuiTi-2-85-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer utilities {
+  .font-alibaba {
+    font-family: var(--font-alibaba);
+  }
+}
+
 :root {
   --u-bg-page: #F9F9F9;
   --u-bg-panel: #ffffff;

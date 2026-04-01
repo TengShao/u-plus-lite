@@ -32,8 +32,7 @@ export default function CycleCard({
         isSelected
           ? 'bg-white shadow-[0_0_8px_0_#0000001a]'
           : 'bg-transparent hover:shadow-[0_0_6px_0_rgba(0,0,0,0.15)]'
-      }`}
-      style={{ fontFamily: 'Alibaba PuHuiTi 2.0' }}
+      } font-alibaba`}
     >
       <button
         onClick={onSelect}
