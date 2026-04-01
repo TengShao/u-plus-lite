@@ -40,14 +40,22 @@ irm https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy
 
 ### 3. 端口说明
 
-脚本自动查找 3000 起未被占用的端口。如需指定端口，可手动修改 `.env` 后重启：
-```bash
-# 编辑 .env 中的 NEXTAUTH_URL 和 DATABASE_URL 端口
-pm2 restart u-plus-lite
+部署产品固定使用 **3000** 端口，本地开发固定使用 **3001** 端口。
+
+**端口分配：**
+- `http://<服务器IP>:3000` — PM2 部署的产品（团队成员访问）
+- `http://localhost:3001` — 本地开发服务器
+
+**冲突处理：**
+部署时会检测 3000 是否被占用。如果占用（通常是本地 dev 未关闭），脚本会报错退出并给出明确提示：
+```
+[错误] 端口 3000 被占用，请先关闭占用端口的进程后再部署
 ```
 
-Windows 用户修改 `.env` 后重启：
-```powershell
+解决方法：Ctrl+C 关闭 dev 服务器后，重新运行部署脚本。
+
+如需手动指定端口，修改 `.env` 后重启：
+```bash
 pm2 restart u-plus-lite
 ```
 
