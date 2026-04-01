@@ -7,7 +7,7 @@ const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
 
 const HEALTH_COLORS: Record<string, string> = {
   '适合': '#8ECA2E',
-  '欠饱和': '#E9B931',
+  '欠饱和': '#F8CF33',
   '过饱和': '#E96631',
 }
 
@@ -93,7 +93,7 @@ export default function RequirementCardCollapsed({
             {tags.map((t, i) => (
               <span key={t} className="flex items-center gap-[12px]">
                 {i > 0 && <Divider />}
-                <span className="shrink-0 text-[12px] leading-[17px] text-[#AFAFAF]" style={{ fontWeight: 500, letterSpacing: '-0.75px' }}>{t}</span>
+                <span className="shrink-0 text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>{t}</span>
               </span>
             ))}
           </>
@@ -101,7 +101,7 @@ export default function RequirementCardCollapsed({
         {typesStr && (
           <>
             <Divider />
-            <span className="truncate text-[12px] leading-[17px] text-[#AFAFAF]" style={{ fontWeight: 500, letterSpacing: '-0.75px' }}>{typesStr}</span>
+            <span className="truncate text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>{typesStr}</span>
           </>
         )}
       </div>
@@ -109,7 +109,7 @@ export default function RequirementCardCollapsed({
       {/* Health badge — top-right */}
       {healthColor && (
         <div className="absolute right-[18px] top-[18px] flex items-center gap-[6px]">
-          <span className="text-[14px] leading-[20px]" style={{ fontWeight: 800, letterSpacing: '-0.91px', color: healthColor }}>{data.healthStatus}</span>
+          <span className="text-[14px] leading-[20px]" style={{ fontWeight: 600, letterSpacing: '-0.91px', color: healthColor }}>{data.healthStatus}</span>
           <span className="h-[8px] w-[8px] rounded-full" style={{ backgroundColor: healthColor }} />
         </div>
       )}
@@ -117,13 +117,13 @@ export default function RequirementCardCollapsed({
       {/* Info cubes + designer area — bottom-left */}
       <div className="absolute bottom-[20px] left-[20px] flex items-start gap-[8px]">
         <InfoCube label="评级" value={data.rating || '-'} />
-        <InfoCube label="推荐评级" value={data.recommendedRating} labelColor="#40C7F6" />
+        <InfoCube label="推荐评级" value={data.recommendedRating} labelColor="#8C8C8C" />
         <InfoCube label="本月可关闭" value={data.canClose ? '是' : '否'} />
         <InfoCube label="总投入人天" value={String(data.totalManDays)} />
         <InfoCube label="投入比" value={data.rating ? `${data.inputRatio}%` : '-'} />
         <InfoCube label="参与人数" value={String(data.participantCount)} />
         <div className="flex h-[80px] min-w-[110px] shrink-0 flex-col rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] w-fit">
-          <span className="mt-[14px] text-center text-[12px] leading-[17px] text-[#A8A8A8]" style={{ fontWeight: 800 }}>参与设计师</span>
+          <span className="mt-[14px] text-center text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>参与设计师</span>
           <div className="flex flex-1 items-center justify-center overflow-hidden px-[10px]">
             {data.cycleWorkloads.length === 0 ? (
               <span className="text-[14px] text-black/30" style={{ fontWeight: 800, fontFamily: 'Alibaba PuHuiTi 2.0' }}>
@@ -188,7 +188,7 @@ export default function RequirementCardCollapsed({
 function InfoCube({ label, value, labelColor }: { label: string; value: string; labelColor?: string }) {
   return (
     <div className="flex h-[80px] w-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD]" style={FONT}>
-      <span className="mt-[14px] text-[12px] leading-[17px]" style={{ fontWeight: 800, color: labelColor || '#A8A8A8' }}>{label}</span>
+      <span className="mt-[14px] text-[12px] leading-[17px]" style={{ fontWeight: 400, color: labelColor || '#8C8C8C' }}>{label}</span>
       <div className="flex flex-1 items-center justify-center">
         <span className="text-[16px] leading-[22px] text-black" style={{ fontWeight: 600 }}>{value}</span>
       </div>
@@ -199,9 +199,9 @@ function InfoCube({ label, value, labelColor }: { label: string; value: string; 
 function DesignerChip({ name, days, muted }: { name: string; days: string; muted?: boolean }) {
   return (
     <div className="flex h-[33px] shrink-0 items-center rounded-[8px] border border-[#EEEEEE] bg-white px-[8px]" style={FONT}>
-      <span className="text-[12px] leading-[17px]" style={{ fontWeight: 800, color: muted ? '#D4D4D4' : '#D4D4D4' }}>{name}</span>
+      <span className="text-[12px] leading-[17px]" style={{ fontWeight: 400, color: '#8C8C8C' }}>{name}</span>
       <span className="mx-[6px] h-[10px] w-px bg-[#00000013]" />
-      <span className="text-[12px] leading-[17px] text-black" style={{ fontWeight: 800 }}>{days}</span>
+      <span className="text-[12px] leading-[17px] text-black" style={{ fontWeight: 600 }}>{days}</span>
     </div>
   )
 }

@@ -138,10 +138,10 @@ function DropdownTrigger({
       }}
     >
       <div className="flex items-center pl-[8px]">
-        <span className="shrink-0 text-[12px] leading-[17px] text-black/30" style={{ fontWeight: 800 }}>{label}</span>
+        <span className="shrink-0 text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>{label}</span>
         <span className="mx-[6px] h-[14px] w-px shrink-0 bg-black/10" />
       </div>
-      <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-black" style={{ fontWeight: 800 }}>{display}</span>
+      <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-black" style={{ fontWeight: 600 }}>{display}</span>
       <span className="shrink-0 pr-[8px]">
         <ArrowIcon flipped={open} />
       </span>
@@ -195,10 +195,10 @@ function MultiDropdown({
           {/* header — same as trigger */}
           <div className="flex h-[36px] items-center">
             <div className="flex items-center pl-[8px]">
-              <span className="shrink-0 text-[12px] leading-[17px] text-black/30" style={{ fontWeight: 800 }}>{label}</span>
+              <span className="shrink-0 text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>{label}</span>
               <span className="mx-[6px] h-[14px] w-px shrink-0 bg-black/10" />
             </div>
-            <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-black" style={{ fontWeight: 800 }}>{display}</span>
+            <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-black" style={{ fontWeight: 600 }}>{display}</span>
             <span className="shrink-0 pr-[8px]">
               <ArrowIcon flipped />
             </span>
@@ -271,10 +271,10 @@ function SingleDropdown({
         >
           <div className="flex h-[36px] items-center">
             <div className="flex items-center pl-[8px]">
-              <span className="shrink-0 text-[12px] leading-[17px] text-black/30" style={{ fontWeight: 800 }}>{label}</span>
+              <span className="shrink-0 text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>{label}</span>
               <span className="mx-[6px] h-[14px] w-px shrink-0 bg-black/10" />
             </div>
-            <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-black" style={{ fontWeight: 800 }}>{display}</span>
+            <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-black" style={{ fontWeight: 600 }}>{display}</span>
             <span className="shrink-0 pr-[8px]">
               <ArrowIcon flipped />
             </span>
@@ -326,12 +326,12 @@ function DropdownItem({
       )}
       <span
         className="flex-1 truncate text-left text-[12px] leading-[17px] text-black"
-        style={{ fontWeight: 800, ...FONT }}
+        style={{ fontWeight: 600, ...FONT }}
       >
         {label}
       </span>
       {count !== undefined && (
-        <span className="ml-2 text-[12px] text-black/40" style={{ fontWeight: 800 }}>
+        <span className="ml-2 text-[12px] text-[#8C8C8C]" style={{ fontWeight: 600 }}>
           {count}
         </span>
       )}

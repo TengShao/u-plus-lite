@@ -13,7 +13,7 @@ const GREEN = '#8ECA2E'
 
 const HEALTH_COLORS: Record<string, string> = {
   '适合': '#8ECA2E',
-  '欠饱和': '#E9B931',
+  '欠饱和': '#F8CF33',
   '过饱和': '#E96631',
 }
 
@@ -229,13 +229,13 @@ export default function RequirementCardExpanded({
       <div className="flex items-start">
         <div className="w-[600px]">
           <div className="ml-[9px]">
-            <SectionTitle icon="name" text="需求名称" weight={800} />
+            <SectionTitle icon="name" text="需求名称" weight={600} />
           </div>
           <div className="relative mt-[10px] flex items-center">
             <div className="relative w-[600px]">
               <div
                 className={`relative h-[42px] rounded-[8px] border ${nameInvalid ? 'bg-[rgba(255,0,0,0.08)] shadow-[0_0_3px_rgba(0,0,0,0.06)]' : 'bg-white'}`}
-                style={{ borderColor: nameInvalid ? '#FF7D7D' : nameFocused ? GREEN : nameHovered ? GREEN : '#F3F3F3', transition: 'border-color 0.15s' }}
+                style={{ borderColor: nameInvalid ? '#FF7D7D' : nameFocused ? GREEN : nameHovered ? GREEN : '#EEEEEE', transition: 'border-color 0.15s' }}
                 onMouseEnter={() => setNameHovered(true)}
                 onMouseLeave={() => setNameHovered(false)}
               >
@@ -275,7 +275,7 @@ export default function RequirementCardExpanded({
       <div className="mt-[20px] h-px w-full bg-[#0000000A]" />
 
       <div className="mt-[20px]">
-        <SectionTitle icon="info" text="需求信息" weight={800} />
+        <SectionTitle icon="info" text="需求信息" weight={600} />
       </div>
 
       <div className="mt-[10px] flex gap-[8px]">
@@ -333,8 +333,8 @@ export default function RequirementCardExpanded({
       </div>
 
       <div className="mt-[20px] flex items-center gap-[8px]">
-        <SectionTitle icon="info" text="其他信息" weight={800} />
-        <span className="text-[12px] leading-[17px] text-[#AFAFAF]" style={{ fontWeight: 500, letterSpacing: '-0.75px' }}>
+        <SectionTitle icon="info" text="其他信息" weight={600} />
+        <span className="text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>
           Tips: 功能点数 <span style={{ fontWeight: 800 }}>{computedFuncPointsRecommended}</span>
         </span>
       </div>
@@ -366,11 +366,11 @@ export default function RequirementCardExpanded({
       <div className="mt-[20px] h-px w-full bg-[#0000000A]" />
 
       <div className="mt-[20px]">
-        <SectionTitle icon="designers" text="参与设计师" weight={800} />
+        <SectionTitle icon="designers" text="参与设计师" weight={400} />
       </div>
       <div className="mt-[12px] min-h-[33px]">
         {data.cycleWorkloads.length === 0 && manDays === 0 ? (
-          <div className="flex h-[33px] w-full items-center justify-center text-[14px]" style={{ fontWeight: 800, fontFamily: 'Alibaba PuHuiTi 2.0', color: '#C3C3C3' }}>
+          <div className="flex h-[33px] w-full items-center justify-center text-[14px]" style={{ fontWeight: 800, fontFamily: 'Alibaba PuHuiTi 2.0', color: '#EEEEEE' }}>
             暂无设计师参与，怎么回事
           </div>
         ) : (
@@ -392,7 +392,7 @@ export default function RequirementCardExpanded({
       </div>
 
       <div className="mt-[20px] flex items-end justify-between">
-        <div className="relative flex h-[60px] w-[176px] items-center rounded-[8px] bg-white px-[12px] shadow-[0_0_5px_0_rgba(0,0,0,0.1)]">
+        <div className="relative flex h-[60px] w-[176px] items-center rounded-[8px] border border-[#EEEEEE] bg-white px-[12px]">
           {/* Decrease button with animation */}
           <div className="relative">
             <StepButton onClick={() => { setManDays((v) => Math.max(0, round1(v - 0.1))); markDirty(); triggerDecreaseAnim() }} disabled={!userEditable}>🦴</StepButton>
@@ -417,7 +417,7 @@ export default function RequirementCardExpanded({
             onChange={(e) => { setManDays(parseFloat(e.target.value) || 0); markDirty() }}
             onFocus={() => setManDaysFocused(true)}
             onBlur={() => setManDaysFocused(false)}
-            className="no-spin mx-[8px] h-[36px] w-[64px] rounded-[8px] border border-[#F3F3F3] text-center text-[20px] leading-[36px] outline-none"
+            className="no-spin mx-[8px] h-[36px] w-[64px] rounded-[8px] border border-[#EEEEEE] text-center text-[20px] leading-[36px] outline-none"
             style={{ fontWeight: 800 }}
           />
 
@@ -460,7 +460,7 @@ export default function RequirementCardExpanded({
 
           <div className="relative flex h-[60px] w-[159px] items-center justify-center">
             {data.lastSubmittedAt && (
-              <div className="absolute bottom-[68px] left-1/2 flex -translate-x-1/2 items-center whitespace-nowrap text-[12px] text-black/30" style={{ fontWeight: 500, letterSpacing: '-0.75px' }}>
+              <div className="absolute bottom-[68px] left-1/2 flex -translate-x-1/2 items-center whitespace-nowrap text-[12px] text-black/30" style={{ fontWeight: 400 }}>
                 <span className="mr-[4px]"><ClockIcon /></span>
                 {new Date(data.lastSubmittedAt).toLocaleString('zh-CN', {
                   year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -506,7 +506,7 @@ function SectionTitle({ icon, text, weight }: { icon: 'name' | 'info' | 'designe
 function ReadonlyCube({ label, value, valueColor }: { label: string; value: string; valueColor: string }) {
   return (
     <div className="flex h-[80px] w-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD]" style={FONT}>
-      <span className="mt-[14px] text-[12px] leading-[17px]" style={{ fontWeight: 800, color: '#A8A8A8' }}>{label}</span>
+      <span className="mt-[14px] text-[12px] leading-[17px]" style={{ fontWeight: 400, color: '#8C8C8C' }}>{label}</span>
       <div className="flex flex-1 items-center justify-center">
         <span className="text-[16px] leading-[22px] text-black" style={{ fontWeight: 600, color: valueColor }}>{value}</span>
       </div>
@@ -515,20 +515,16 @@ function ReadonlyCube({ label, value, valueColor }: { label: string; value: stri
 }
 
 function EditableCube({ label, width, required, invalid, isOpen, isEmpty, children }: { label: string; width: number; required?: boolean; invalid?: boolean; isOpen?: boolean; isEmpty?: boolean; children: React.ReactNode }) {
-  // Border: always show, color based on state (invalid only affects inner input, not outer cube)
-  const borderColor = isOpen ? '#8ECA2E' : !isEmpty ? '#EEEEEE' : '#EEEEEE'
-  const shadow = isOpen ? '0 0 3px rgba(0,0,0,0.1)' : !isEmpty ? '0 0 3px rgba(0,0,0,0.1)' : '0 0 3px rgba(0,0,0,0.1)'
+  // Border: always show, color does not change when dropdown is open
   return (
     <div
-      className="relative h-[80px] rounded-[12px] bg-[#FDFDFD] px-[8px] pt-[14px]"
+      className="relative h-[80px] rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] px-[8px] pt-[14px]"
       style={{
         width,
-        borderColor,
-        boxShadow: shadow,
       }}
     >
       <div className="relative flex items-center justify-center">
-        <span className="text-[12px] leading-[17px] text-[#A8A8A8]" style={{ fontWeight: 800 }}>{label}</span>
+        <span className="text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>{label}</span>
       </div>
       {required && <span className="absolute right-[8px] top-[8px] h-[4px] w-[4px] rounded-full bg-[#FF0000]" />}
       <div className="relative mt-[5px]">{children}</div>
@@ -560,7 +556,7 @@ function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onTogg
     >
       <span
         className="pointer-events-none absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center leading-[22px]"
-        style={{ color: value ? undefined : '#C3C3C3', fontSize }}
+        style={{ color: value ? undefined : '#EEEEEE', fontSize }}
       >
         {displayText}
       </span>
@@ -640,7 +636,7 @@ function CubeInput({ width, value, onChange, placeholder = '请输入', disabled
       onBlur={() => setFocused(false)}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="h-[36px] rounded-[8px] border border-transparent bg-white px-[10px] text-center text-[16px] leading-[22px] text-black placeholder:text-[#C3C3C3] outline-none"
+      className="h-[36px] rounded-[8px] border border-transparent bg-white px-[10px] text-center text-[16px] leading-[22px] text-black placeholder:text-[#EEEEEE] outline-none"
       style={{ width, fontWeight: 800, borderColor, transition: 'border-color 0.15s, background-color 0.15s', backgroundColor: bgColor }}
     />
   )
@@ -649,7 +645,7 @@ function CubeInput({ width, value, onChange, placeholder = '请输入', disabled
 function DesignerChip({ name, days, mine }: { name: string; days: string; mine?: boolean }) {
   return (
     <div className="flex h-[33px] items-center rounded-[8px] border border-[#EEEEEE] bg-white px-[8px]">
-      <span className="text-[12px] leading-[17px]" style={{ fontWeight: 800, color: mine ? GREEN : '#9F9F9F' }}>{name}</span>
+      <span className="text-[12px] leading-[17px]" style={{ fontWeight: 400, color: mine ? GREEN : '#8C8C8C' }}>{name}</span>
       <span className="mx-[6px] h-[10px] w-px bg-[#00000013]" />
       <span className="text-[12px] leading-[17px] text-black" style={{ fontWeight: 800 }}>{days}</span>
     </div>
