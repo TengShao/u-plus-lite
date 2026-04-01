@@ -56,7 +56,7 @@ export default function RequirementCardCollapsed({
     <div
       data-req-id={String(data.id)}
       onClick={onExpand}
-      className="animate-card-collapse relative cursor-pointer rounded-[24px] bg-white transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.15)] min-w-[1100px] font-alibaba"
+      className="animate-card-collapse mx-auto min-w-[1080px] max-w-full relative cursor-pointer rounded-[24px] bg-white transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.15)] font-alibaba"
       style={{ height: 152 }}
     >
       {/* Disabled overlay */}

@@ -52,13 +52,32 @@ export function ClockIcon() {
   )
 }
 
-export function ActionIconButton({ type, disabled, onClick }: { type: 'complete' | 'delete'; disabled: boolean; onClick: () => void }) {
+export function UploadIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <g stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="3" x2="12" y2="15" />
+        <polyline points="17 8 12 3 7 8" />
+        <path d="M21,15 L21,19 C21,20.1045695 20.1045695,21 19,21 L5,21 C3.8954305,21 3,20.1045695 3,19 L3,15" />
+      </g>
+    </svg>
+  )
+}
+
+export function ActionIconButton({ type, disabled, onClick }: { type: 'complete' | 'delete' | 'upload'; disabled: boolean; onClick: () => void }) {
   const [hover, setHover] = useState(false)
   const [active, setActive] = useState(false)
   const isDelete = type === 'delete'
+  const isUpload = type === 'upload'
   const showTint = !disabled && (hover || active)
-  const color = isDelete ? (hover || active ? '#E91B1B' : '#000000') : '#8ECA2E'
-  const iconOpacity = disabled ? 0.08 : isDelete ? (active ? 0.4 : hover ? 1 : 0.3) : (active ? 0.4 : 1)
+  const color = isDelete ? (hover || active ? '#E91B1B' : '#000000') : isUpload ? '#000000' : '#8ECA2E'
+  const iconOpacity = disabled
+    ? 0.1
+    : isDelete
+    ? active ? 0.4 : hover ? 1 : 0.3
+    : isUpload
+    ? active ? 0.2 : hover ? 0.5 : 0.3
+    : active ? 0.4 : 1
   return (
     <button
       disabled={disabled}
@@ -68,10 +87,10 @@ export function ActionIconButton({ type, disabled, onClick }: { type: 'complete'
       onMouseDown={() => setActive(true)}
       onMouseUp={() => setActive(false)}
       className="flex h-[52px] w-[52px] items-center justify-center rounded-full"
-      style={{ background: showTint ? (isDelete ? '#FF000017' : '#8ECA2E2F') : 'transparent', color }}
+      style={{ background: isUpload ? (showTint ? '#F7F7F7' : 'transparent') : (showTint ? (isDelete ? '#FF000017' : '#8ECA2E2F') : 'transparent'), color }}
     >
       <span style={{ opacity: iconOpacity }}>
-        {type === 'complete' ? <ConfirmIcon /> : <DeleteIcon />}
+        {type === 'complete' ? <ConfirmIcon /> : type === 'delete' ? <DeleteIcon /> : <UploadIcon />}
       </span>
     </button>
   )

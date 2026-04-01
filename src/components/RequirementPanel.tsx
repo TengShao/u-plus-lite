@@ -528,7 +528,7 @@ export default function RequirementPanel({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className={`relative h-[60px] bg-[#F9F9F9] z-20 ${isScrolled ? ''/* 'after:content-[""] after:absolute after:-bottom-[12px] after:left-0 after:right-0 after:h-[12px] after:bg-gradient-to-b after:from-[rgba(0,0,0,0.08)] after:to-transparent' */ : ''}`}>
         <div className="h-full px-[20px]">
-          <div className="mx-auto h-full w-full min-w-[1100px] max-w-[1100px] flex items-center font-alibaba">
+          <div className="mx-auto h-full w-full w-[1080px] flex items-center font-alibaba">
           <div className="flex items-center">
             <FilterBar
               designers={designers}
@@ -569,9 +569,9 @@ export default function RequirementPanel({
       </div>
       <div ref={scrollContainerRef} className={`auto-hide-scrollbar min-h-0 flex-1 overflow-y-auto px-[20px] py-[16px] ${isScrollbarVisible ? 'scrollbar-visible' : 'scrollbar-hidden'}`}>
         {filtered.length === 0 ? (
-          <div className="mx-auto flex h-full w-full min-w-[1100px] max-w-[1100px] items-center justify-center" style={{ color: '#C3C3C3' }}>暂无需求组</div>
+          <div className="mx-auto flex h-full w-full w-[1080px] items-center justify-center" style={{ color: '#C3C3C3' }}>暂无需求组</div>
         ) : (
-          <div className="mx-auto flex w-full min-w-[1100px] max-w-[1100px] flex-col gap-[20px]">
+          <div className="mx-auto flex w-full w-[1080px] flex-col gap-[20px]">
             {filtered.map((rg, i) =>
               <div
                 key={`${fadeInKey}-${rg.id}`}

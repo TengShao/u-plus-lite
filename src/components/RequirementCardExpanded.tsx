@@ -218,7 +218,7 @@ export default function RequirementCardExpanded({
   ], [computedTotalManDays, computedParticipantCount, computedInputRatio, computedHealthStatus, rating])
 
   return (
-    <div data-req-id={String(data.id)} ref={cardRef} className={`${isCollapsing ? 'animate-card-fold-up' : 'animate-card-expand'} mx-auto max-w-[1100px] min-w-[1100px] rounded-[24px] bg-white px-[20px] pb-[20px] pt-[20px] shadow-[0_0_8px_0_rgba(0,0,0,0.15)] font-alibaba`}>
+    <div data-req-id={String(data.id)} ref={cardRef} className={`${isCollapsing ? 'animate-card-fold-up' : 'animate-card-expand'} mx-auto min-w-[1080px] max-w-full rounded-[24px] bg-white px-[20px] pb-[20px] pt-[20px] shadow-[0_0_8px_0_rgba(0,0,0,0.15)] font-alibaba`}>
       {/* 需求名称区域: 标题+输入框+信息方块 一行布局 */}
       <div className="flex items-start">
         <div className="w-[600px]">
@@ -424,15 +424,19 @@ export default function RequirementCardExpanded({
       </div>
 
       <div className="mt-[20px] flex items-end justify-between">
-        <ManDayStepper
-          value={manDays}
-          onChange={(v) => setManDays(v)}
-          onDirty={markDirty}
-          disabled={!userEditable}
-          isComplete={isComplete}
-        />
+        <div className="flex items-center gap-[12px]">
+          <ManDayStepper
+            value={manDays}
+            onChange={(v) => setManDays(v)}
+            onDirty={markDirty}
+            disabled={!userEditable}
+            isComplete={isComplete}
+          />
 
-        <div className="flex items-end gap-[8px]">
+          <ActionIconButton type="upload" disabled={!userEditable} onClick={() => {}} />
+        </div>
+
+        <div className="flex items-end gap-[12px]">
           <div className="flex h-[60px] items-center gap-0">
             {isAdmin && data.status !== 'COMPLETE' && (
               <ActionIconButton type="complete" disabled={!userEditable} onClick={() => onCompleteRequest?.(data.id)} />
