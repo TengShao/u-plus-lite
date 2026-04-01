@@ -235,15 +235,15 @@ export default function RequirementCardExpanded({
                 onMouseLeave={() => setNameHovered(false)}
               >
                 <input
-                  value={name}
+                  value={nameFocused && !name ? '' : name}
                   disabled={!userEditable || isComplete}
                   onFocus={() => setNameFocused(true)}
                   onBlur={() => setNameFocused(false)}
                   onChange={(e) => { setName(e.target.value); markDirty() }}
                   placeholder="请输入需求组名称"
                   autoFocus={isDraft}
-                  className="h-full w-full bg-transparent px-[10px] pr-[40px] text-[16px] leading-[22px] text-black placeholder:text-black/20 outline-none"
-                  style={{ fontWeight: 900 }}
+                  className="h-full w-full bg-transparent px-[10px] pr-[40px] text-[16px] leading-[22px] text-black placeholder:text-[#C3C3C3] outline-none"
+                  style={{ fontWeight: 600 }}
                 />
                 {userEditable && name.length > 0 && (
                   <button
@@ -499,7 +499,7 @@ function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onTogg
     >
       <span
         className="pointer-events-none absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center leading-[22px]"
-        style={{ color: value ? undefined : '#EEEEEE', fontSize }}
+        style={{ color: value ? undefined : '#C3C3C3', fontSize, fontWeight: value ? 800 : 600 }}
       >
         {displayText}
       </span>
@@ -573,14 +573,14 @@ function CubeInput({ width, value, onChange, placeholder = '请输入', disabled
   return (
     <input
       type="text"
-      value={value === 0 ? '0' : value || ''}
+      value={focused ? (value || '') : (value === 0 ? '' : value || '')}
       disabled={disabled}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="h-[36px] rounded-[8px] border border-transparent bg-white px-[10px] text-center text-[16px] leading-[22px] text-black placeholder:text-[#EEEEEE] outline-none"
-      style={{ width, fontWeight: 800, borderColor, transition: 'border-color 0.15s, background-color 0.15s', backgroundColor: bgColor }}
+      className="h-[36px] rounded-[8px] border border-transparent bg-white px-[10px] text-center text-[16px] leading-[22px] text-black placeholder:text-[#C3C3C3] outline-none"
+      style={{ width, fontWeight: 600, borderColor, transition: 'border-color 0.15s, background-color 0.15s', backgroundColor: bgColor }}
     />
   )
 }
