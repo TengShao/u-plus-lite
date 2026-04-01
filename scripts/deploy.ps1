@@ -491,9 +491,17 @@ function Set-NextAuthUrl {
         }
     }
 
-    # 如果没有保留端口，查找新的
+    # 如果没有保留端口，强制使用 3000
     if ($script:PORT -eq 0) {
-        $script:PORT = Find-AvailablePort
+        if (Test-PortUsed -Port 3000) {
+            Write-Host ""
+            Write-Host "[错误] 端口 3000 被占用，请先关闭占用端口的进程后再部署" -ForegroundColor Red
+            Write-Host "  常见原因：本地开发服务器未关闭（运行 npm run dev）" -ForegroundColor DarkGray
+            Write-Host "  解决方法：Ctrl+C 关闭 dev 服务器后，重新运行部署脚本" -ForegroundColor DarkGray
+            Write-Host ""
+            exit 1
+        }
+        $script:PORT = 3000
     }
     Write-Host "使用端口：$script:PORT"
 
