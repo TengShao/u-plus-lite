@@ -117,7 +117,6 @@ export default function RequirementCardCollapsed({
       {/* Info cubes + designer area — bottom-left */}
       <div className="absolute bottom-[20px] left-[20px] flex items-start gap-[8px]">
         <InfoCube label="评级" value={data.rating || '-'} />
-        <InfoCube label="推荐评级" value={data.recommendedRating} labelColor="#8C8C8C" />
         <InfoCube label="本月可关闭" value={data.canClose ? '是' : '否'} />
         <InfoCube label="总投入人天" value={String(data.totalManDays)} />
         <InfoCube label="投入比" value={data.rating ? `${data.inputRatio}%` : '-'} />

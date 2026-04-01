@@ -3,8 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { type RequirementData } from './RequirementPanel'
 import type { PipelineSettingData } from './RequirementPanel'
-import { MODULES, RATINGS, RATING_STANDARDS, TYPES } from '@/lib/constants'
-import { getHealthStatus } from '@/lib/compute'
+import { LEVEL_COEFFICIENTS, MODULES, RATINGS, RATING_STANDARDS, TYPES } from '@/lib/constants'
+import { getHealthStatus, getSuitableRating } from '@/lib/compute'
 import ConfirmDialog from './ConfirmDialog'
 import { useTips } from './Tips'
 
@@ -89,6 +89,9 @@ export default function RequirementCardExpanded({
   // Real-time computed values based on local manDays
   const computedTotalManDays = data.totalManDays - (myWorkload?.manDays ?? 0) + manDays
   const computedFuncPointsRecommended = Math.round(computedTotalManDays * 0.62)
+
+  // Real-time recommended rating based on total man-days
+  const computedRecommendedRating = getSuitableRating(computedTotalManDays, rating)
 
   // Real-time participant count
   const computedParticipantCount = data.participantCount
@@ -217,7 +220,7 @@ export default function RequirementCardExpanded({
   }
 
   const readonlyCubes = useMemo(() => [
-    { label: '总投入人天', value: String(computedTotalManDays), color: '#000000' },
+    { label: '总投入人天', value: computedTotalManDays.toFixed(1), color: '#000000' },
     { label: '参与人数', value: String(computedParticipantCount), color: '#000000' },
     { label: '投入比', value: rating ? `${computedInputRatio}%` : '-', color: '#000000' },
     { label: '健康度', value: computedHealthStatus || '-', color: computedHealthStatus ? HEALTH_COLORS[computedHealthStatus] : '#000000' },
@@ -275,7 +278,9 @@ export default function RequirementCardExpanded({
       <div className="mt-[20px] h-px w-full bg-[#0000000A]" />
 
       <div className="mt-[20px]">
-        <SectionTitle icon="info" text="需求信息" weight={600} />
+        <div className="ml-[9px]">
+          <SectionTitle icon="info" text="需求信息" weight={600} />
+        </div>
       </div>
 
       <div className="mt-[10px] flex gap-[8px]">
@@ -286,22 +291,33 @@ export default function RequirementCardExpanded({
           )}
         </EditableCube>
 
-        <EditableCube label="评级" required invalid={ratingInvalid} isOpen={openMenu === 'rating'} isEmpty={!rating} width={120}>
-          <SelectTrigger
-            width={104}
-            value={rating}
-            placeholder="请选择"
-            isOpen={openMenu === 'rating'}
-            onToggle={() => userEditable && setOpenMenu(openMenu === 'rating' ? null : 'rating')}
-            invalid={ratingInvalid}
-            isHovered={triggerHovered === 'rating'}
-            onMouseEnter={() => setTriggerHovered('rating')}
-            onMouseLeave={() => setTriggerHovered(null)}
-          />
-          {openMenu === 'rating' && userEditable && (
-            <MenuSingle width={104} value={rating} options={RATINGS as readonly string[]} selected={rating} onPick={(v) => { setRating(v); setOpenMenu(null); markDirty() }} />
+        <div className="relative">
+          <EditableCube label="评级" required invalid={ratingInvalid} isOpen={openMenu === 'rating'} isEmpty={!rating} width={120}>
+            <SelectTrigger
+              width={104}
+              value={rating}
+              placeholder="请选择"
+              isOpen={openMenu === 'rating'}
+              onToggle={() => userEditable && setOpenMenu(openMenu === 'rating' ? null : 'rating')}
+              invalid={ratingInvalid}
+              isHovered={triggerHovered === 'rating'}
+              onMouseEnter={() => setTriggerHovered('rating')}
+              onMouseLeave={() => setTriggerHovered(null)}
+            />
+            {openMenu === 'rating' && userEditable && (
+              <MenuSingle width={104} value={rating} options={RATINGS as readonly string[]} selected={rating} onPick={(v) => { setRating(v); setOpenMenu(null); markDirty() }} />
+            )}
+          </EditableCube>
+          {computedRecommendedRating && computedRecommendedRating !== rating && (
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-[2px] whitespace-nowrap">
+              <TipsBadge
+                label="推荐"
+                value={computedRecommendedRating}
+                onClick={() => { setRating(computedRecommendedRating); markDirty() }}
+              />
+            </div>
           )}
-        </EditableCube>
+        </div>
 
         <EditableCube label="设计模块" required invalid={moduleInvalid} isOpen={openMenu === 'module'} isEmpty={!module} width={160}>
           <SelectTrigger width={144} value={module} isOpen={openMenu === 'module'} onToggle={() => userEditable && setOpenMenu(openMenu === 'module' ? null : 'module')} invalid={moduleInvalid} isHovered={triggerHovered === 'module'} onMouseEnter={() => setTriggerHovered('module')} onMouseLeave={() => setTriggerHovered(null)} />
@@ -332,24 +348,32 @@ export default function RequirementCardExpanded({
         </EditableCube>
       </div>
 
-      <div className="mt-[20px] flex items-center gap-[8px]">
-        <SectionTitle icon="info" text="其他信息" weight={600} />
-        <span className="text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>
-          Tips: 功能点数 <span style={{ fontWeight: 800 }}>{computedFuncPointsRecommended}</span>
-        </span>
+      <div className="mt-[40px] flex items-center gap-[8px]">
+        <div className="ml-[9px]">
+          <SectionTitle icon="info" text="其他信息" weight={600} />
+        </div>
       </div>
 
       <div className="mt-[10px] flex gap-[8px]">
-        <EditableCube label="功能点数" required invalid={funcPointsInvalid} isOpen={false} isEmpty={!funcPoints} width={120}>
-          <CubeInput
-            width={104}
-            value={funcPoints}
-            onChange={(v) => { setFuncPoints(parseInt(v) || 0); markDirty() }}
-            placeholder="请输入"
-            disabled={!userEditable}
-            invalid={funcPointsInvalid}
-          />
-        </EditableCube>
+        <div className="relative">
+          <EditableCube label="功能点数" required invalid={funcPointsInvalid} isOpen={false} isEmpty={!funcPoints} width={120}>
+            <CubeInput
+              width={104}
+              value={funcPoints}
+              onChange={(v) => { setFuncPoints(parseInt(v) || 0); markDirty() }}
+              placeholder="请输入"
+              disabled={!userEditable}
+              invalid={funcPointsInvalid}
+            />
+          </EditableCube>
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-[2px] whitespace-nowrap">
+            <TipsBadge
+              label="推荐"
+              value={computedFuncPointsRecommended}
+              onClick={() => { setFuncPoints(computedFuncPointsRecommended); markDirty() }}
+            />
+          </div>
+        </div>
 
         <EditableCube label="界面数" required invalid={pageCountInvalid} isOpen={false} isEmpty={!pageCount} width={120}>
           <CubeInput
@@ -363,10 +387,12 @@ export default function RequirementCardExpanded({
         </EditableCube>
       </div>
 
-      <div className="mt-[20px] h-px w-full bg-[#0000000A]" />
+      <div className="mt-[40px] h-px w-full bg-[#0000000A]" />
 
       <div className="mt-[20px]">
-        <SectionTitle icon="designers" text="参与设计师" weight={400} />
+        <div className="ml-[9px]">
+          <SectionTitle icon="designers" text="参与设计师" weight={600} />
+        </div>
       </div>
       <div className="mt-[12px] min-h-[33px]">
         {data.cycleWorkloads.length === 0 && manDays === 0 ? (
@@ -388,7 +414,9 @@ export default function RequirementCardExpanded({
       <div className="mt-[20px] h-px w-full bg-[#0000000A]" />
 
       <div className="mt-[20px]">
-        <SectionTitle icon="mine" text="你的投入" weight={900} />
+        <div className="ml-[9px]">
+          <SectionTitle icon="mine" text="你的投入" weight={600} />
+        </div>
       </div>
 
       <div className="mt-[20px] flex items-end justify-between">
@@ -715,3 +743,22 @@ function SubmitIcon() {
   )
 }
 function ClockIcon() { return <svg width="12" height="12" viewBox="0 0 12 12" fill="none" opacity="0.3"><g stroke="black" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><polyline points="8 7 8 8.1 8.8 8.6" /><path d="M8 2h1a1 1 0 0 1 1 1v.4" /><path d="M4 2H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h1" /><circle cx="8" cy="8" r="3" /><rect x="4" y="1" width="4" height="2" rx=".5" /></g></svg> }
+
+function TipsBadge({ label, value, onClick }: { label: string; value: string | number; onClick?: () => void }) {
+  const [hovered, setHovered] = useState(false)
+  const [active, setActive] = useState(false)
+  const color = (hovered || active) && onClick ? '#8ECA2E' : '#8C8C8C'
+  return (
+    <span
+      className={`text-[12px] leading-[17px] ${onClick ? 'cursor-pointer' : ''}`}
+      style={{ fontWeight: 400, color }}
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setActive(false) }}
+      onMouseDown={() => setActive(true)}
+      onMouseUp={() => setActive(false)}
+    >
+      {label} <span style={{ fontWeight: 800 }}>{value}</span>
+    </span>
+  )
+}
