@@ -65,7 +65,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       inputRatio,
       healthStatus,
       recommendedRating,
-      funcPointsRecommended: Math.round(totalManDays * 0.62),
+      funcPointsRecommended: Math.round(totalManDays * 6.2),
       cycleWorkloads: cycleWorkloads.map((w) => ({
         id: w.id,
         userId: w.userId,

@@ -90,7 +90,7 @@ export default function RequirementCardExpanded({
 
   // Real-time computed values based on local manDays
   const computedTotalManDays = data.totalManDays - (myWorkload?.manDays ?? 0) + manDays
-  const computedFuncPointsRecommended = Math.round(computedTotalManDays * 0.62)
+  const computedFuncPointsRecommended = Math.round(computedTotalManDays * 6.2)
 
   // Real-time recommended rating based on total man-days
   const computedRecommendedRating = getSuitableRating(computedTotalManDays, rating)
@@ -368,25 +368,38 @@ export default function RequirementCardExpanded({
               invalid={funcPointsInvalid}
             />
           </Cube>
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-[2px] whitespace-nowrap">
-            <TipsBadge
-              label="推荐"
-              value={computedFuncPointsRecommended}
-              onClick={() => { setFuncPoints(computedFuncPointsRecommended); markDirty() }}
-            />
-          </div>
+          {computedTotalManDays > 0 && funcPoints !== computedFuncPointsRecommended && (
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-[2px] whitespace-nowrap">
+              <TipsBadge
+                label="推荐"
+                value={computedFuncPointsRecommended}
+                onClick={() => { setFuncPoints(computedFuncPointsRecommended); markDirty() }}
+              />
+            </div>
+          )}
         </div>
 
-        <Cube label="界面数" required invalid={pageCountInvalid} isOpen={false} isEmpty={!pageCount} width={120}>
-          <CubeInput
-            width={104}
-            value={pageCount}
-            onChange={(v) => { setPageCount(parseInt(v) || 0); markDirty() }}
-            placeholder="请输入"
-            disabled={!userEditable}
-            invalid={pageCountInvalid}
-          />
-        </Cube>
+        <div className="relative">
+          <Cube label="界面数" required invalid={pageCountInvalid} isOpen={false} isEmpty={!pageCount} width={120}>
+            <CubeInput
+              width={104}
+              value={pageCount}
+              onChange={(v) => { setPageCount(parseInt(v) || 0); markDirty() }}
+              placeholder="请输入"
+              disabled={!userEditable}
+              invalid={pageCountInvalid}
+            />
+          </Cube>
+          {computedTotalManDays > 0 && pageCount !== Math.round(computedTotalManDays * 1.75) && (
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-[2px] whitespace-nowrap">
+              <TipsBadge
+                label="推荐"
+                value={Math.round(computedTotalManDays * 1.75)}
+                onClick={() => { setPageCount(Math.round(computedTotalManDays * 1.75)); markDirty() }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="mt-[40px] h-px w-full bg-[#0000000A]" />
