@@ -52,7 +52,7 @@ export function ClockIcon() {
   )
 }
 
-export function ActionIconButton({ type, disabled, onClick }: { type: 'confirm' | 'delete'; disabled: boolean; onClick: () => void }) {
+export function ActionIconButton({ type, disabled, onClick }: { type: 'complete' | 'delete'; disabled: boolean; onClick: () => void }) {
   const [hover, setHover] = useState(false)
   const [active, setActive] = useState(false)
   const isDelete = type === 'delete'
@@ -71,7 +71,7 @@ export function ActionIconButton({ type, disabled, onClick }: { type: 'confirm' 
       style={{ background: showTint ? (isDelete ? '#FF000017' : '#8ECA2E2F') : 'transparent', color }}
     >
       <span style={{ opacity: iconOpacity }}>
-        {type === 'confirm' ? <ConfirmIcon /> : <DeleteIcon />}
+        {type === 'complete' ? <ConfirmIcon /> : <DeleteIcon />}
       </span>
     </button>
   )

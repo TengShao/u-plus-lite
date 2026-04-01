@@ -433,9 +433,9 @@ export default function RequirementCardExpanded({
         />
 
         <div className="flex items-end gap-[8px]">
-          <div className="flex h-[60px] items-center gap-[8px]">
+          <div className="flex h-[60px] items-center gap-0">
             {isAdmin && data.status !== 'COMPLETE' && (
-              <ActionIconButton type="confirm" disabled={!userEditable} onClick={() => onCompleteRequest?.(data.id)} />
+              <ActionIconButton type="complete" disabled={!userEditable} onClick={() => onCompleteRequest?.(data.id)} />
             )}
             <ActionIconButton type="delete" disabled={deleteDisabled} onClick={() => onDeleteRequest(data.id)} />
           </div>

@@ -127,7 +127,7 @@ export default function RequirementCardCollapsed({
       {/* Action buttons — right side, vertically centered with cubes row (y=66 in 152h card) */}
       <div className="absolute right-[22px] top-[66px] flex items-center" onClick={(e) => e.stopPropagation()}>
         {isAdmin && !isComplete && (
-          <ActionIconButton type="confirm" disabled={completeDisabled} onClick={() => onCompleteRequest?.(data.id)} />
+          <ActionIconButton type="complete" disabled={completeDisabled} onClick={() => onCompleteRequest?.(data.id)} />
         )}
         <ActionIconButton type="delete" disabled={buttonsDisabled} onClick={() => onDeleteRequest(data.id)} />
       </div>
