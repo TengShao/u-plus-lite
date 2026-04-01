@@ -107,6 +107,11 @@ export default function RequirementCardExpanded({
   const computedInputRatio = rating ? Math.round((computedTotalManDays / ratingStandard) * 100) : 0
   const computedHealthStatus = rating ? getHealthStatus(computedInputRatio) : null
 
+  const hasRatingTip = !isComplete && computedRecommendedRating && computedRecommendedRating !== rating
+  const hasFuncPointsTip = !isComplete && computedTotalManDays > 0 && funcPoints !== computedFuncPointsRecommended
+  const hasPageCountTip = !isComplete && computedTotalManDays > 0 && pageCount !== Math.round(computedTotalManDays * 1.75)
+  const hasAnyTip = hasRatingTip || hasFuncPointsTip || hasPageCountTip
+
   const [dirty, setDirty] = useState(false)
   const [triedSubmit, setTriedSubmit] = useState(false)
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null)
@@ -339,7 +344,7 @@ export default function RequirementCardExpanded({
         </Cube>
       </div>
 
-      <div className={`${isComplete ? 'mt-[20px]' : 'mt-[40px]'} flex items-center gap-[8px]`}>
+      <div className={`${isComplete || !hasRatingTip ? 'mt-[20px]' : 'mt-[40px]'} flex items-center gap-[8px]`}>
         <div className="ml-[9px]">
           <SectionTitle icon="info" text="其他信息" weight={600} />
         </div>
@@ -391,7 +396,7 @@ export default function RequirementCardExpanded({
         </div>
       </div>
 
-      <div className={`${isComplete ? 'mt-[20px]' : 'mt-[40px]'} h-px w-full bg-[#0000000A]`} />
+      <div className={`${isComplete ? 'mt-[20px]' : (hasFuncPointsTip || hasPageCountTip ? 'mt-[40px]' : 'mt-[20px]')} h-px w-full bg-[#0000000A]`} />
 
       <div className="mt-[20px]">
         <div className="ml-[9px]">
@@ -648,7 +653,7 @@ function TipsBadge({ label, value, onClick }: { label: string; value: string | n
   const color = (hovered || active) && onClick ? '#8ECA2E' : '#8C8C8C'
   return (
     <span
-      className={`text-[12px] leading-[17px] ${onClick ? 'cursor-pointer' : ''}`}
+      className={`text-[12px] leading-[17px] underline ${onClick ? 'cursor-pointer' : ''}`}
       style={{ fontWeight: 400, color }}
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
