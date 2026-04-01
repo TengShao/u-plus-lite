@@ -8,6 +8,7 @@ import { getHealthStatus, getSuitableRating } from '@/lib/compute'
 import { useTips } from './Tips'
 import { DeleteIcon, ConfirmIcon, SubmitIcon, ClockIcon, ActionIconButton } from './icons'
 import { Cube, DesignerChip } from './Cube'
+import ManDayStepper from './ManDayStepper'
 
 const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
 const GREEN = '#8ECA2E'
@@ -88,7 +89,6 @@ export default function RequirementCardExpanded({
   const [pageCount, setPageCount] = useState(data.pageCount ?? 0)
   const myWorkload = data.cycleWorkloads.find((w) => w.userId === userId)
   const [manDays, setManDays] = useState(myWorkload?.manDays ?? 0)
-  const [manDaysFocused, setManDaysFocused] = useState(false)
 
   // Real-time computed values based on local manDays
   const computedTotalManDays = data.totalManDays - (myWorkload?.manDays ?? 0) + manDays
@@ -113,8 +113,6 @@ export default function RequirementCardExpanded({
   const [nameFocused, setNameFocused] = useState(false)
   const [nameHovered, setNameHovered] = useState(false)
   const [triggerHovered, setTriggerHovered] = useState<string | null>(null)
-  const [decreaseAnim, setDecreaseAnim] = useState<number | null>(null)
-  const [increaseAnim, setIncreaseAnim] = useState<number | null>(null)
   const [isCollapsing, setIsCollapsing] = useState(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
 
@@ -129,18 +127,6 @@ export default function RequirementCardExpanded({
     document.addEventListener('mousedown', onDocMouseDown)
     return () => document.removeEventListener('mousedown', onDocMouseDown)
   }, [])
-
-  function triggerDecreaseAnim() {
-    const id = Date.now()
-    setDecreaseAnim(id)
-    setTimeout(() => setDecreaseAnim(null), 1000)
-  }
-
-  function triggerIncreaseAnim() {
-    const id = Date.now()
-    setIncreaseAnim(id)
-    setTimeout(() => setIncreaseAnim(null), 1000)
-  }
 
   const readOnly = (cycleStatus === 'CLOSED' && !isAdmin) || isComplete
   const pipelineNames = pipelineSettings.map((p) => p.name)
@@ -353,7 +339,7 @@ export default function RequirementCardExpanded({
         </Cube>
       </div>
 
-      <div className="mt-[20px] flex items-center gap-[8px]">
+      <div className={`${isComplete ? 'mt-[20px]' : 'mt-[40px]'} flex items-center gap-[8px]`}>
         <div className="ml-[9px]">
           <SectionTitle icon="info" text="其他信息" weight={600} />
         </div>
@@ -405,7 +391,7 @@ export default function RequirementCardExpanded({
         </div>
       </div>
 
-      <div className="mt-[20px] h-px w-full bg-[#0000000A]" />
+      <div className={`${isComplete ? 'mt-[20px]' : 'mt-[40px]'} h-px w-full bg-[#0000000A]`} />
 
       <div className="mt-[20px]">
         <div className="ml-[9px]">
@@ -438,56 +424,13 @@ export default function RequirementCardExpanded({
       </div>
 
       <div className="mt-[20px] flex items-end justify-between">
-        <div className={`relative flex h-[60px] items-center rounded-[8px] border border-[#EEEEEE] px-[12px] ${isComplete ? 'w-[64px] justify-center bg-transparent' : 'w-[176px] bg-white'}`}>
-          {/* Decrease button with animation — hidden when COMPLETE */}
-          {!isComplete && (
-            <div className="relative">
-              <StepButton onClick={() => { setManDays((v) => Math.max(0, round1(v - 0.1))); markDirty(); triggerDecreaseAnim() }} disabled={!userEditable}>🦴</StepButton>
-              {decreaseAnim && (
-                <span
-                  key={decreaseAnim}
-                  className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-[4px] text-[16px] animate-fade-out"
-                  style={{ fontWeight: 800, color: '#E96631' }}
-                >
-                  🦴
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Input */}
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            value={manDaysFocused && manDays === 0 ? '' : manDays === 0 ? '0' : manDays || ''}
-            disabled={!userEditable || isComplete}
-            readOnly={isComplete}
-            onChange={(e) => { setManDays(parseFloat(e.target.value) || 0); markDirty() }}
-            onFocus={() => setManDaysFocused(true)}
-            onBlur={() => setManDaysFocused(false)}
-            className={`mx-[8px] h-[36px] w-[64px] rounded-[8px] text-center text-[20px] leading-[36px] outline-none ${isComplete ? 'border-transparent bg-transparent' : 'border border-[#EEEEEE]'}`}
-            style={{ fontWeight: 800 }}
-          />
-
-          {/* Increase button with animation — hidden when COMPLETE */}
-          {!isComplete && (
-            <div className="relative">
-              <StepButton onClick={() => { setManDays((v) => round1(v + 0.1)); markDirty(); triggerIncreaseAnim() }} disabled={!userEditable}>
-                <span className="inline-block scale-y-[-1]">🍗</span>
-              </StepButton>
-              {increaseAnim && (
-                <span
-                  key={increaseAnim}
-                  className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-[4px] text-[16px] animate-fade-out"
-                  style={{ fontWeight: 800, color: '#8ECA2E' }}
-                >
-                  <span className="inline-block scale-y-[-1]">🍗</span>
-                </span>
-              )}
-            </div>
-          )}
-        </div>
+        <ManDayStepper
+          value={manDays}
+          onChange={(v) => setManDays(v)}
+          onDirty={markDirty}
+          disabled={!userEditable}
+          isComplete={isComplete}
+        />
 
         <div className="flex items-end gap-[8px]">
           <div className="flex h-[60px] items-center gap-[8px]">
@@ -500,7 +443,7 @@ export default function RequirementCardExpanded({
           <ActionButton
             variant="cancel"
             onClick={() => (dirty || isDraft ? onDiscardRequest(data.id) : collapseWithAnimation(() => onDraftResolved(data.id)))}
-            completeText="收起"
+            completeText={dirty || isDraft ? '取消' : '收起'}
           />
 
           <ActionButton
@@ -689,24 +632,6 @@ function ActionButton({ variant, disabled, lastSubmittedAt, onClick, completeTex
       {completeText || '取消'}
     </button>
   )
-}
-
-function StepButton({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled: boolean }) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className="flex h-[36px] w-[36px] items-center justify-center text-[24px] leading-none text-black/80 disabled:text-black/20 transition-transform duration-100 hover:scale-[1.2] active:scale-[0.95]"
-      style={{ fontWeight: 300 }}
-    >
-      {children}
-    </button>
-  )
-}
-
-function round1(v: number) {
-  return Math.round(v * 10) / 10
 }
 
 function TitleNameIcon() { return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="4" y="1" width="4" height="2" rx="0.5" stroke={GREEN} /><path d="M8 2h1a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h1" stroke={GREEN} /><path d="M4.5 7 5.5 8 7.5 6" stroke={GREEN} /></svg> }
