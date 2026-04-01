@@ -8,6 +8,7 @@ import { getHealthStatus, getSuitableRating } from '@/lib/compute'
 import { useTips } from './Tips'
 import { DeleteIcon, ConfirmIcon, SubmitIcon, ClockIcon, ActionIconButton } from './icons'
 import { Cube, DesignerChip } from './Cube'
+import { RequiredDot } from './RequiredDot'
 import ManDayStepper from './ManDayStepper'
 
 const FONT = { fontFamily: 'Alibaba PuHuiTi 2.0' }
@@ -255,7 +256,7 @@ export default function RequirementCardExpanded({
                   </button>
                 )}
               </div>
-              <span className="absolute left-[604px] top-[19px] h-[4px] w-[4px] rounded-full bg-[#FF0000]" />
+              {!readOnly && <RequiredDot className="left-[604px] top-[19px]" />}
             </div>
           </div>
         </div>
