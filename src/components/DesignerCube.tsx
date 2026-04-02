@@ -46,18 +46,28 @@ export function DesignerCube({
   // Measure available width from parent after mount
   useEffect(() => {
     if (!containerRef.current) return
-    // Get initial available width from parent's content rect
-    const initialWidth = containerRef.current.parentElement?.getBoundingClientRect().width ?? MAX_WIDTH
-    setContainerWidth(initialWidth)
-
-    // Also observe parent for resize
     const parent = containerRef.current.parentElement
     if (!parent) return
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width)
+
+    const updateWidth = () => {
+      const parentRect = parent.getBoundingClientRect()
+      const parentWidth = parentRect.width
+      // Get all flex items in parent to calculate remaining space
+      const flexItems = Array.from(parent.children)
+      let otherItemsWidth = 0
+      for (const item of flexItems) {
+        if (item !== containerRef.current) {
+          otherItemsWidth += item.getBoundingClientRect().width + 8 // gap
+        }
       }
-    })
+      // Available space for DesignerCube
+      const availableWidth = parentWidth - otherItemsWidth
+      setContainerWidth(Math.max(MIN_WIDTH, Math.min(availableWidth, MAX_WIDTH)))
+    }
+
+    updateWidth()
+
+    const observer = new ResizeObserver(updateWidth)
     observer.observe(parent)
     return () => observer.disconnect()
   }, [])
