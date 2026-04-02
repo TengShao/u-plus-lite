@@ -41,82 +41,93 @@ export function DesignerCube({
   value,
 }: DesignerCubeProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const chipsContainerRef = useRef<HTMLDivElement>(null)
+  const [visibleCount, setVisibleCount] = useState(workloads?.length ?? 0)
   const [containerWidth, setContainerWidth] = useState(0)
 
-  // Measure available width from parent after mount
+  // Measure actual container width and detect overflow
   useEffect(() => {
-    if (!containerRef.current) return
-    const parent = containerRef.current.parentElement
-    if (!parent) return
+    if (!containerRef.current || !chipsContainerRef.current) return
 
-    const updateWidth = () => {
-      const parentRect = parent.getBoundingClientRect()
-      const parentWidth = parentRect.width
-      // Get all flex items in parent to calculate remaining space
-      const flexItems = Array.from(parent.children)
-      let otherItemsWidth = 0
-      for (const item of flexItems) {
-        if (item !== containerRef.current) {
-          otherItemsWidth += item.getBoundingClientRect().width + 8 // gap
+    const updateMeasurement = () => {
+      if (!containerRef.current || !chipsContainerRef.current) return
+      const containerW = containerRef.current.getBoundingClientRect().width
+      setContainerWidth(containerW)
+
+      // Get all chips in the container
+      const chips = chipsContainerRef.current.children
+      let totalWidth = 0
+      let visible = 0
+
+      for (let i = 0; i < chips.length; i++) {
+        const chipWidth = (chips[i] as HTMLElement).getBoundingClientRect().width
+        const neededWidth = totalWidth === 0 ? chipWidth : totalWidth + GAP + chipWidth
+
+        if (neededWidth <= Math.min(containerW, MAX_WIDTH)) {
+          totalWidth = neededWidth
+          visible = i + 1
+        } else {
+          break
         }
       }
-      // Available space for DesignerCube
-      const availableWidth = parentWidth - otherItemsWidth
-      setContainerWidth(Math.max(MIN_WIDTH, Math.min(availableWidth, MAX_WIDTH)))
+
+      setVisibleCount(visible)
     }
 
-    updateWidth()
+    // Initial measurement after a paint
+    const rafId = requestAnimationFrame(updateMeasurement)
 
-    const observer = new ResizeObserver(updateWidth)
-    observer.observe(parent)
-    return () => observer.disconnect()
-  }, [])
+    // Also set up resize observer for updates
+    const observer = new ResizeObserver(() => {
+      requestAnimationFrame(updateMeasurement)
+    })
+    observer.observe(containerRef.current)
 
-  const effectiveWidth = Math.max(MIN_WIDTH, Math.min(containerWidth, MAX_WIDTH))
-
-  const { visibleChips, overflowChip } = useMemo(() => {
-    if (!workloads || workloads.length === 0) {
-      return { visibleChips: [], overflowChip: null }
+    return () => {
+      cancelAnimationFrame(rafId)
+      observer.disconnect()
     }
+  }, [workloads])
 
-    // Sort: current user first, then by userId
-    const sorted = [...workloads].sort((a, b) => {
+  // Sort workloads: mine first, then by userId
+  const sortedWorkloads = useMemo(() => {
+    if (!workloads || workloads.length === 0) return []
+    return [...workloads].sort((a, b) => {
       const aIsMine = a.userId === myUserId ? 1 : 0
       const bIsMine = b.userId === myUserId ? 1 : 0
       if (aIsMine !== bIsMine) return bIsMine - aIsMine
       return a.userId - b.userId
     })
+  }, [workloads, myUserId])
 
-    let currentWidth = 0
-    const visibleChips: Array<{ workload: Workload; isMine: boolean }> = []
-    let overflowChip: { count: number; manDays: number } | null = null
-
-    for (let i = 0; i < sorted.length; i++) {
-      const workload = sorted[i]
-      const chipWidth = estimateChipWidth(workload.userName, workload.manDays)
-      const neededWidth = currentWidth === 0 ? chipWidth : currentWidth + GAP + chipWidth
-
-      if (neededWidth <= effectiveWidth) {
-        visibleChips.push({ workload, isMine: workload.userId === myUserId })
-        currentWidth = neededWidth
-      } else {
-        // Calculate overflow
-        const remaining = sorted.slice(i)
-        overflowChip = {
-          count: remaining.length,
-          manDays: remaining.reduce((sum, w) => sum + w.manDays, 0),
-        }
-        break
-      }
+  // Calculate overflow
+  const { visibleWorkloads, overflow } = useMemo(() => {
+    if (sortedWorkloads.length === 0) {
+      return { visibleWorkloads: [], overflow: null }
     }
 
-    return { visibleChips, overflowChip }
-  }, [workloads, myUserId, effectiveWidth])
+    if (visibleCount >= sortedWorkloads.length) {
+      // All fit, no overflow
+      return { visibleWorkloads: sortedWorkloads, overflow: null }
+    }
+
+    // Some don't fit - create overflow chip
+    const visible = sortedWorkloads.slice(0, visibleCount)
+    const remaining = sortedWorkloads.slice(visibleCount)
+    const overflow = {
+      count: remaining.length,
+      manDays: remaining.reduce((sum, w) => sum + w.manDays, 0),
+    }
+
+    return { visibleWorkloads: visible, overflow }
+  }, [sortedWorkloads, visibleCount])
+
+  const hasContent = visibleWorkloads.length > 0 || overflow
 
   return (
     <div
       ref={containerRef}
-      className="relative flex h-[80px] flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] px-[8px] font-alibaba"
+      className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] px-[8px] font-alibaba"
       style={{
         width: 'auto',
         minWidth: MIN_WIDTH,
@@ -130,21 +141,28 @@ export function DesignerCube({
         <span className="mt-[12px] text-[16px] leading-[22px] text-black" style={{ fontWeight: 600 }}>
           {value ?? '-'}
         </span>
+      ) : !hasContent ? (
+        <span className="mt-[12px] text-[16px] leading-[22px] text-black" style={{ fontWeight: 600 }}>
+          {value ?? '-'}
+        </span>
       ) : (
-        <div className="relative mt-[5px] flex shrink-0 items-center gap-[8px]">
-          {visibleChips.map(({ workload, isMine }) => (
+        <div ref={chipsContainerRef} className="relative mt-[5px] flex shrink-0 items-center gap-[8px]">
+          {visibleWorkloads.map((w) => {
+            const isMe = w.userId === myUserId
+            return (
+              <DesignerChip
+                key={w.userId}
+                name={isMe ? '你' : w.userName}
+                days={String(w.manDays)}
+                mine={isMe}
+                nameWeight={isMe ? 600 : undefined}
+              />
+            )
+          })}
+          {overflow && (
             <DesignerChip
-              key={workload.userId}
-              name={isMine ? '你' : workload.userName}
-              days={String(workload.manDays)}
-              mine={isMine}
-              nameWeight={isMine ? 600 : undefined}
-            />
-          ))}
-          {overflowChip && (
-            <DesignerChip
-              name={`其他${overflowChip.count}人`}
-              days={String(overflowChip.manDays)}
+              name={`其他${overflow.count}人`}
+              days={String(overflow.manDays)}
             />
           )}
         </div>
