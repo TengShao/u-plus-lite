@@ -65,7 +65,6 @@ export default function Home() {
             refreshKey={refreshKey}
             onRefresh={refresh}
             onDraftChange={setHasDraft}
-            userPrimaryPipeline={session.user.lastUsedPipeline || (typeof session.user.pipelines === 'string' ? JSON.parse(session.user.pipelines || '[]')[0] : session.user.pipelines?.[0]) || null}
           />
       </main>
     </div>
