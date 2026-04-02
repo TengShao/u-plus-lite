@@ -1,33 +1,34 @@
 # U-Plus-Lite 一键部署脚本（Windows PowerShell）
 # 使用方式：以管理员身份运行 PowerShell，然后执行本脚本
+#   powershell -ExecutionPolicy Bypass -File deploy\deploy.ps1
 
 $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 $REPO_URL = "https://github.com/TengShao/u-plus-lite.git"
-$DEFAULT_DIR = "$HOME\u-plus-lite"
-$DEPLOY_DIR = ""
-$UPDATE_MODE = $false
+$DEFAULT_DIR = "$env:USERPROFILE\u-plus-lite"
 $PROJECT_ROOT = ""
+$DEPLOY_MODE = ""
+$SELECTED_PORT = 3000
 
 # ============================================================
 # 颜色和输出函数
 # ============================================================
-function Write-Step($msg) { Write-Host "[*] $msg" -ForegroundColor Cyan }
 function Write-Success($msg) { Write-Host "[+] $msg" -ForegroundColor Green }
 function Write-Fail($msg) { Write-Host "[X] $msg" -ForegroundColor Red }
+function Write-Warn($msg) { Write-Host "[!] $msg" -ForegroundColor Yellow }
+function Write-Step($msg) { Write-Host "[*] $msg" -ForegroundColor Cyan }
 function Write-Info($msg) { Write-Host "[-] $msg" -ForegroundColor Yellow }
+function Write-HostL($msg) { Write-Host $msg }
 
 # ============================================================
-# 获取本机局域网 IP
+# 获取本机局域网 IP（192.168.x.x）
 # ============================================================
 function Get-LocalIP {
-    $ip = (Get-NetIPAddress -InterfaceAlias "Wi-Fi" -AddressFamily IPv4 -ErrorAction SilentlyContinue).IPAddress
+    $ip = (ipconfig) -match '192\.168\.\d+\.\d+' | ForEach-Object { $matches[0] } | Select-Object -First 1
     if (-not $ip) {
-        $ip = (Get-NetIPAddress -InterfaceAlias "以太网" -AddressFamily IPv4 -ErrorAction SilentlyContinue).IPAddress
-    }
-    if (-not $ip) {
-        $ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch "Loopback" -and $_.IPAddress -notmatch "^127" } | Select-Object -First 1).IPAddress
+        $adapters = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch "Loopback|Loopback Pseudo-Interface" -and $_.IPAddress -notmatch "^127" }
+        $ip = ($adapters | Select-Object -First 1).IPAddress
     }
     return $ip
 }
@@ -38,6 +39,17 @@ function Get-LocalIP {
 function Test-PortUsed($port) {
     $result = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
     return $null -ne $result
+}
+
+# ============================================================
+# 查找可用端口（从 3000 开始）
+# ============================================================
+function Find-AvailablePort($startPort = 3000) {
+    $port = $startPort
+    while (Test-PortUsed $port) {
+        $port++
+    }
+    return $port
 }
 
 # ============================================================
@@ -61,43 +73,71 @@ function Read-Secret($prompt) {
 }
 
 # ============================================================
-# Step 0: 依赖检测
+# Step 0: 依赖检测 + 自动安装
 # ============================================================
-function Check-Dependencies {
+function Test-Dependencies {
     Write-Host ""
-    Write-Host "正在检测系统依赖..." -ForegroundColor Cyan
+    Write-Step "检测系统依赖..."
     Write-Host ""
 
-    $missing = @()
+    # Chocolatey 检测
+    $chocoInstalled = Test-Command choco
+    if (-not $chocoInstalled) {
+        Write-Warn "Chocolatey 未安装，正在安装..."
+        Set-ExecutionPolicy Bypass -Scope Process -Force
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+        Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+        if (Test-Command choco) {
+            Write-Success "Chocolatey 安装成功"
+        } else {
+            Write-Fail "Chocolatey 安装失败，请手动安装后重试"
+            exit 1
+        }
+    }
 
+    # Git 检测
     if (Test-Command git) {
         $gitVer = (git --version) -replace "git version ", ""
-        Write-Success "Git: 已安装 ($gitVer)"
+        Write-Success "Git: $gitVer"
     } else {
-        Write-Fail "Git: 未安装"
-        $missing += "git"
-        Write-Info "安装指引: https://git-scm.com/download/win"
+        Write-Warn "Git 未安装，正在安装..."
+        choco install git -y --params "/GitOnlyNow /NoAutoCrlf"
+        if (Test-Command git) {
+            Write-Success "Git 安装成功"
+        } else {
+            Write-Fail "Git 安装失败，请手动安装后重试"
+            exit 1
+        }
     }
 
+    # Node.js 检测
     if (Test-Command node) {
         $nodeVer = node -v
-        $major = [int]($nodeVer -replace "v", "" -split "\.")[0]
-        if ($major -ge 18) {
-            Write-Success "Node.js: $nodeVer"
-        } else {
-            Write-Fail "Node.js: $nodeVer (需要 v18+)"
-            $missing += "node"
-        }
+        Write-Success "Node.js: $nodeVer"
     } else {
-        Write-Fail "Node.js: 未安装"
-        $missing += "node"
-        Write-Info "安装指引: https://nodejs.org/"
+        Write-Warn "Node.js 未安装，正在安装..."
+        choco install nodejs -y --version=20
+        if (Test-Command node) {
+            Write-Success "Node.js 安装成功"
+        } else {
+            Write-Fail "Node.js 安装失败，请手动安装后重试"
+            exit 1
+        }
     }
 
-    if ($missing.Count -gt 0) {
-        Write-Host ""
-        Write-Host "请先安装缺少的依赖后，重新运行本脚本。" -ForegroundColor Yellow
-        exit 1
+    # PM2 检测
+    if (Test-Command pm2) {
+        $pm2Ver = (pm2 --version)
+        Write-Success "PM2: $pm2Ver"
+    } else {
+        Write-Warn "PM2 未安装，正在安装..."
+        npm install -g pm2
+        if (Test-Command pm2) {
+            Write-Success "PM2 安装成功"
+        } else {
+            Write-Fail "PM2 安装失败，请手动安装后重试"
+            exit 1
+        }
     }
 
     Write-Host ""
@@ -105,425 +145,509 @@ function Check-Dependencies {
 }
 
 # ============================================================
-# Step 1: 路径配置
+# 获取 GitHub 最新版本
 # ============================================================
-function Set-DeployPath {
-    Write-Host ""
-    Write-Host "=========================================="
-    Write-Host " U-Plus-Lite 部署脚本"
-    Write-Host "=========================================="
-    Write-Host ""
-    Write-Host -NoNewline "部署路径 [默认: ~\u-plus-lite]: "
-    $input = Read-Host
-    $script:DEPLOY_DIR = if ([string]::IsNullOrWhiteSpace($input)) { $DEFAULT_DIR } else { $input }
-    $script:DEPLOY_DIR = [System.Environment]::ExpandEnvironmentVariables($script:DEPLOY_DIR)
-
-    if ((Split-Path $script:DEPLOY_DIR -Leaf) -ne "u-plus-lite") {
-        $script:DEPLOY_DIR = Join-Path $script:DEPLOY_DIR "u-plus-lite"
+function Get-LatestVersion {
+    try {
+        $response = Invoke-RestMethod -Uri "https://api.github.com/repos/TengShao/u-plus-lite/releases/latest" -TimeoutSec 10
+        return $response.tag_name -replace "^v", ""
+    } catch {
+        return "unknown"
     }
 }
 
 # ============================================================
-# Step 2: 克隆或更新代码
+# 获取本地已部署版本
 # ============================================================
-function Initialize-Code {
-    Write-Host ""
+function Get-LocalVersion($deployDir) {
+    $versionFile = Join-Path $deployDir "version.txt"
+    if (Test-Path $versionFile) {
+        return (Get-Content $versionFile -Raw).Trim()
+    }
+    # 尝试从 git 读取
+    $gitDir = Join-Path $deployDir ".git"
+    if (Test-Path $gitDir) {
+        Push-Location $deployDir
+        try {
+            $tag = git describe --tags --abbrev=0 2>$null
+            if ($tag) { return $tag -replace "^v", "" }
+        } catch {}
+        Pop-Location
+    }
+    return "unknown"
+}
 
-    $gitDir = Join-Path $script:DEPLOY_DIR ".git"
+# ============================================================
+# 检测部署状态
+# ============================================================
+function Detect-Deployment {
+    $gitDir = Join-Path $DEFAULT_DIR ".git"
 
     if (Test-Path $gitDir) {
-        Write-Info "检测到已有代码，进入更新模式..."
+        $script:DEPLOY_MODE = "update"
+        $script:PROJECT_ROOT = $DEFAULT_DIR
         Write-Host ""
-        Write-Host "即将更新现有部署：$script:DEPLOY_DIR"
-        Write-Host -NoNewline "是否继续？[Y: 更新，其他: 取消]: "
-        $confirm = Read-Host
-        if ($confirm -ne "Y" -and $confirm -ne "y") {
-            Write-Host "已取消。"
-            exit 0
-        }
-        Set-Location $script:DEPLOY_DIR
-        $script:UPDATE_MODE = $true
-        $script:PROJECT_ROOT = $script:DEPLOY_DIR
-
-        # 拉取最新代码
-        Write-Host "正在拉取最新代码..."
-        git fetch origin
-        git checkout master
-        git pull origin master
-
-        $nextDir = Join-Path $script:DEPLOY_DIR ".next"
-        if (Test-Path $nextDir) {
-            Write-Info "清理旧的构建缓存..."
-            Remove-Item -Recurse -Force $nextDir
-        }
-
-        $destScripts = Join-Path $script:DEPLOY_DIR "scripts"
-        if (-not (Test-Path $destScripts)) { New-Item -ItemType Directory -Path $destScripts | Out-Null }
-        if ([string]::IsNullOrEmpty($PSCommandPath)) {
-            Write-Info "脚本通过管道运行，从 GitHub 下载 deploy.ps1..."
-            Invoke-WebRequest -Uri "https://raw.githubusercontent.com/TengShao/u-plus-lite/master/deploy/deploy.ps1" -OutFile (Join-Path $destScripts "deploy.ps1")
-        } else {
-            Copy-Item -Force $PSCommandPath (Join-Path $destScripts "deploy.ps1")
-        }
-
+        Write-Warn "检测到已有部署，进入更新模式"
     } else {
-        if (Test-Path $script:DEPLOY_DIR) {
-            Write-Warning "$script:DEPLOY_DIR 目录已存在，但不是 U-Plus-Lite 项目"
-            Write-Host -NoNewline "是否删除并重新克隆？[y/N]: "
-            $response = Read-Host
-            if ($response -eq "y" -or $response -eq "Y") {
-                Remove-Item -Recurse -Force $script:DEPLOY_DIR
+        Write-Host ""
+        Write-Step "选择部署模式"
+        Write-Host ""
+        Write-Host "  1 - 全新部署（首次安装）"
+        Write-Host "  2 - 自定义路径部署"
+        Write-Host ""
+        Write-Host -NoNewline "请选择 [1]: "
+        $choice = Read-Host
+
+        if ($choice -eq "2") {
+            Write-Host -NoNewline "请输入部署目录路径: "
+            $customPath = Read-Host
+            if (-not [string]::IsNullOrWhiteSpace($customPath)) {
+                $script:DEFAULT_DIR = $customPath
+                if ((Split-Path $script:DEFAULT_DIR -Leaf) -ne "u-plus-lite") {
+                    $script:DEFAULT_DIR = Join-Path $script:DEFAULT_DIR "u-plus-lite"
+                }
+            }
+        }
+
+        $script:DEPLOY_MODE = "new"
+        $script:PROJECT_ROOT = $DEFAULT_DIR
+    }
+}
+
+# ============================================================
+# 智能构建检测（检查文件变更）
+# ============================================================
+function Test-SmartBuildNeeded {
+    Push-Location $script:PROJECT_ROOT
+    try {
+        $gitStatus = git status --porcelain
+        $packageChanged = $gitStatus -match "package-lock\.json"
+        $schemaChanged = $gitStatus -match "schema\.prisma"
+        return ($packageChanged -or $schemaChanged)
+    } finally {
+        Pop-Location
+    }
+}
+
+# ============================================================
+# 导入 CSV 数据
+# ============================================================
+function Import-CsvData {
+    Write-Host ""
+    Write-Step "CSV 数据导入"
+    Write-Host ""
+    Write-Host "  1 - 使用 deploy 目录下的 CSV 文件"
+    Write-Host "  2 - 指定自定义路径"
+    Write-Host "  3 - 跳过（稍后手动导入）"
+    Write-Host ""
+    Write-Host -NoNewline "请选择 [3]: "
+    $choice = Read-Host
+
+    if ($choice -eq "1") {
+        $pipelinesPath = Join-Path $script:PROJECT_ROOT "deploy\pipelines.csv"
+        $budgetPath = Join-Path $script:PROJECT_ROOT "deploy\budget_items.csv"
+
+        if (-not (Test-Path $pipelinesPath) -and -not (Test-Path $budgetPath)) {
+            Write-Warn "deploy 目录下未找到 CSV 文件，跳过导入"
+            return
+        }
+
+        Write-Host ""
+        Write-Step "正在导入管线和预算项..."
+        Set-Location $script:PROJECT_ROOT
+
+        if ((Test-Path $pipelinesPath) -and (Test-Path $budgetPath)) {
+            npx tsx prisma/import.ts --pipelines=$pipelinesPath --budget-items=$budgetPath
+        } elseif (Test-Path $pipelinesPath) {
+            npx tsx prisma/import.ts --pipelines=$pipelinesPath
+        } elseif (Test-Path $budgetPath) {
+            npx tsx prisma/import.ts --budget-items=$budgetPath
+        }
+
+        Write-Success "CSV 导入完成"
+
+    } elseif ($choice -eq "2") {
+        Write-Host ""
+        Write-Host -NoNewline "管线 CSV 路径（留空跳过）: "
+        $pipelinesPath = Read-Host
+        Write-Host -NoNewline "预算项 CSV 路径（留空跳过）: "
+        $budgetPath = Read-Host
+
+        if (-not [string]::IsNullOrWhiteSpace($pipelinesPath) -or -not [string]::IsNullOrWhiteSpace($budgetPath)) {
+            Set-Location $script:PROJECT_ROOT
+            if (-not [string]::IsNullOrWhiteSpace($pipelinesPath) -and -not [string]::IsNullOrWhiteSpace($budgetPath)) {
+                npx tsx prisma/import.ts --pipelines=$pipelinesPath --budget-items=$budgetPath
+            } elseif (-not [string]::IsNullOrWhiteSpace($pipelinesPath)) {
+                npx tsx prisma/import.ts --pipelines=$pipelinesPath
             } else {
-                Write-Host "部署取消。"
-                exit 1
+                npx tsx prisma/import.ts --budget-items=$budgetPath
             }
+            Write-Success "CSV 导入完成"
+        } else {
+            Write-Info "跳过导入"
         }
-
-        Write-Step "[1/7] 正在克隆代码仓库..."
-        git clone $REPO_URL $script:DEPLOY_DIR
-        Set-Location $script:DEPLOY_DIR
-        $script:PROJECT_ROOT = $script:DEPLOY_DIR
-
-        $scriptsDir = Join-Path $script:DEPLOY_DIR "scripts"
-        if (-not (Test-Path $scriptsDir)) { New-Item -ItemType Directory -Path $scriptsDir | Out-Null }
-        Copy-Item -Force $PSCommandPath (Join-Path $scriptsDir "deploy.ps1")
-
-        # 写入 seed.ts
-        $seedContent = "import { PrismaClient } from '@prisma/client'" + [Environment]::NewLine
-        $seedContent += "import bcrypt from 'bcryptjs'" + [Environment]::NewLine
-        $seedContent += "" + [Environment]::NewLine
-        $seedContent += "const prisma = new PrismaClient()" + [Environment]::NewLine
-        $seedContent += "" + [Environment]::NewLine
-        $seedContent += "async function main() {" + [Environment]::NewLine
-        $seedContent += "  const providedName = process.argv[2]" + [Environment]::NewLine
-        $seedContent += "  const providedPassword = process.argv[3]" + [Environment]::NewLine
-        $seedContent += "" + [Environment]::NewLine
-        $seedContent += "  if (providedName && providedPassword) {" + [Environment]::NewLine
-        $seedContent += "    const hashedPassword = await bcrypt.hash(providedPassword, 10)" + [Environment]::NewLine
-        $seedContent += "    await prisma.user.upsert({" + [Environment]::NewLine
-        $seedContent += "      where: { name: providedName }," + [Environment]::NewLine
-        $seedContent += "      update: {}," + [Environment]::NewLine
-        $seedContent += "      create: {" + [Environment]::NewLine
-        $seedContent += "        name: providedName," + [Environment]::NewLine
-        $seedContent += "        password: hashedPassword," + [Environment]::NewLine
-        $seedContent += "        role: 'ADMIN'," + [Environment]::NewLine
-        $seedContent += "      }," + [Environment]::NewLine
-        $seedContent += "    })" + [Environment]::NewLine
-        $seedContent += "    console.log('Seed complete: admin user `' + providedName + `' created')" + [Environment]::NewLine
-        $seedContent += "  } else {" + [Environment]::NewLine
-        $seedContent += "    const hashedPassword = await bcrypt.hash('88888888', 10)" + [Environment]::NewLine
-        $seedContent += "    await prisma.user.upsert({" + [Environment]::NewLine
-        $seedContent += "      where: { name: '邵腾' }," + [Environment]::NewLine
-        $seedContent += "      update: {}," + [Environment]::NewLine
-        $seedContent += "      create: {" + [Environment]::NewLine
-        $seedContent += "        name: '邵腾'," + [Environment]::NewLine
-        $seedContent += "        password: hashedPassword," + [Environment]::NewLine
-        $seedContent += "        role: 'ADMIN'," + [Environment]::NewLine
-        $seedContent += "      }," + [Environment]::NewLine
-        $seedContent += "    })" + [Environment]::NewLine
-        $seedContent += "    console.log('Seed complete: admin user 邵腾 created (default)')" + [Environment]::NewLine
-        $seedContent += "  }" + [Environment]::NewLine
-        $seedContent += "  console.log('Seed complete: admin user created')" + [Environment]::NewLine
-        $seedContent += "}" + [Environment]::NewLine
-        $seedContent += "" + [Environment]::NewLine
-        $seedContent += "main()" + [Environment]::NewLine
-        $seedContent += "  .catch((e) => { console.error(e); process.exit(1) })" + [Environment]::NewLine
-        $seedContent += "  .finally(() => prisma.`$disconnect())" + [Environment]::NewLine
-        $seedPath = Join-Path $script:DEPLOY_DIR "prisma\seed.ts"
-        [System.IO.File]::WriteAllText($seedPath, $seedContent, [System.Text.Encoding]::UTF8)
-        Write-Info "seed.ts 已更新为支持命令行参数的版本"
-
-        # 写入 import.ts
-        $importContent = "import { PrismaClient } from '@prisma/client'" + [Environment]::NewLine
-        $importContent += "import * as fs from 'fs'" + [Environment]::NewLine
-        $importContent += "import * as readline from 'readline'" + [Environment]::NewLine
-        $importContent += "" + [Environment]::NewLine
-        $importContent += "const prisma = new PrismaClient()" + [Environment]::NewLine
-        $importContent += "" + [Environment]::NewLine
-        $importContent += "type CliArgs = { pipelines?: string; budgetItems?: string }" + [Environment]::NewLine
-        $importContent += "" + [Environment]::NewLine
-        $importContent += "function parseArgs(): CliArgs {" + [Environment]::NewLine
-        $importContent += "  const args: CliArgs = {}" + [Environment]::NewLine
-        $importContent += "  for (let i = 2; i < process.argv.length; i++) {" + [Environment]::NewLine
-        $importContent += "    const arg = process.argv[i]" + [Environment]::NewLine
-        $importContent += "    if (arg.startsWith('--pipelines=')) args.pipelines = arg.replace('--pipelines=', '')" + [Environment]::NewLine
-        $importContent += "    if (arg.startsWith('--budget-items=')) args.budgetItems = arg.replace('--budget-items=', '')" + [Environment]::NewLine
-        $importContent += "  }" + [Environment]::NewLine
-        $importContent += "  return args" + [Environment]::NewLine
-        $importContent += "}" + [Environment]::NewLine
-        $importContent += "" + [Environment]::NewLine
-        $importContent += "async function readCsvLines(input: string): Promise<string[]> {" + [Environment]::NewLine
-        $importContent += "  if (!fs.existsSync(input)) { console.error('文件不存在: ' + input); process.exit(1) }" + [Environment]::NewLine
-        $importContent += "  return fs.readFileSync(input, 'utf8').split('\n').filter((l) => l.trim())" + [Environment]::NewLine
-        $importContent += "}" + [Environment]::NewLine
-        $importContent += "" + [Environment]::NewLine
-        $importContent += "function parsePipelinesCsv(lines: string[]): string[] {" + [Environment]::NewLine
-        $importContent += "  if (lines.length < 2) return []" + [Environment]::NewLine
-        $importContent += "  return lines.slice(1).filter((l) => l.trim())" + [Environment]::NewLine
-        $importContent += "}" + [Environment]::NewLine
-        $importContent += "" + [Environment]::NewLine
-        $importContent += "function parseBudgetItemsCsv(lines: string[]): Array<{ pipeline: string; name: string }> {" + [Environment]::NewLine
-        $importContent += "  if (lines.length < 2) return []" + [Environment]::NewLine
-        $importContent += "  return lines.slice(1).map((line) => {" + [Environment]::NewLine
-        $importContent += "    const firstComma = line.indexOf(',')" + [Environment]::NewLine
-        $importContent += "    if (firstComma === -1) return { pipeline: '', name: line.trim() }" + [Environment]::NewLine
-        $importContent += "    return { pipeline: line.slice(0, firstComma).trim(), name: line.slice(firstComma + 1).split(',')[0].trim() }" + [Environment]::NewLine
-        $importContent += "  })" + [Environment]::NewLine
-        $importContent += "}" + [Environment]::NewLine
-        $importContent += "" + [Environment]::NewLine
-        $importContent += "async function ensureOtherPipeline(): Promise<number> {" + [Environment]::NewLine
-        $importContent += "  const existing = await prisma.pipelineSetting.findUnique({ where: { name: '其他' } })" + [Environment]::NewLine
-        $importContent += "  if (existing) return existing.id" + [Environment]::NewLine
-        $importContent += "  const created = await prisma.pipelineSetting.create({ data: { name: '其他' } })" + [Environment]::NewLine
-        $importContent += "  console.log('  自动创建其他管线')" + [Environment]::NewLine
-        $importContent += "  return created.id" + [Environment]::NewLine
-        $importContent += "}" + [Environment]::NewLine
-        $importContent += "" + [Environment]::NewLine
-        $importContent += "async function importPipelines(args: CliArgs) {" + [Environment]::NewLine
-        $importContent += "  if (!args.pipelines) { console.log('跳过管线导入（未指定 --pipelines）'); return }" + [Environment]::NewLine
-        $importContent += "  const lines = await readCsvLines(args.pipelines)" + [Environment]::NewLine
-        $importContent += "  const names = parsePipelinesCsv(lines)" + [Environment]::NewLine
-        $importContent += "  if (names.length === 0) { console.log('pipelines.csv 为空，跳过'); return }" + [Environment]::NewLine
-        $importContent += "  let created = 0, skipped = 0" + [Environment]::NewLine
-        $importContent += "  for (const name of names) { if (!name.trim()) continue; const existing = await prisma.pipelineSetting.findUnique({ where: { name } }); if (existing) { skipped++ } else { await prisma.pipelineSetting.create({ data: { name } }); created++ } }" + [Environment]::NewLine
-        $importContent += "  console.log('管线导入完成：跳过 ' + skipped + '，已创建 ' + created)" + [Environment]::NewLine
-        $importContent += "}" + [Environment]::NewLine
-        $importContent += "" + [Environment]::NewLine
-        $importContent += "async function importBudgetItems(args: CliArgs) {" + [Environment]::NewLine
-        $importContent += "  if (!args.budgetItems) { console.log('跳过预算项导入（未指定 --budget-items）'); return }" + [Environment]::NewLine
-        $importContent += "  const otherPipelineId = await ensureOtherPipeline()" + [Environment]::NewLine
-        $importContent += "  const lines = await readCsvLines(args.budgetItems)" + [Environment]::NewLine
-        $importContent += "  const items = parseBudgetItemsCsv(lines)" + [Environment]::NewLine
-        $importContent += "  if (items.length === 0) { console.log('budget_items.csv 为空，跳过'); return }" + [Environment]::NewLine
-        $importContent += "  let created = 0, skipped = 0" + [Environment]::NewLine
-        $importContent += "  const pipelineMap = new Map<string, number>()" + [Environment]::NewLine
-        $importContent += "  const allPipelines = await prisma.pipelineSetting.findMany()" + [Environment]::NewLine
-        $importContent += "  for (const p of allPipelines) pipelineMap.set(p.name, p.id)" + [Environment]::NewLine
-        $importContent += "  for (const item of items) {" + [Environment]::NewLine
-        $importContent += "    if (!item.name.trim()) continue" + [Environment]::NewLine
-        $importContent += "    let pipelineId = item.pipeline ? pipelineMap.get(item.pipeline) : undefined" + [Environment]::NewLine
-        $importContent += "    if (!pipelineId) { if (item.pipeline) { const cp = await prisma.pipelineSetting.create({ data: { name: item.pipeline } }); pipelineMap.set(item.pipeline, cp.id); pipelineId = cp.id; console.log('  自动创建管线: ' + item.pipeline) } else { pipelineId = otherPipelineId } }" + [Environment]::NewLine
-        $importContent += "    const existing = await prisma.budgetItemSetting.findFirst({ where: { pipelineId, name: item.name } })" + [Environment]::NewLine
-        $importContent += "    if (existing) { skipped++ } else { await prisma.budgetItemSetting.create({ data: { pipelineId, name: item.name } }); created++ }" + [Environment]::NewLine
-        $importContent += "  }" + [Environment]::NewLine
-        $importContent += "  console.log('预算项导入完成：跳过 ' + skipped + '，已创建 ' + created)" + [Environment]::NewLine
-        $importContent += "}" + [Environment]::NewLine
-        $importContent += "" + [Environment]::NewLine
-        $importContent += "async function main() {" + [Environment]::NewLine
-        $importContent += "  const args = parseArgs()" + [Environment]::NewLine
-        $importContent += "  console.log('')" + [Environment]::NewLine
-        $importContent += "  await importPipelines(args)" + [Environment]::NewLine
-        $importContent += "  await importBudgetItems(args)" + [Environment]::NewLine
-        $importContent += "  console.log('')" + [Environment]::NewLine
-        $importContent += "}" + [Environment]::NewLine
-        $importContent += "" + [Environment]::NewLine
-        $importContent += "main().catch((e) => { console.error(e); process.exit(1) }).finally(() => prisma.`$disconnect())" + [Environment]::NewLine
-        $importPath = Join-Path $script:DEPLOY_DIR "prisma\import.ts"
-        [System.IO.File]::WriteAllText($importPath, $importContent, [System.Text.Encoding]::UTF8)
-        Write-Info "import.ts 已写入"
-
-        # 创建 .env 文件
-        $envPath = Join-Path $script:DEPLOY_DIR ".env"
-        if (-not (Test-Path $envPath)) {
-            $dbUrl = "file:" + $script:DEPLOY_DIR + "\prisma\prod.db"
-            $envContent = "DATABASE_URL=`"" + $dbUrl + "`"" + [Environment]::NewLine
-            $envContent += "NEXTAUTH_SECRET=`"u-minus-dev-secret-change-in-production`"" + [Environment]::NewLine
-            $envContent += "NEXTAUTH_URL=`"http://localhost:3000`""
-            [System.IO.File]::WriteAllText($envPath, $envContent, [System.Text.Encoding]::UTF8)
-            Write-Info ".env 文件已创建"
-        }
+    } else {
+        Write-Info "跳过 CSV 导入，管理员可在 Web 端手动添加"
     }
 }
 
 # ============================================================
-# Step 3: 安装依赖
+# 全新部署
 # ============================================================
-function Install-Deps {
-    Write-Step "[2/7] 安装项目依赖..."
+function Deploy-New {
+    Write-Host ""
+    Write-Step "开始全新部署到: $script:PROJECT_ROOT"
+    Write-Host ""
+
+    # [1/9] 克隆代码
+    Write-Step "[1/9] 克隆代码仓库..."
+
+    if (Test-Path $script:PROJECT_ROOT) {
+        Write-Warn "目录已存在，正在清理..."
+        Remove-Item -Recurse -Force $script:PROJECT_ROOT
+    }
+
+    git clone $REPO_URL $script:PROJECT_ROOT
+    Set-Location $script:PROJECT_ROOT
+
+    # [2/9] 安装依赖
+    Write-Step "[2/9] 安装项目依赖..."
     npm install
-}
+    if ($LASTEXITCODE -ne 0) {
+        Write-Fail "npm install 失败"
+        exit 1
+    }
 
-# ============================================================
-# Step 4: Prisma 初始化
-# ============================================================
-function Initialize-Prisma {
-    Write-Step "[3/7] 生成 Prisma 客户端..."
+    # [3/9] Prisma 初始化
+    Write-Step "[3/9] 生成 Prisma 客户端..."
     npx prisma generate
-
-    Write-Step "[4/7] 应用数据库迁移..."
+    Write-Step "[3/9] 应用数据库迁移..."
     npx prisma db push --accept-data-loss
-}
 
-# ============================================================
-# Step 5: 创建管理员
-# ============================================================
-function Initialize-Admin {
-    Write-Step "[5/7] 检查管理员账号..."
-
-    $dbPath = Join-Path $script:PROJECT_ROOT "prisma\prod.db"
-    $hasAdmin = $false
-    if (Test-Path $dbPath) {
-        try {
-            $result = & sqlite3 $dbPath "SELECT COUNT(*) FROM User WHERE role='ADMIN';" 2>$null
-            if ($result -and [int]$result -gt 0) {
-                $hasAdmin = $true
-            }
-        } catch {}
-    }
-
-    if ($hasAdmin) {
-        Write-Info "  已存在管理员账号，跳过创建..."
-        return
-    }
-
+    # [4/9] 创建管理员
+    Write-Step "[4/9] 创建管理员账号"
     Write-Host ""
-    Write-Host "首次部署，创建管理员账号"
-    Write-Host ""
+
+    $adminName = ""
+    $adminPass = ""
 
     do {
         Write-Host -NoNewline "  管理员姓名: "
         $adminName = Read-Host
         if ([string]::IsNullOrWhiteSpace($adminName)) {
-            Write-Host "  错误：管理员姓名不能为空"
+            Write-Warn "  姓名不能为空"
         }
     } while ([string]::IsNullOrWhiteSpace($adminName))
 
     do {
         $adminPass = Read-Secret "  密码: "
         if ([string]::IsNullOrWhiteSpace($adminPass)) {
-            Write-Host "  错误：密码不能为空"
+            Write-Warn "  密码不能为空"
             continue
         }
         if ($adminPass.Length -lt 8) {
-            Write-Host "  错误：密码至少8位"
+            Write-Warn "  密码至少8位"
             $adminPass = ""
             continue
         }
         $adminPassConfirm = Read-Secret "  确认密码: "
         if ($adminPass -ne $adminPassConfirm) {
-            Write-Host "  错误：两次输入的密码不一致"
+            Write-Warn "  两次密码不一致"
             $adminPass = ""
         }
     } while ([string]::IsNullOrWhiteSpace($adminPass))
 
+    # 执行 seed
     Set-Location $script:PROJECT_ROOT
     npx tsx prisma/seed.ts $adminName $adminPass
-}
+    Write-Success "  管理员创建成功"
 
-# ============================================================
-# Step 6: 配置 NEXTAUTH_URL
-# ============================================================
-function Configure-NextAuth {
-    Write-Step "[配置] 更新 NEXTAUTH_URL..."
+    # [5/9] .env 配置
+    Write-Step "[5/9] 配置环境变量..."
 
+    # 端口检测
+    if (Test-PortUsed 3000) {
+        Write-Warn "端口 3000 被占用"
+        Write-Host ""
+        Write-Host "  1 - 查找下一个可用端口"
+        Write-Host "  2 - 手动输入端口"
+        Write-Host ""
+        Write-Host -NoNewline "请选择 [1]: "
+        $portChoice = Read-Host
+
+        if ($portChoice -eq "2") {
+            Write-Host -NoNewline "请输入端口号: "
+            $script:SELECTED_PORT = [int](Read-Host)
+        } else {
+            $script:SELECTED_PORT = Find-AvailablePort
+            Write-Host "  将使用端口: $script:SELECTED_PORT"
+        }
+    }
+
+    # 生成 .env
+    $envPath = Join-Path $script:PROJECT_ROOT ".env"
+    $dbUrl = "file:" + (Join-Path $script:PROJECT_ROOT "prisma\dev.db").Replace("\", "/")
+    $nextAuthSecret = [Convert]::ToBase64String([byte[]]::new(32) | ForEach-Object { Get-Random -Maximum 256 })
     $localIP = Get-LocalIP
-    $port = 3000
 
-    if (Test-PortUsed $port) {
-        Write-Fail "端口 $port 被占用，请先关闭占用端口的进程后重试"
-        Write-Host "占用 $port 端口的进程："
-        Get-NetTCPConnection -LocalPort $port | ForEach-Object { Write-Host "  PID: $($_.OwningProcess)" }
+    $envContent = "DATABASE_URL=`"$dbUrl`"" + [Environment]::NewLine
+    $envContent += "NEXTAUTH_SECRET=`"$nextAuthSecret`"" + [Environment]::NewLine
+    $envContent += "NEXTAUTH_URL=`"http://$localIP`:$script:SELECTED_PORT`""
+
+    [System.IO.File]::WriteAllText($envPath, $envContent, [System.Text.Encoding]::UTF8)
+    Write-Success "  .env 配置完成"
+
+    # [6/9] 构建
+    Write-Step "[6/9] 构建生产版本..."
+    npm run build
+    if ($LASTEXITCODE -ne 0) {
+        Write-Fail "构建失败"
         exit 1
     }
-    Write-Info "使用端口：$port"
 
-    $envPath = Join-Path $script:PROJECT_ROOT ".env"
-    if (Test-Path $envPath) {
-        $envContent = Get-Content $envPath -Raw
-        $envContent = $envContent -replace 'NEXTAUTH_URL=.*', "NEXTAUTH_URL=`"http://$localIP`:$port`""
-        Set-Content -Path $envPath -Value $envContent -Encoding UTF8
-        Write-Success "NEXTAUTH_URL 已更新为 http://$localIP`:$port"
+    # [7/9] PM2 启动
+    Write-Step "[7/9] 配置 PM2 并启动服务..."
+
+    # 复制 CSV 文件到项目目录
+    $deployDir = Split-Path $script:PROJECT_ROOT -Parent
+    $deployDir = Split-Path $deployDir -Leaf
+    $srcPipelines = Join-Path (Split-Path $script:PROJECT_ROOT -Parent) "deploy\pipelines.csv"
+    $srcBudget = Join-Path (Split-Path $script:PROJECT_ROOT -Parent) "deploy\budget_items.csv"
+    $destPipelines = Join-Path $script:PROJECT_ROOT "deploy\pipelines.csv"
+    $destBudget = Join-Path $script:PROJECT_ROOT "deploy\budget_items.csv"
+
+    if ((Test-Path $srcPipelines) -and -not (Test-Path $destPipelines)) {
+        Copy-Item $srcPipelines $destPipelines -Force
     }
-}
+    if ((Test-Path $srcBudget) -and -not (Test-Path $destBudget)) {
+        Copy-Item $srcBudget $destBudget -Force
+    }
 
-# ============================================================
-# Step 7: 构建并启动
-# ============================================================
-function Build-And-Start {
-    Write-Step "[6/7] 构建生产版本..."
-    npm run build
-
-    Write-Step "[7/7] 启动服务..."
-
-    $env:PORT = 3000
-    Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "cd /d $script:PROJECT_ROOT && npm start" -WindowStyle Hidden
+    Set-Location $script:PROJECT_ROOT
+    pm2 delete u-plus-lite 2>$null
+    $portEnv = "PORT=$script:SELECTED_PORT"
+    pm2 start npm --name "u-plus-lite" -- start --env $portEnv
     Start-Sleep -Seconds 3
-    Write-Info "服务已在后台启动"
+
+    $pm2Status = pm2 list | Select-String "u-plus-lite"
+    if ($pm2Status -match "online") {
+        Write-Success "  服务已启动 (PM2)"
+    } else {
+        Write-Warn "  服务状态待确认，请运行 pm2 list 检查"
+    }
+
+    # [8/9] 写入版本
+    Write-Step "[8/9] 记录版本信息..."
+    $latestVersion = Get-LatestVersion
+    $versionFile = Join-Path $script:PROJECT_ROOT "version.txt"
+    [System.IO.File]::WriteAllText($versionFile, $latestVersion, [System.Text.Encoding]::UTF8)
+    Write-Success "  版本: $latestVersion"
+
+    # [9/9] CSV 导入
+    Write-Step "[9/9] CSV 数据导入"
+    Import-CsvData
+
+    # 自动启动询问
+    Write-Host ""
+    Write-Step "配置 PM2 自动启动"
+    Write-Host ""
+    Write-Host -NoNewline "  是否设置开机自动启动？[Y/n]: "
+    $autostart = Read-Host
+    if ($autostart -ne "n" -and $autostart -ne "N") {
+        pm2 startup
+        pm2 save
+        Write-Success "  已配置开机自动启动"
+    }
+
+    # 返回管理员信息供 Show-Complete 使用
+    $script:DEPLOY_ADMIN_NAME = $adminName
+    $script:DEPLOY_ADMIN_PASS = $adminPass
 }
 
 # ============================================================
-# Step 8: CSV 导入（可选）
+# 更新部署
 # ============================================================
-function Import-CsvData {
+function Deploy-Update {
     Write-Host ""
-    Write-Host "[8/8] 是否导入预算项和管线数据？"
+    Write-Step "更新现有部署: $script:PROJECT_ROOT"
     Write-Host ""
-    Write-Host "  1 - 指定 CSV 文件路径"
-    Write-Host "  2 - 跳过（稍后通过 Web 端手动添加）"
+
+    $localVersion = Get-LocalVersion $script:PROJECT_ROOT
+    $latestVersion = Get-LatestVersion
+
+    Write-Host "  本地版本: $localVersion"
+    Write-Host "  最新版本: $latestVersion"
     Write-Host ""
-    Write-Host -NoNewline "请选择 [直接回车跳过]: "
+
+    # 版本对比
+    if ($localVersion -eq $latestVersion) {
+        Write-Info "已是最新版本"
+    } elseif ($localVersion -ne "unknown" -and $latestVersion -ne "unknown") {
+        $localParts = $localVersion -split "\."
+        $latestParts = $latestVersion -split "\."
+        $needsUpdate = $false
+        for ($i = 0; $i -lt [Math]::Min($localParts.Length, $latestParts.Length); $i++) {
+            if ([int]$latestParts[$i] -gt [int]$localParts[$i]) {
+                $needsUpdate = $true
+                break
+            }
+        }
+        if ($needsUpdate) {
+            Write-Info "检测到新版本可用"
+        }
+    }
+
+    Write-Host "  1 - 更新部署"
+    Write-Host "  2 - 卸载（删除所有数据）"
+    Write-Host "  3 - 重新安装（保留数据库）"
+    Write-Host ""
+    Write-Host -NoNewline "请选择 [1]: "
     $choice = Read-Host
+    if ([string]::IsNullOrWhiteSpace($choice)) { $choice = "1" }
 
     if ($choice -eq "1") {
+        # 更新模式
+        Write-Step "正在更新代码..."
+        Set-Location $script:PROJECT_ROOT
+        git fetch origin
+        git stash
+        git checkout master
+        git pull origin master
+        git stash pop
+
+        # 智能构建
+        if (Test-SmartBuildNeeded) {
+            Write-Step "检测到依赖或 schema 变更，重新安装依赖..."
+            npm install
+            npx prisma generate
+            npx prisma db push --accept-data-loss
+            Write-Step "重新构建..."
+            npm run build
+        } else {
+            Write-Info "无重大变更，跳过依赖安装和构建"
+        }
+
+        # 重启 PM2
+        Write-Step "重启服务..."
+        pm2 restart u-plus-lite
+        Write-Success "更新完成"
+
+    } elseif ($choice -eq "2") {
+        # 卸载
         Write-Host ""
-        Write-Host -NoNewline "请输入管线名称 CSV 文件路径: "
-        $pipelinesPath = Read-Host
-        Write-Host -NoNewline "请输入预算项 CSV 文件路径: "
-        $budgetPath = Read-Host
+        Write-Host -NoNewline "确认卸载？此操作将删除所有数据，输入 YES 确认: "
+        $confirm = Read-Host
+        if ($confirm -ne "YES") {
+            Write-Info "已取消卸载"
+            return
+        }
+
+        Write-Step "正在卸载..."
+        Set-Location $script:PROJECT_ROOT
+        pm2 delete u-plus-lite 2>$null
+        pm2 save 2>$null
+        Remove-Item -Recurse -Force $script:PROJECT_ROOT
+        Write-Success "卸载完成"
+
+    } elseif ($choice -eq "3") {
+        # 重新安装
+        Write-Host ""
+        Write-Warn "重新安装将保留数据库文件"
+        Write-Host -NoNewline "确认重新安装？[y/N]: "
+        $confirm = Read-Host
+        if ($confirm -ne "y" -and $confirm -ne "Y") {
+            Write-Info "已取消"
+            return
+        }
 
         Set-Location $script:PROJECT_ROOT
+        git fetch origin
+        git stash
+        git checkout master
+        git pull origin master
+        git stash pop
 
-        if (-not [string]::IsNullOrWhiteSpace($pipelinesPath) -and -not [string]::IsNullOrWhiteSpace($budgetPath)) {
-            Write-Step "正在导入管线和预算项..."
-            npx tsx prisma/import.ts --pipelines=$pipelinesPath --budget-items=$budgetPath
-        } elseif (-not [string]::IsNullOrWhiteSpace($pipelinesPath)) {
-            Write-Step "正在导入管线..."
-            npx tsx prisma/import.ts --pipelines=$pipelinesPath
-        } elseif (-not [string]::IsNullOrWhiteSpace($budgetPath)) {
-            Write-Step "正在导入预算项..."
-            npx tsx prisma/import.ts --budget-items=$budgetPath
-        } else {
-            Write-Info "未指定文件，跳过导入"
+        # 智能构建
+        if (Test-SmartBuildNeeded) {
+            npm install
+            npx prisma generate
         }
-    } else {
-        Write-Info "跳过导入，管理员可在 Web 端手动添加管线/预算项"
+
+        npm run build
+        pm2 restart u-plus-lite
+        Write-Success "重新安装完成"
     }
 }
 
 # ============================================================
-# 完成
+# 完成信息
 # ============================================================
 function Show-Complete {
     $localIP = Get-LocalIP
     Write-Host ""
     Write-Host "=========================================="
-    Write-Host " 部署完成！" -ForegroundColor Green
+    Write-Host "  部署完成！" -ForegroundColor Green
     Write-Host "=========================================="
     Write-Host ""
-    Write-Host "局域网访问地址：http://$localIP`:3000"
+    Write-Host "访问地址: http://$localIP`:$script:SELECTED_PORT"
     Write-Host ""
-    Write-Host "管理员账号：$adminName"
-    Write-Host "管理员密码：$adminPass"
+
+    if ($script:DEPLOY_MODE -eq "new") {
+        Write-Host "管理员账号: $script:DEPLOY_ADMIN_NAME"
+        Write-Host "管理员密码: $script:DEPLOY_ADMIN_PASS"
+        Write-Host ""
+    }
+
+    Write-Host "常用命令:"
+    Write-Host "  pm2 list              查看服务状态"
+    Write-Host "  pm2 restart u-plus-lite  重启服务"
+    Write-Host "  pm2 logs u-plus-lite    查看日志"
+    Write-Host "  pm2 stop u-plus-lite    停止服务"
     Write-Host ""
-    Write-Host "常用命令："
-    Write-Host "  重启服务：重新运行本脚本，选择更新模式"
-    Write-Host "  停止服务：在任务管理器中结束 node 进程"
+    Write-Host "重新运行本脚本可进入更新模式"
     Write-Host "=========================================="
 }
 
 # ============================================================
 # 主流程
 # ============================================================
-$adminName = ""
-$adminPass = ""
+function Main {
+    # 检查管理员权限
+    $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
 
-Check-Dependencies
-Set-DeployPath
-Initialize-Code
-Install-Deps
-Initialize-Prisma
-Initialize-Admin
-Configure-NextAuth
-Build-And-Start
-Import-CsvData
-Show-Complete
+    Write-Host ""
+    Write-Host "=========================================="
+    Write-Host "  U-Plus-Lite 部署脚本"
+    Write-Host "=========================================="
+    Write-Host ""
+
+    if (-not $isAdmin) {
+        Write-Warn "建议以管理员身份运行以避免权限问题"
+        Write-Host ""
+    }
+
+    # 显示最新版本信息
+    $latestVer = Get-LatestVersion
+    Write-Host "GitHub 最新版本: $latestVer"
+    Write-Host "默认部署路径: $DEFAULT_DIR"
+    Write-Host ""
+
+    # 依赖检测
+    Test-Dependencies
+
+    # 部署模式检测
+    Detect-Deployment
+
+    # 执行部署
+    if ($DEPLOY_MODE -eq "new") {
+        Deploy-New
+    } else {
+        Deploy-Update
+    }
+
+    # 完成
+    Show-Complete
+}
+
+# 执行主函数
+Main
