@@ -587,8 +587,6 @@ deploy_new() {
     echo "=========================================="
     echo ""
 
-    cd "$PROJECT_ROOT"
-
     # [1/9] Git Clone
     echo "[1/9] 正在克隆代码仓库..."
     if [ -d "$DEPLOY_DIR" ]; then
