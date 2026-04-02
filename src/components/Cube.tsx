@@ -4,7 +4,7 @@ const GREEN = '#8ECA2E'
 
 export function DesignerChip({ name, days, mine, nameWeight }: { name: string; days: string; mine?: boolean; nameWeight?: number }) {
   return (
-    <div className="flex h-[33px] shrink-0 items-center rounded-[8px] border border-[#EEEEEE] bg-white px-[8px] font-alibaba">
+    <div className="inline-flex h-[33px] items-center rounded-[8px] border border-[#EEEEEE] bg-white px-[8px] font-alibaba" style={{ width: 'max-content' }}>
       <span className="whitespace-nowrap text-[12px] leading-[17px]" style={{ fontWeight: nameWeight ?? 400, color: mine ? GREEN : '#8C8C8C' }}>{name}</span>
       <span className="mx-[6px] h-[10px] w-px shrink-0 bg-[#00000013]" />
       <span className="whitespace-nowrap text-[12px] leading-[17px] text-black" style={{ fontWeight: 800 }}>{days}</span>
