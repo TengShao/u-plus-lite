@@ -394,7 +394,7 @@ function Deploy-New {
 
     # 生成 .env
     $envPath = Join-Path $script:PROJECT_ROOT ".env"
-    $dbUrl = "file:" + (Join-Path $script:PROJECT_ROOT "prisma\dev.db").Replace("\", "/")
+    $dbUrl = "file:" + (Join-Path $script:PROJECT_ROOT "prisma\prod.db").Replace("\", "/")
     $bytes = [byte[]]::new(32)
     [System.Security.Cryptography.RandomNumberGenerator]::GetBytes($bytes)
     $nextAuthSecret = [Convert]::ToBase64String($bytes)
