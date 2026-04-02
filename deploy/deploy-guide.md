@@ -19,6 +19,8 @@
 curl -fsSL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/deploy/deploy.sh -o /tmp/deploy.sh && bash /tmp/deploy.sh
 ```
 
+> 注：必须先下载到本地文件再执行，因为部署过程需要交互式输入，无法通过管道直接运行。
+
 **Windows（PowerShell）：**
 ```powershell
 irm https://raw.githubusercontent.com/TengShao/u-plus-lite/master/deploy/deploy.ps1 | iex
