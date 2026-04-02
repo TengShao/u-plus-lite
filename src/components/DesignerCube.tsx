@@ -64,9 +64,9 @@ export function DesignerCube({
 
   const effectiveWidth = Math.max(MIN_WIDTH, Math.min(containerWidth, MAX_WIDTH))
 
-  const { visibleChips, overflowChip } = useMemo(() => {
+  const { visibleChips, overflowChip, contentWidth } = useMemo(() => {
     if (!workloads || workloads.length === 0) {
-      return { visibleChips: [], overflowChip: null }
+      return { visibleChips: [], overflowChip: null, contentWidth: 0 }
     }
 
     // Sort: current user first, then by userId
@@ -100,7 +100,22 @@ export function DesignerCube({
       }
     }
 
-    return { visibleChips, overflowChip }
+    // Calculate content width of visible chips + overflow
+    let cw = 0
+    for (let i = 0; i < visibleChips.length; i++) {
+      const chip = visibleChips[i]
+      const chipW = estimateChipWidth(
+        chip.isMine ? '你' : chip.workload.userName,
+        chip.workload.manDays
+      )
+      cw += chipW + (i > 0 ? GAP : 0)
+    }
+    if (overflowChip) {
+      const overflowW = estimateChipWidth(`其他${overflowChip.count}人`, overflowChip.manDays)
+      cw += GAP + overflowW
+    }
+
+    return { visibleChips, overflowChip, contentWidth: cw }
   }, [workloads, myUserId, effectiveWidth])
 
   return (
@@ -108,7 +123,7 @@ export function DesignerCube({
       ref={containerRef}
       className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] px-[8px] font-alibaba"
       style={{
-        width: 'auto',
+        width: Math.max(MIN_WIDTH, Math.min(contentWidth, MAX_WIDTH)),
         minWidth: MIN_WIDTH,
         maxWidth: MAX_WIDTH,
       }}
@@ -121,7 +136,7 @@ export function DesignerCube({
           {value ?? '-'}
         </span>
       ) : (
-        <div className="relative mt-[5px] flex flex-wrap gap-[8px]">
+        <div className="relative mt-[5px] flex shrink-0 items-center gap-[8px]">
           {visibleChips.map(({ workload, isMine }) => (
             <DesignerChip
               key={workload.userId}
