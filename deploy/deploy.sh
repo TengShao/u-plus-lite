@@ -235,7 +235,7 @@ fetch_latest_version() {
     echo "正在检查最新版本..."
 
     local response
-    response=$(curl -fsSL "https://api.github.com/repos/TengShao/u-plus-lite/releases/latest" 2>/dev/null)
+    response=$(curl -fsSL "https://api.github.com/repos/TengShao/u-plus-lite/releases/latest" 2>/dev/null) || true
 
     if [ -n "$response" ]; then
         LATEST_VERSION=$(echo "$response" | grep '"tag_name"' | sed 's/.*"v\?\([^"]*\)".*/\1/' | tr -d ' ')
