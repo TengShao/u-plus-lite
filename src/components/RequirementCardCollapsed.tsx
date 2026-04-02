@@ -2,7 +2,8 @@
 import { useSession } from 'next-auth/react'
 import { type RequirementData } from './RequirementPanel'
 import { ActionIconButton } from './icons'
-import { Cube, DesignerChip } from './Cube'
+import { Cube } from './Cube'
+import { DesignerCube } from './DesignerCube'
 
 const HEALTH_COLORS: Record<string, string> = {
   '适合': '#8ECA2E',
@@ -38,14 +39,6 @@ export default function RequirementCardCollapsed({
   const isClosed = cycleStatus === 'CLOSED'
   const buttonsDisabled = isClosed
   const completeDisabled = isComplete || isClosed
-
-  // Display up to 5 designers, or first 4 + "其他x人" if more than 5
-  const displayCount = data.cycleWorkloads.length > 5 ? 4 : Math.min(5, data.cycleWorkloads.length)
-  const displayWorkloads = data.cycleWorkloads.slice(0, displayCount)
-  const extraCount = data.cycleWorkloads.length > 5 ? data.cycleWorkloads.length - 4 : 0
-  // Dynamic width for designer Cube based on number of chips displayed
-  const chipCount = data.cycleWorkloads.length === 0 ? 1 : displayCount + (extraCount > 0 ? 1 : 0)
-  const designerCubeWidth = 110 + (chipCount - 1) * 88
 
   const healthColor = data.healthStatus ? HEALTH_COLORS[data.healthStatus] : null
 
@@ -105,23 +98,12 @@ export default function RequirementCardCollapsed({
         <Cube label="总人天" value={String(data.totalManDays)} />
         <Cube label="投入比" value={data.rating ? `${data.inputRatio}%` : '-'} />
         <Cube label="参与人数" value={String(data.participantCount)} />
-        <Cube label="参与设计师" width={designerCubeWidth}>
-          <div className="shrink-0 flex items-center gap-[8px]" style={{ width: 'max-content' }}>
-            {data.cycleWorkloads.length === 0 ? (
-              <span className="text-[14px] text-black/30 font-alibaba" style={{ fontWeight: 800 }}>暂无</span>
-            ) : (
-              <>
-                {displayWorkloads.map((w) => {
-                  const isMe = w.userId === myUserId
-                  return <DesignerChip key={w.userId} name={isMe ? '你' : w.userName} days={String(w.manDays)} mine={isMe} nameWeight={isMe ? 600 : undefined} />
-                })}
-                {extraCount > 0 && (
-                  <DesignerChip name={`其他${extraCount}人`} days={String(data.cycleWorkloads.slice(4).reduce((s, w) => s + w.manDays, 0))} />
-                )}
-              </>
-            )}
-          </div>
-        </Cube>
+        <DesignerCube
+          label="参与设计师"
+          workloads={data.cycleWorkloads.map(w => ({ userId: w.userId, userName: w.userName, manDays: w.manDays }))}
+          myUserId={myUserId}
+          value="暂无"
+        />
       </div>
 
       {/* Action buttons — right side, vertically centered with cubes row (y=66 in 152h card) */}
