@@ -2,77 +2,35 @@
 set -e
 
 # ============================================================
-# U-Plus-Lite 一键部署脚本（macOS 服务器用）
-# 使用方式：
-#   curl -fsSL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/scripts/deploy.sh -o /tmp/deploy.sh && bash /tmp/deploy.sh
+# U-Plus-Lite 一键部署脚本 (macOS/Linux)
+#
+# 使用方式:
+#   curl -fsSL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/deploy/deploy.sh | bash
+#
+# 或下载后直接运行:
+#   chmod +x deploy/deploy.sh && ./deploy/deploy.sh
 # ============================================================
-
-# 获取脚本自身所在目录，自动切换到项目根目录
-# $0 可能是相对路径（如 scripts/deploy.sh），需要先转为绝对路径
-[[ "$0" != /* ]] && _script="$PWD/$0" || _script="$0"
-SCRIPT_DIR="$(cd -P "$(dirname "$_script")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-cd "$PROJECT_ROOT"
-
-# 检测是否通过管道/文件描述符运行（bash <(curl ...) 或 curl ... | bash）
-# 这种情况下 $0 是 /dev/fd/* 而非真实路径，脚本无法自我复制
-is_piped_script() {
-    [[ "$0" == /dev/fd/* ]] || [[ "$0" == /dev/pipe/* ]] || [[ "$0" == /dev/stdin ]]
-}
 
 REPO_URL="https://github.com/TengShao/u-plus-lite.git"
 DEFAULT_DIR="$HOME/u-plus-lite"
 DEPLOY_DIR=""
+DEPLOY_MODE=""  # "new" or "update"
+PROJECT_ROOT=""
+LATEST_VERSION="unknown"
+LOCAL_VERSION="unknown"
+PORT=3000
 
+# ============================================================
 # 颜色定义
+# ============================================================
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# 静默读取密码（跨平台兼容，macOS Terminal.app 上也能正确隐藏输入）
-read_secret() {
-    local prompt="$1"
-    local var_name="$2"
-    # 打印提示（-n 不换行）
-    echo -n "$prompt"
-    # 使用 stty 禁用终端回显，trap 确保退出时恢复
-    trap 'stty echo 2>/dev/null' EXIT INT TERM
-    stty -echo 2>/dev/null
-    read -r "$var_name"
-    stty echo 2>/dev/null
-    trap - EXIT INT TERM
-    # 打印换行（因为输入时没有回显换行）
-    echo ""
-}
-
-# 获取局域网 IP (macOS)
-get_local_ip() {
-    local ip
-    ip=$(ipconfig getifaddr en0 2>/dev/null)
-    if [ -z "$ip" ]; then
-        ip=$(ipconfig getifaddr en1 2>/dev/null)
-    fi
-    if [ -z "$ip" ]; then
-        ip=$(ipconfig getifaddr en0)
-    fi
-    echo "$ip"
-}
-
-# 检测端口是否被占用 (macOS)
-is_port_used() {
-    local port=$1
-    lsof -i :$port >/dev/null 2>&1
-}
-
-# 查找可用端口
-find_available_port() {
-    local port=3000
-    while is_port_used $port; do
-        port=$((port + 1))
-    done
-    echo $port
-}
+# ============================================================
+# 工具函数
+# ============================================================
 
 # 检测命令是否存在
 command_exists() {
@@ -88,7 +46,73 @@ print_status() {
     elif [ "$ok" = "fail" ]; then
         echo -e "${RED}[✗]${NC} $msg"
     else
-        echo -e "${YELLOW}[-]${NC} $msg"
+        echo -e "${YELLOW}[!]${NC} $msg"
+    fi
+}
+
+# 获取局域网 IP
+get_local_ip() {
+    local ip
+    # macOS
+    if command_exists ipconfig; then
+        ip=$(ipconfig getifaddr en0 2>/dev/null)
+        if [ -z "$ip" ]; then
+            ip=$(ipconfig getifaddr en1 2>/dev/null)
+        fi
+    fi
+    # Linux
+    if [ -z "$ip" ] && command_exists hostname; then
+        ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+    fi
+    # Fallback
+    if [ -z "$ip" ]; then
+        ip=$(hostname 2>/dev/null)
+    fi
+    echo "$ip"
+}
+
+# 检测端口是否被占用
+is_port_used() {
+    local port=$1
+    if command_exists lsof; then
+        lsof -i :$port >/dev/null 2>&1
+    elif command_exists ss; then
+        ss -tuln | grep -q ":$port "
+    else
+        return 1
+    fi
+}
+
+# 查找可用端口
+find_available_port() {
+    local port=3000
+    while is_port_used $port; do
+        port=$((port + 1))
+    done
+    echo $port
+}
+
+# 静默读取密码
+read_secret() {
+    local prompt="$1"
+    local var_name="$2"
+    echo -n "$prompt"
+    trap 'stty echo 2>/dev/null' EXIT INT TERM
+    stty -echo 2>/dev/null
+    read -r "$var_name"
+    stty echo 2>/dev/null
+    trap - EXIT INT TERM
+    echo ""
+}
+
+# 生成随机密钥
+generate_secret() {
+    if command_exists openssl; then
+        openssl rand -base64 32 | tr -d '\n'
+    elif [ -r /dev/urandom ]; then
+        head -c 32 /dev/urandom | base64 | tr -d '\n'
+    else
+        date +%s | sha256sum | base64 | head -c 32
     fi
 }
 
@@ -97,190 +121,190 @@ print_status() {
 # ============================================================
 check_dependencies() {
     echo ""
+    echo "=========================================="
+    echo " U-Plus-Lite 部署脚本"
+    echo "=========================================="
+    echo ""
     echo "正在检测系统依赖..."
     echo ""
 
-    local missing_deps=()
-    local dep_info=""
+    local missing=()
+    local need_install=()
 
     # 检测 Git
     if command_exists git; then
         local git_version
         git_version=$(git --version | sed 's/git version //')
-        print_status "ok" "Git: 已安装 ($git_version)"
+        print_status "ok" "Git: $git_version"
     else
         print_status "fail" "Git: 未安装"
-        missing_deps+=("git")
-        dep_info="${dep_info}  - Git: 未安装（Xcode Command Line Tools 包含）\n"
+        missing+=("git")
     fi
 
     # 检测 Node.js
     if command_exists node; then
         local node_version
         node_version=$(node -v)
-        # 检查版本是否 >= 18
         local major_version
         major_version=$(echo $node_version | sed 's/v\([0-9]*\)\..*/\1/')
         if [ "$major_version" -ge 18 ]; then
             print_status "ok" "Node.js: $node_version"
         else
             print_status "fail" "Node.js: $node_version (需要 v18+)"
-            missing_deps+=("node")
-            dep_info="${dep_info}  - Node.js: $node_version (需要 v18+)\n"
+            missing+=("node")
         fi
     else
         print_status "fail" "Node.js: 未安装"
-        missing_deps+=("node")
-        dep_info="${dep_info}  - Node.js: 未安装（需要 v18+）\n"
+        missing+=("node")
     fi
 
-    # 如果有缺失依赖，提示安装
-    if [ ${#missing_deps[@]} -gt 0 ]; then
-        echo ""
-        echo -e "${YELLOW}检测到缺少以下依赖：${NC}"
-        echo -e "$dep_info"
-        echo ""
-        echo "是否自动安装？ [Y/n]: "
-        read -r response
-        response=${response:-Y}
-        response=$(echo "$response" | tr '[:lower:]' '[:upper:]')
+    # 检测 PM2
+    if command_exists pm2; then
+        print_status "ok" "PM2: 已安装"
+    else
+        print_status "fail" "PM2: 未安装"
+        need_install+=("pm2")
+    fi
 
-        if [ "$response" != "Y" ]; then
+    # 如果 Git 缺失，退出
+    if [[ " ${missing[*]} " =~ " git " ]]; then
+        echo ""
+        echo -e "${RED}Git 是必需依赖，请先安装后再运行本脚本${NC}"
+        echo ""
+        echo "macOS 安装方法："
+        echo "  xcode-select --install"
+        echo ""
+        echo "Linux 安装方法："
+        echo "  sudo apt-get install git  # Debian/Ubuntu"
+        echo "  sudo yum install git      # CentOS/RHEL"
+        echo ""
+        exit 1
+    fi
+
+    # 如果 Node 缺失，尝试自动安装
+    if [[ " ${missing[*]} " =~ " node " ]]; then
+        echo ""
+        echo -e "${YELLOW}检测到 Node.js 未安装，正在尝试自动安装...${NC}"
+        echo ""
+
+        if command_exists brew; then
+            brew install node
+        elif command_exists apt-get; then
+            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+        elif command_exists yum; then
+            curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+            sudo yum install -y nodejs
+        else
             echo ""
-            echo -e "${RED}部署取消。请先手动安装缺少的依赖后，重新运行脚本。${NC}"
-            echo ""
-            echo "安装指引："
-            echo "  macOS: https://nodejs.org/ 或 brew install node"
-            echo "  Git:   安装 Xcode Command Line Tools (运行 xcode-select --install)"
+            echo -e "${RED}无法自动安装 Node.js，请手动安装后重试${NC}"
+            echo "下载地址: https://nodejs.org/"
             exit 1
         fi
 
-        echo ""
-        echo "正在安装依赖..."
-        echo ""
-
-        # 安装 Git (通过 Xcode CLT)
-        for dep in "${missing_deps[@]}"; do
-            if [ "$dep" = "git" ]; then
-                echo "正在安装 Git..."
-                xcode-select --install 2>/dev/null || true
-                # 等待用户确认安装弹窗
-                sleep 2
-                print_status "ok" "Git 安装命令已触发，请等待 Xcode CLT 安装完成"
-            fi
-        done
-
-        # 安装 Node.js (通过 Homebrew)
-        for dep in "${missing_deps[@]}"; do
-            if [ "$dep" = "node" ]; then
-                if ! command_exists brew; then
-                    echo "正在安装 Homebrew..."
-                    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-                fi
-                echo "正在安装 Node.js..."
-                brew install node
-                print_status "ok" "Node.js 安装完成"
-            fi
-        done
-
-        echo ""
-        echo "所有依赖检测通过，继续部署..."
-    else
-        echo ""
-        echo -e "${GREEN}所有依赖检测通过！${NC}"
-    fi
-}
-
-# ============================================================
-# Step 1: 路径配置
-# ============================================================
-setup_path() {
-    echo ""
-    echo "=========================================="
-    echo " U-Plus-Lite 部署脚本"
-    echo "=========================================="
-    echo ""
-    echo "部署路径 [默认: ~/u-plus-lite]: "
-    read -r input
-    DEPLOY_DIR=${input:-$DEFAULT_DIR}
-    DEPLOY_DIR=$(eval echo "$DEPLOY_DIR")  # 展开 ~ 等
-
-    # 如果路径末尾不是 /u-plus-lite，自动添加（方便用户输入 ~/部署 这样的路径）
-    if [ "${DEPLOY_DIR##*/}" != "u-plus-lite" ]; then
-        DEPLOY_DIR="$DEPLOY_DIR/u-plus-lite"
-    fi
-}
-
-# ============================================================
-# Step 2: 检测/克隆代码
-# ============================================================
-setup_code() {
-    echo ""
-
-    if [ -d "$DEPLOY_DIR/.git" ]; then
-        # 已有代码，走更新流程
-        echo "检测到已有代码，进入更新模式..."
-        echo ""
-        echo "即将更新现有部署：$DEPLOY_DIR"
-        echo "是否继续？[Y: 更新，其他: 取消并退出]"
-        read -r confirm
-        confirm=${confirm:-Y}
-        if [ "$(echo "$confirm" | tr '[:upper:]' '[:lower:]')" != "y" ]; then
-            echo "已取消更新。请使用其他部署路径重新运行脚本。"
-            exit 0
-        fi
-        cd "$DEPLOY_DIR"
-        UPDATE_MODE=true
-        PROJECT_ROOT="$DEPLOY_DIR"
-        # 拉取最新代码
-        echo "正在拉取最新代码..."
-        git fetch origin
-        git checkout master
-        git pull origin master
-        # 清理旧的构建缓存（防止 .next 中残留的 Prisma 客户端数据库路径导致连接错误数据库）
-        if [ -d ".next" ]; then
-            echo "清理旧的构建缓存..."
-            rm -rf .next
-        fi
-        # 用本地正确版本覆盖（GitHub 上的版本可能较旧）
-        # 注意：如果脚本是通过管道运行的（bash <(curl ...），则跳过此步骤，因为 $SCRIPT_DIR 是文件描述符而非真实路径
-        if is_piped_script; then
-            echo "（跳过脚本更新，请在项目目录运行 git pull 获取更新）"
+        if command_exists node; then
+            print_status "ok" "Node.js 安装成功: $(node -v)"
         else
-            cp "$SCRIPT_DIR/deploy.sh" "$DEPLOY_DIR/scripts/deploy.sh"
-            echo "部署脚本已更新为最新版本"
+            echo -e "${RED}Node.js 安装失败，请手动安装后重试${NC}"
+            exit 1
+        fi
+    fi
+
+    # 如果 PM2 缺失，自动安装
+    if [[ " ${need_install[*]} " =~ " pm2 " ]]; then
+        echo ""
+        echo "正在安装 PM2..."
+        npm install -g pm2 --silent
+        if command_exists pm2; then
+            print_status "ok" "PM2 安装成功"
+        else
+            print_status "fail" "PM2 安装失败"
+            exit 1
+        fi
+    fi
+
+    echo ""
+    echo -e "${GREEN}所有依赖检测通过！${NC}"
+}
+
+# ============================================================
+# 获取最新版本
+# ============================================================
+fetch_latest_version() {
+    echo ""
+    echo "正在检查最新版本..."
+
+    local response
+    response=$(curl -fsSL "https://api.github.com/repos/TengShao/u-plus-lite/releases/latest" 2>/dev/null)
+
+    if [ -n "$response" ]; then
+        LATEST_VERSION=$(echo "$response" | grep '"tag_name"' | sed 's/.*"v\?\([^"]*\)".*/\1/' | tr -d ' ')
+        if [ -z "$LATEST_VERSION" ]; then
+            LATEST_VERSION="unknown"
+            print_status "warn" "无法解析最新版本号"
+        else
+            print_status "ok" "最新版本: v$LATEST_VERSION"
         fi
     else
-        # 首次部署
-        if [ -d "$DEPLOY_DIR" ]; then
-            echo -e "${YELLOW}警告：$DEPLOY_DIR 目录已存在，但不是 U-Plus-Lite 项目目录${NC}"
-            echo "是否删除并重新克隆？ [y/N]: "
-            read -r response
-            response=${response:-N}
-            if [ "$(echo "$response" | tr '[:upper:]' '[:lower:]')" = "y" ]; then
-                rm -rf "$DEPLOY_DIR"
-            else
-                echo "部署取消。"
+        LATEST_VERSION="unknown"
+        print_status "warn" "无法获取最新版本（网络问题）"
+    fi
+}
+
+# ============================================================
+# 检测部署状态
+# ============================================================
+detect_deployment() {
+    echo ""
+    echo "=========================================="
+    echo " 检测现有部署"
+    echo "=========================================="
+    echo ""
+
+    if [ -d "$DEFAULT_DIR/.git" ]; then
+        DEPLOY_MODE="update"
+        DEPLOY_DIR="$DEFAULT_DIR"
+        echo "检测到已有部署: $DEPLOY_DIR"
+    else
+        echo "未检测到现有部署"
+        echo ""
+        echo "请选择部署模式："
+        echo "  1 - 全新部署（克隆最新代码）"
+        echo "  2 - 指定已有目录（需为 Git 仓库）"
+        echo ""
+        echo -n "请选择 [1]: "
+        read -r choice
+        choice=${choice:-1}
+
+        if [ "$choice" = "1" ]; then
+            DEPLOY_MODE="new"
+            DEPLOY_DIR="$DEFAULT_DIR"
+        else
+            echo -n "请输入已有项目路径: "
+            read -r custom_path
+            custom_path=$(eval echo "$custom_path")
+
+            if [ ! -d "$custom_path/.git" ]; then
+                echo -e "${RED}错误：$custom_path 不是 Git 仓库${NC}"
                 exit 1
             fi
+
+            DEPLOY_MODE="update"
+            DEPLOY_DIR="$custom_path"
         fi
+    fi
 
-        echo "[1/7] 正在克隆代码仓库..."
-        git clone "$REPO_URL" "$DEPLOY_DIR"
-        cd "$DEPLOY_DIR"
-        UPDATE_MODE=false
+    PROJECT_ROOT="$DEPLOY_DIR"
+    echo "部署目录: $DEPLOY_DIR"
+    echo "部署模式: $DEPLOY_MODE"
+}
 
-        # DEPLOY_DIR 即为项目根目录
-        PROJECT_ROOT="$DEPLOY_DIR"
-
-        # 用本地正确版本的 deploy.sh 覆盖克隆的版本（防止 GitHub 上的旧版本有问题）
-        # 注意：如果脚本是通过管道运行的（bash <(curl ...)），则跳过此步骤
-        if ! is_piped_script; then
-            cp "$SCRIPT_DIR/deploy.sh" "$DEPLOY_DIR/scripts/deploy.sh"
-        fi
-
-        # 替换 seed.ts 为支持命令行参数的版本
-        cat > prisma/seed.ts << 'SEED_EOF'
+# ============================================================
+# 写入内嵌的 seed.ts 和 import.ts
+# ============================================================
+write_helper_scripts() {
+    # seed.ts - 支持命令行参数
+    cat > "$PROJECT_ROOT/prisma/seed.ts" << 'SEED_EOF'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
@@ -315,18 +339,15 @@ async function main() {
     })
     console.log('Seed complete: admin user "邵腾" created (default)')
   }
-
-  console.log('Seed complete: admin user created (pipelines/budget items via CSV import or Web UI)')
 }
 
 main()
   .catch((e) => { console.error(e); process.exit(1) })
   .finally(() => prisma.$disconnect())
 SEED_EOF
-        echo "seed.ts 已更新为支持命令行参数的版本"
 
-        # 写入 import.ts（因为该文件未推送到 GitHub，需要内嵌）
-        cat > prisma/import.ts << 'IMPORT_EOF'
+    # import.ts - CSV 导入脚本
+    cat > "$PROJECT_ROOT/prisma/import.ts" << 'IMPORT_EOF'
 import { PrismaClient } from '@prisma/client'
 import * as fs from 'fs'
 import * as readline from 'readline'
@@ -469,227 +490,45 @@ main()
   })
   .finally(() => prisma.$disconnect())
 IMPORT_EOF
-        echo "import.ts 已写入"
 
-        # 创建 .env 文件（如果不存在，git clone 不会复制 .gitignore 中的文件）
-        if [ ! -f ".env" ]; then
-            echo "DATABASE_URL=\"file:$DEPLOY_DIR/prisma/prod.db\"" > .env
-            echo 'NEXTAUTH_SECRET="u-minus-dev-secret-change-in-production"' >> .env
-            echo 'NEXTAUTH_URL="http://localhost:3000"' >> .env
-            echo ".env 文件已创建"
-        fi
-    fi
+    echo "辅助脚本已写入"
 }
 
 # ============================================================
-# Step 3: 安装依赖
-# ============================================================
-install_deps() {
-    echo "[2/7] 安装项目依赖..."
-    npm install
-}
-
-# ============================================================
-# Step 4: Prisma 初始化
-# ============================================================
-setup_prisma() {
-    echo "[3/7] 生成 Prisma 客户端..."
-    npx prisma generate
-
-    echo "[4/7] 应用数据库迁移..."
-    # 使用 db push 而非 migrate deploy，避免相对路径解析到错误位置（prisma/prisma/dev.db）
-    npx prisma db push --accept-data-loss
-}
-
-# ============================================================
-# ============================================================
-# Step 5: 创建管理员
-# ============================================================
-setup_admin() {
-    echo "[5/7] 检查管理员账号..."
-
-    # 检查数据库中是否已有 ADMIN 角色用户
-    local has_admin=false
-    local db_path="$PROJECT_ROOT/prisma/prod.db"
-    if [ -f "$db_path" ] && command_exists sqlite3; then
-        local admin_count
-        admin_count=$(sqlite3 "$db_path" "SELECT COUNT(*) FROM User WHERE role='ADMIN';" 2>/dev/null)
-        if [ -n "$admin_count" ] && [ "$admin_count" -gt 0 ]; then
-            has_admin=true
-        fi
-    fi
-
-    if [ "$UPDATE_MODE" = true ]; then
-        if [ "$has_admin" = true ]; then
-            echo "  已存在管理员账号，跳过创建..."
-            return
-        else
-            echo "  更新模式但未检测到管理员账号，将为您创建..."
-        fi
-    fi
-
-    if [ "$has_admin" = true ]; then
-        echo "  已存在管理员账号，跳过创建..."
-        return
-    fi
-
-    if [ "$UPDATE_MODE" = true ]; then
-        echo ""
-        echo "未检测到管理员账号，请重新设定"
-        echo ""
-    else
-        echo ""
-        echo "首次部署，创建管理员账号"
-        echo ""
-    fi
-
-    read -p "  管理员姓名: " ADMIN_NAME
-    while [ -z "$ADMIN_NAME" ]; do
-        echo "  错误：管理员姓名不能为空"
-        read -p "  管理员姓名: " ADMIN_NAME
-    done
-
-    read_secret "  密码: " ADMIN_PASSWORD
-    while [ -z "$ADMIN_PASSWORD" ]; do
-        echo "  错误：密码不能为空"
-        read_secret "  密码: " ADMIN_PASSWORD
-    done
-
-    while [ ${#ADMIN_PASSWORD} -lt 8 ]; do
-        echo "  错误：密码至少8位"
-        read_secret "  密码: " ADMIN_PASSWORD
-    done
-
-    read_secret "  确认密码: " ADMIN_PASSWORD_CONFIRM
-    while [ "$ADMIN_PASSWORD" != "$ADMIN_PASSWORD_CONFIRM" ]; do
-        echo "  错误：两次输入的密码不一致"
-        read_secret "  密码: " ADMIN_PASSWORD
-        while [ -z "$ADMIN_PASSWORD" ]; do
-            echo "  错误：密码不能为空"
-            read_secret "  密码: " ADMIN_PASSWORD
-        done
-        while [ ${#ADMIN_PASSWORD} -lt 8 ]; do
-            echo "  错误：密码至少8位"
-            read_secret "  密码: " ADMIN_PASSWORD
-        done
-        read_secret "  确认密码: " ADMIN_PASSWORD_CONFIRM
-    done
-
-    npx tsx "$PROJECT_ROOT/prisma/seed.ts" "$ADMIN_NAME" "$ADMIN_PASSWORD"
-}
-
-# ============================================================
-# Step 6: 构建并启动
-# ============================================================
-build_and_start() {
-    echo "[6/7] 构建生产版本..."
-    # PORT 和 NEXTAUTH_URL 已在 config_nextauth 中更新到 .env
-    npm run build
-
-    echo "[7/7] 启动 PM2 服务..."
-
-    # 安装 PM2（如果尚未安装）
-    npm install -g pm2 --silent 2>/dev/null || true
-
-    # 停止旧实例
-    pm2 delete u-plus-lite 2>/dev/null || true
-
-    # 启动服务（PORT 由 config_nextauth 设置在 .env 中，启动时 PM2 自动加载 .env）
-    PORT=$PORT pm2 start npm --name u-plus-lite -- start
-    pm2 save
-}
-
-# ============================================================
-# Step 7: 配置 NEXTAUTH_URL
-# ============================================================
-config_nextauth() {
-    # 在 build 前更新 .env 中的 NEXTAUTH_URL（Next.js build 时会嵌入环境变量）
-    echo "[配置] 更新 NEXTAUTH_URL..."
-
-    LOCAL_IP=$(get_local_ip)
-
-    # 更新模式下优先使用上次配置的端口，避免链接变化
-    if [ "$UPDATE_MODE" = true ] && [ -f ".env" ]; then
-        # 从现有 .env 中提取端口
-        EXISTING_URL=$(grep "^NEXTAUTH_URL=" .env | sed 's/NEXTAUTH_URL=//' | tr -d '"')
-        if [ -n "$EXISTING_URL" ]; then
-            EXISTING_PORT=$(echo "$EXISTING_URL" | sed 's|.*:||')
-            if [ -n "$EXISTING_PORT" ] && ! is_port_used "$EXISTING_PORT"; then
-                PORT="$EXISTING_PORT"
-                echo "保留原有端口：$PORT"
-            fi
-        fi
-    fi
-
-    # 如果没有保留端口，强制使用 3000
-    if [ -z "$PORT" ]; then
-        if is_port_used 3000; then
-            echo ""
-            echo -e "${RED}[错误] 端口 3000 被占用，请先关闭占用端口的进程后再部署${NC}"
-            echo ""
-            echo "占用 3000 端口的进程："
-            lsof -i :3000 | grep LISTEN | awk '{print "  PID: " $2 "  命令: " $1 "  运行时间: " $9}'
-            echo ""
-            echo "快速解决方法（复制执行）："
-            echo "  kill \$(lsof -ti:3000)"
-            echo ""
-            exit 1
-        fi
-        PORT=3000
-    fi
-    echo "使用端口：$PORT"
-
-    if [ -f ".env" ]; then
-        sed -i '' "s|NEXTAUTH_URL=.*|NEXTAUTH_URL=\"http://$LOCAL_IP:$PORT\"|" .env
-        echo "NEXTAUTH_URL 已更新为 http://$LOCAL_IP:$PORT"
-    fi
-
-    # 自启配置
-    echo ""
-    echo "是否配置开机自启？[Y/n]: "
-    read -r enable_autostart
-    enable_autostart=${enable_autostart:-Y}
-    if [ "$(echo "$enable_autostart" | tr '[:upper:]' '[:lower:]')" = "y" ]; then
-        echo "（需要输入本机管理员密码）"
-        sudo pm2 startup 2>/dev/null || true
-    else
-        echo "已跳过开机自启配置"
-    fi
-}
-
-# ============================================================
-# Step 8: CSV import (optional)
+# CSV 导入
 # ============================================================
 import_csv_data() {
-    # 确保从项目根目录执行
-    cd "$PROJECT_ROOT"
-
     echo ""
-    echo "[8/8] 是否导入预算项和管线数据？"
+    echo "=========================================="
+    echo " CSV 数据导入"
+    echo "=========================================="
     echo ""
+    echo "请选择导入方式："
     echo "  1 - 指定 CSV 文件路径"
     echo "  2 - 直接粘贴 CSV 内容"
     echo "  3 - 跳过（稍后通过 Web 端手动添加）"
     echo ""
-    echo "请选择（直接回车跳过）: "
+    echo -n "请选择 [3]: "
     read -r choice
     choice=${choice:-3}
 
     if [ "$choice" = "1" ]; then
         echo ""
-        echo "请输入管线名称文件路径（CSV格式，直接回车跳过）: "
-        echo "  格式示例：每行一个管线名称，如："
+        echo "请输入管线名称文件路径（CSV格式）: "
+        echo "  格式：每行一个管线名称，如："
         echo "    UGC研发"
         echo "    UGC运营"
-        echo "    玩法"
         echo ""
+        echo -n "文件路径（直接回车跳过）: "
         read -r pipelines_path
+
         echo ""
-        echo "请输入预算项文件路径（CSV格式，直接回车跳过）: "
-        echo "  格式示例：管线名称,预算项名称，如："
+        echo "请输入预算项文件路径（CSV格式）: "
+        echo "  格式：管线名称,预算项名称，如："
         echo "    UGC研发,UGC商业化功能"
         echo "    UGC运营,乐园会员体系"
         echo ""
+        echo -n "文件路径（直接回车跳过）: "
         read -r budget_path
 
         local cmd_args=""
@@ -701,6 +540,8 @@ import_csv_data() {
         fi
 
         if [ -n "$cmd_args" ]; then
+            echo ""
+            echo "正在导入数据..."
             npx tsx "$PROJECT_ROOT/prisma/import.ts" $cmd_args
         else
             echo "未指定文件，跳过导入"
@@ -709,35 +550,26 @@ import_csv_data() {
     elif [ "$choice" = "2" ]; then
         echo ""
         echo "请粘贴管线名称文件内容（每行一个名称，Ctrl+D 结束）: "
-        echo "  格式示例："
-        echo "    UGC研发"
-        echo "    UGC运营"
-        echo "    玩法"
-        echo ""
         local pipelines_content
         pipelines_content=$(cat)
         echo ""
         echo "请粘贴预算项文件内容（格式：管线名称,预算项名称，Ctrl+D 结束）: "
-        echo "  格式示例："
-        echo "    UGC研发,UGC商业化功能"
-        echo "    UGC运营,乐园会员体系"
-        echo ""
         local budget_content
         budget_content=$(cat)
 
-        # 使用临时文件传递内容（避免 stdin pipe 与 tsx ESM 加载冲突）
         if [ -n "$pipelines_content" ]; then
             local pipelines_tmp
             pipelines_tmp=$(mktemp)
             echo "$pipelines_content" > "$pipelines_tmp"
-            npx tsx "$PROJECT_ROOT/prisma/import.ts" --pipelines="$pipelines_tmp"
+            npx tsx "$PROJECT_ROOT/prisma/import.ts" --pipelines="$pipelines_tmp" 2>/dev/null
             rm -f "$pipelines_tmp"
         fi
+
         if [ -n "$budget_content" ]; then
             local budget_tmp
             budget_tmp=$(mktemp)
             echo "$budget_content" > "$budget_tmp"
-            npx tsx "$PROJECT_ROOT/prisma/import.ts" --budget-items="$budget_tmp"
+            npx tsx "$PROJECT_ROOT/prisma/import.ts" --budget-items="$budget_tmp" 2>/dev/null
             rm -f "$budget_tmp"
         fi
     else
@@ -746,32 +578,358 @@ import_csv_data() {
 }
 
 # ============================================================
-# 完成
+# 全新部署
+# ============================================================
+deploy_new() {
+    echo ""
+    echo "=========================================="
+    echo " 开始全新部署"
+    echo "=========================================="
+    echo ""
+
+    cd "$PROJECT_ROOT"
+
+    # [1/9] Git Clone
+    echo "[1/9] 正在克隆代码仓库..."
+    if [ -d "$DEPLOY_DIR" ]; then
+        echo -e "${YELLOW}警告：$DEPLOY_DIR 目录已存在${NC}"
+        echo -n "是否删除并重新克隆？ [y/N]: "
+        read -r confirm
+        confirm=${confirm:-N}
+        if [ "$(echo "$confirm" | tr '[:upper:]' '[:lower:]')" = "y" ]; then
+            rm -rf "$DEPLOY_DIR"
+            git clone "$REPO_URL" "$DEPLOY_DIR"
+        else
+            echo "部署取消"
+            exit 1
+        fi
+    else
+        git clone "$REPO_URL" "$DEPLOY_DIR"
+    fi
+    cd "$DEPLOY_DIR"
+    write_helper_scripts
+
+    # [2/9] npm install
+    echo ""
+    echo "[2/9] 正在安装依赖..."
+    if ! npm install; then
+        print_status "fail" "npm install 失败"
+        exit 1
+    fi
+
+    # [3/9] Prisma
+    echo ""
+    echo "[3/9] 正在初始化数据库..."
+    npx prisma generate
+    npx prisma db push --accept-data-loss
+
+    # [4/9] 创建管理员
+    echo ""
+    echo "[4/9] 创建管理员账号"
+    echo ""
+
+    local admin_name=""
+    local admin_password=""
+    local admin_password_confirm=""
+
+    read -p "  管理员姓名: " admin_name
+    while [ -z "$admin_name" ]; do
+        echo "  错误：管理员姓名不能为空"
+        read -p "  管理员姓名: " admin_name
+    done
+
+    read_secret "  密码（至少8位）: " admin_password
+    while [ -z "$admin_password" ]; do
+        echo "  错误：密码不能为空"
+        read_secret "  密码（至少8位）: " admin_password
+    done
+
+    while [ ${#admin_password} -lt 8 ]; do
+        echo "  错误：密码至少8位"
+        read_secret "  密码（至少8位）: " admin_password
+    done
+
+    read_secret "  确认密码: " admin_password_confirm
+    while [ "$admin_password" != "$admin_password_confirm" ]; do
+        echo "  错误：两次输入的密码不一致"
+        read_secret "  密码（至少8位）: " admin_password
+        while [ ${#admin_password} -lt 8 ]; do
+            echo "  错误：密码至少8位"
+            read_secret "  密码（至少8位）: " admin_password
+        done
+        read_secret "  确认密码: " admin_password_confirm
+    done
+
+    npx tsx "$PROJECT_ROOT/prisma/seed.ts" "$admin_name" "$admin_password"
+
+    # [5/9] 配置 .env
+    echo ""
+    echo "[5/9] 配置环境变量..."
+
+    local local_ip
+    local_ip=$(get_local_ip)
+    echo "检测到本机局域网 IP: $local_ip"
+
+    # 端口配置
+    if is_port_used 3000; then
+        echo ""
+        echo -e "${YELLOW}端口 3000 已被占用${NC}"
+        echo "  1 - 查找下一个可用端口"
+        echo "  2 - 手动指定端口"
+        echo ""
+        echo -n "请选择 [1]: "
+        read -r port_choice
+        port_choice=${port_choice:-1}
+
+        if [ "$port_choice" = "1" ]; then
+            PORT=$(find_available_port)
+            echo "使用端口: $PORT"
+        else
+            echo -n "请输入端口号: "
+            read -r PORT
+            while is_port_used $PORT; do
+                echo -e "${RED}端口 $PORT 已被占用，请选择其他端口${NC}"
+                echo -n "请输入端口号: "
+                read -r PORT
+            done
+        fi
+    else
+        PORT=3000
+    fi
+
+    local nextauth_secret
+    nextauth_secret=$(generate_secret)
+
+    cat > .env << EOF
+DATABASE_URL="file:$DEPLOY_DIR/prisma/prod.db"
+NEXTAUTH_SECRET="$nextauth_secret"
+NEXTAUTH_URL="http://$local_ip:$PORT"
+EOF
+
+    echo ".env 文件已创建"
+
+    # [6/9] Build
+    echo ""
+    echo "[6/9] 正在构建生产版本..."
+    npm run build
+
+    # [7/9] PM2 启动
+    echo ""
+    echo "[7/9] 配置 PM2 服务..."
+
+    pm2 delete u-plus-lite 2>/dev/null || true
+    PORT=$PORT pm2 start npm --name u-plus-lite -- start
+    pm2 save
+
+    # [8/9] 写入版本文件
+    echo ""
+    echo "[8/9] 保存版本信息..."
+    echo "v$LATEST_VERSION" > version.txt
+
+    # [9/9] CSV 导入
+    echo ""
+    echo "[9/9] CSV 数据导入..."
+    import_csv_data
+
+    # 自启配置
+    echo ""
+    echo "是否配置开机自启？[Y/n]: "
+    read -r enable_autostart
+    enable_autostart=${enable_autostart:-Y}
+    if [ "$(echo "$enable_autostart" | tr '[:upper:]' '[:lower:]')" = "y" ]; then
+        echo "（可能需要输入本机管理员密码）"
+        env PATH="$PATH:/usr/local/bin" pm2 startup 2>/dev/null || true
+    fi
+
+    # 显示完成信息
+    show_complete "$admin_name"
+}
+
+# ============================================================
+# 更新部署
+# ============================================================
+deploy_update() {
+    echo ""
+    echo "=========================================="
+    echo " 更新部署"
+    echo "=========================================="
+    echo ""
+
+    cd "$PROJECT_ROOT"
+
+    # 读取本地版本
+    if [ -f "version.txt" ]; then
+        LOCAL_VERSION=$(cat version.txt | tr -d ' \n')
+    else
+        LOCAL_VERSION="unknown"
+    fi
+
+    echo "当前版本: $LOCAL_VERSION"
+    echo "最新版本: v$LATEST_VERSION"
+    echo ""
+
+    echo "请选择操作："
+    echo "  1 - 更新（推荐）"
+    echo "  2 - 卸载"
+    echo "  3 - 重新安装"
+    echo ""
+    echo -n "请选择 [1]: "
+    read -r update_choice
+    update_choice=${update_choice:-1}
+
+    if [ "$update_choice" = "1" ]; then
+        do_update
+    elif [ "$update_choice" = "2" ]; then
+        do_uninstall
+    elif [ "$update_choice" = "3" ]; then
+        do_uninstall
+        DEPLOY_MODE="new"
+        DEPLOY_DIR="$DEFAULT_DIR"
+        PROJECT_ROOT="$DEPLOY_DIR"
+        deploy_new
+    else
+        echo "无效选择，取消操作"
+        exit 1
+    fi
+}
+
+# ============================================================
+# 执行更新
+# ============================================================
+do_update() {
+    echo ""
+    echo "正在更新..."
+
+    # 保存旧版本信息用于对比
+    local old_package_lock=""
+    local old_schema=""
+    if [ -f "package-lock.json" ]; then
+        old_package_lock=$(md5sum package-lock.json 2>/dev/null || cat package-lock.json | md5)
+    fi
+    if [ -f "prisma/schema.prisma" ]; then
+        old_schema=$(md5sum prisma/schema.prisma 2>/dev/null || cat prisma/schema.prisma | md5)
+    fi
+
+    # Git fetch and pull
+    echo "正在拉取最新代码..."
+    git fetch origin
+    git pull origin master
+
+    # 检查 package-lock.json 变化
+    local need_npm_install=false
+    if [ -f "package-lock.json" ]; then
+        local new_package_lock
+        new_package_lock=$(md5sum package-lock.json 2>/dev/null || cat package-lock.json | md5)
+        if [ "$old_package_lock" != "$new_package_lock" ]; then
+            local lines_diff
+            lines_diff=$(diff <(echo "$old_package_lock") <(echo "$new_package_lock") | wc -l)
+            if [ "$lines_diff" -gt 5 ]; then
+                need_npm_install=true
+            fi
+        fi
+    fi
+
+    # 检查 schema.prisma 变化
+    local need_prisma=false
+    if [ -f "prisma/schema.prisma" ]; then
+        local new_schema
+        new_schema=$(md5sum prisma/schema.prisma 2>/dev/null || cat prisma/schema.prisma | md5)
+        if [ "$old_schema" != "$new_schema" ]; then
+            need_prisma=true
+        fi
+    fi
+
+    # 智能构建
+    echo ""
+    if [ "$need_npm_install" = true ]; then
+        echo "检测到依赖变化，正在安装依赖..."
+        npm install
+    else
+        echo "依赖无变化，跳过 npm install"
+    fi
+
+    if [ "$need_prisma" = true ]; then
+        echo "检测到数据库结构变化，正在更新数据库..."
+        npx prisma generate
+        npx prisma db push --accept-data-loss
+    fi
+
+    # 写入辅助脚本
+    write_helper_scripts
+
+    # 构建
+    echo ""
+    echo "正在构建..."
+    npm run build
+
+    # 重启 PM2
+    echo ""
+    echo "正在重启服务..."
+    pm2 restart u-plus-lite
+
+    # 更新版本文件
+    echo "v$LATEST_VERSION" > version.txt
+
+    echo ""
+    print_status "ok" "更新完成"
+    show_complete ""
+}
+
+# ============================================================
+# 执行卸载
+# ============================================================
+do_uninstall() {
+    echo ""
+    echo -e "${RED}警告：即将卸载 U-Plus-Lite${NC}"
+    echo ""
+    echo "此操作将："
+    echo "  1. 删除 PM2 服务"
+    echo "  2. 删除部署目录: $DEPLOY_DIR"
+    echo ""
+    echo -n "确认卸载？请输入 YES: "
+    read -r confirm
+
+    if [ "$confirm" != "YES" ]; then
+        echo "取消卸载操作"
+        exit 0
+    fi
+
+    echo ""
+    echo "正在卸载..."
+    pm2 delete u-plus-lite 2>/dev/null || true
+    rm -rf "$DEPLOY_DIR"
+    print_status "ok" "卸载完成"
+}
+
+# ============================================================
+# 显示完成信息
 # ============================================================
 show_complete() {
-    LOCAL_IP=$(get_local_ip)
+    local admin_name="$1"
+    local local_ip
+    local_ip=$(get_local_ip)
 
     echo ""
     echo "=========================================="
     echo -e " ${GREEN}部署完成！${NC}"
     echo "=========================================="
     echo ""
-    echo "局域网访问地址：http://$LOCAL_IP:$PORT"
+    echo -e "访问地址: ${GREEN}http://$local_ip:$PORT${NC}"
     echo ""
 
-    if [ -n "$ADMIN_NAME" ]; then
-        echo "管理员账号：$ADMIN_NAME"
-        echo "管理员密码：$ADMIN_PASSWORD"
+    if [ -n "$admin_name" ]; then
+        echo "管理员账号: $admin_name"
     else
-        echo "管理员账号：（沿用之前的设置）"
-        echo "管理员密码：（沿用之前的设置）"
+        echo "管理员账号: （沿用之前设置）"
     fi
+    echo "管理员密码: （沿用之前设置）"
 
     echo ""
     echo "常用命令："
-    echo "  pm2 status              查看状态"
-    echo "  pm2 logs u-plus-lite   查看日志"
-    echo "  pm2 restart u-plus-lite 重启"
+    echo "  pm2 status                查看状态"
+    echo "  pm2 logs u-plus-lite      查看日志"
+    echo "  pm2 restart u-plus-lite   重启服务"
+    echo "  pm2 monit                 实时监控"
     echo "=========================================="
 }
 
@@ -779,16 +937,15 @@ show_complete() {
 # 主流程
 # ============================================================
 main() {
-    check_dependencies    # Step 0: 依赖检测
-    setup_path           # Step 1: 路径配置
-    setup_code           # Step 2: 克隆/更新代码
-    install_deps         # Step 3: 安装依赖
-    setup_prisma         # Step 4: Prisma
-    setup_admin          # Step 5: 管理员
-    config_nextauth      # Step 6: 配置 NEXTAUTH_URL（必须在 build 前，以嵌入正确环境变量）
-    build_and_start      # Step 7: 构建并启动
-    import_csv_data      # Step 8: CSV import
-    show_complete        # 完成
+    check_dependencies
+    fetch_latest_version
+    detect_deployment
+
+    if [ "$DEPLOY_MODE" = "new" ]; then
+        deploy_new
+    else
+        deploy_update
+    fi
 }
 
 main "$@"
