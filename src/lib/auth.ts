@@ -17,7 +17,7 @@ export const authOptions: NextAuthOptions = {
         if (!user) return null
         const valid = await bcrypt.compare(credentials.password, user.password)
         if (!valid) return null
-        return { id: String(user.id), name: user.name, role: user.role, level: user.level, pipelines: user.pipelines, lastUsedPipeline: user.lastUsedPipeline }
+        return { id: String(user.id), name: user.name, role: user.role, level: user.level, pipelines: user.pipelines }
       },
     }),
   ],
@@ -30,7 +30,6 @@ export const authOptions: NextAuthOptions = {
         token.level = user.level
         token.name = user.name
         token.pipelines = user.pipelines
-        token.lastUsedPipeline = user.lastUsedPipeline
       }
       if (trigger === 'update' && session?.name) {
         token.name = session.name
@@ -43,7 +42,6 @@ export const authOptions: NextAuthOptions = {
       session.user.role = token.role as string
       session.user.level = token.level as string | null
       session.user.pipelines = token.pipelines as string
-      session.user.lastUsedPipeline = token.lastUsedPipeline as string | null
       return session
     },
   },
