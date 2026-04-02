@@ -78,22 +78,19 @@ function ArrowIcon({ flipped }: { flipped?: boolean }) {
 
 function AccountSettingsModal({
   initialName,
-  lastUsedPipeline,
   onClose,
   onUpdated,
 }: {
   initialName: string
-  lastUsedPipeline: string | null
   onClose: () => void
-  onUpdated: (name: string, lastUsedPipeline: string) => Promise<void>
+  onUpdated: (name: string) => Promise<void>
 }) {
   const [name, setName] = useState(initialName)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [selectedPipeline, setSelectedPipeline] = useState(lastUsedPipeline || '')
-  const initialSelectedPipeline = lastUsedPipeline || ''
   const [pipelines, setPipelines] = useState<string[]>([])
+  const [selectedPipeline, setSelectedPipeline] = useState('')
   const [pipelineOpen, setPipelineOpen] = useState(false)
   const pipelineRef = useRef<HTMLDivElement>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -123,10 +120,6 @@ function AccountSettingsModal({
 
     if (trimmedName !== initialName) {
       payload.name = trimmedName
-    }
-
-    if (selectedPipeline !== initialSelectedPipeline) {
-      payload.lastUsedPipeline = selectedPipeline
     }
 
     const wantsPasswordChange = Boolean(currentPassword || newPassword || confirmPassword)
@@ -160,7 +153,7 @@ function AccountSettingsModal({
       return
     }
 
-    await onUpdated(result.name, result.lastUsedPipeline || '')
+    await onUpdated(result.name)
     setCurrentPassword('')
     setNewPassword('')
     setConfirmPassword('')
@@ -334,8 +327,8 @@ export default function Header({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showUserMenu])
 
-  async function handleAccountUpdated(name: string, lastUsedPipeline: string) {
-    await update({ name, lastUsedPipeline })
+  async function handleAccountUpdated(name: string) {
+    await update({ name })
   }
 
   async function handleSignOut() {
@@ -449,7 +442,6 @@ export default function Header({
       {showAccountSettings && (
         <AccountSettingsModal
           initialName={session?.user?.name || ''}
-          lastUsedPipeline={session?.user?.lastUsedPipeline ?? null}
           onClose={() => setShowAccountSettings(false)}
           onUpdated={handleAccountUpdated}
         />
