@@ -145,6 +145,13 @@ function Initialize-Code {
         $script:UPDATE_MODE = $true
         $script:PROJECT_ROOT = $script:DEPLOY_DIR
 
+        Write-Step "正在拉取最新代码..."
+        git pull
+        if ($LASTEXITCODE -ne 0) {
+            Write-Fail "代码拉取失败，请检查网络连接后重试"
+            exit 1
+        }
+
         $nextDir = Join-Path $script:DEPLOY_DIR ".next"
         if (Test-Path $nextDir) {
             Write-Info "清理旧的构建缓存..."
