@@ -45,11 +45,21 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       lastSubmittedAt: new Date(),
     },
   })
-  // Update lastUsedPipeline for the user
-  if (data.pipeline) {
-    await prisma.user.update({
-      where: { id: parseInt(session.user.id) },
-      data: { lastUsedPipeline: data.pipeline },
+  // Upsert cycle-specific pipeline memory
+  if (data.pipeline && data.cycleId) {
+    await prisma.userCyclePipeline.upsert({
+      where: {
+        userId_cycleId: {
+          userId: parseInt(session.user.id),
+          cycleId: parseInt(data.cycleId),
+        },
+      },
+      update: { pipeline: data.pipeline },
+      create: {
+        userId: parseInt(session.user.id),
+        cycleId: parseInt(data.cycleId),
+        pipeline: data.pipeline,
+      },
     })
   }
   return NextResponse.json(updated)
