@@ -6,6 +6,7 @@ import RequirementCardCollapsed from './RequirementCardCollapsed'
 import RequirementCardExpanded from './RequirementCardExpanded'
 import ConfirmDialog from './ConfirmDialog'
 import { useTips } from './Tips'
+import { ActionIconButton } from './icons'
 
 export type PipelineSettingData = {
   id: number; name: string; budgetItems: { id: number; name: string }[]
@@ -538,7 +539,8 @@ export default function RequirementPanel({
               counts={filterCounts}
             />
           </div>
-          <div className="ml-auto flex gap-[10px]">
+          <div className="ml-auto flex items-center gap-[12px]">
+            <ActionIconButton type="upload-dark" disabled={false} onClick={() => {}} />
             <button
               onClick={handleCreateRequirement}
               className={`flex h-[46px] w-[159px] items-center justify-center rounded-[12px] text-[18px] leading-[25px] text-white transition-transform ${

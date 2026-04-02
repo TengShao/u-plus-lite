@@ -64,11 +64,12 @@ export function UploadIcon() {
   )
 }
 
-export function ActionIconButton({ type, disabled, onClick }: { type: 'complete' | 'delete' | 'upload'; disabled: boolean; onClick: () => void }) {
+export function ActionIconButton({ type, disabled, onClick }: { type: 'complete' | 'delete' | 'upload' | 'upload-dark'; disabled: boolean; onClick: () => void }) {
   const [hover, setHover] = useState(false)
   const [active, setActive] = useState(false)
   const isDelete = type === 'delete'
-  const isUpload = type === 'upload'
+  const isUpload = type === 'upload' || type === 'upload-dark'
+  const isUploadDark = type === 'upload-dark'
   const showTint = !disabled && (hover || active)
   const color = isDelete ? (hover || active ? '#E91B1B' : '#000000') : isUpload ? '#000000' : '#8ECA2E'
   const iconOpacity = disabled
@@ -87,7 +88,7 @@ export function ActionIconButton({ type, disabled, onClick }: { type: 'complete'
       onMouseDown={() => setActive(true)}
       onMouseUp={() => setActive(false)}
       className="flex h-[52px] w-[52px] items-center justify-center rounded-full"
-      style={{ background: isUpload ? (showTint ? '#F7F7F7' : 'transparent') : (showTint ? (isDelete ? '#FF000017' : '#8ECA2E2F') : 'transparent'), color }}
+      style={{ background: isUpload ? (showTint ? (isUploadDark ? '#ECECEC' : '#F7F7F7') : 'transparent') : (showTint ? (isDelete ? '#FF000017' : '#8ECA2E2F') : 'transparent'), color }}
     >
       <span style={{ opacity: iconOpacity }}>
         {type === 'complete' ? <ConfirmIcon /> : type === 'delete' ? <DeleteIcon /> : <UploadIcon />}

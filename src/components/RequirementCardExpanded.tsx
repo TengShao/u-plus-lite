@@ -227,9 +227,7 @@ export default function RequirementCardExpanded({
       {/* 需求名称区域: 标题+输入框+信息方块 一行布局 */}
       <div className="flex items-start">
         <div className="w-[600px]">
-          <div className="ml-[9px]">
             <SectionTitle icon="name" text="需求名称" weight={600} />
-          </div>
           <div className="relative mt-[10px] flex items-center">
             <div className="relative w-[600px]">
               <div
@@ -271,10 +269,10 @@ export default function RequirementCardExpanded({
         </div>
       </div>
 
-      <div className="mt-[20px] h-px w-full bg-[#0000000A]" />
+      {/* <CardDivider mt={20} /> */}
 
       <div className="mt-[20px]">
-        <div className="ml-[9px]">
+        <div>
           <SectionTitle icon="info" text="需求信息" weight={600} />
         </div>
       </div>
@@ -345,7 +343,7 @@ export default function RequirementCardExpanded({
       </div>
 
       <div className={`${isComplete || !hasRatingTip ? 'mt-[20px]' : 'mt-[40px]'} flex items-center gap-[8px]`}>
-        <div className="ml-[9px]">
+        <div>
           <SectionTitle icon="info" text="其他信息" weight={600} />
         </div>
       </div>
@@ -396,14 +394,19 @@ export default function RequirementCardExpanded({
         </div>
       </div>
 
-      <div className={`${isComplete ? 'mt-[20px]' : (hasFuncPointsTip || hasPageCountTip ? 'mt-[40px]' : 'mt-[20px]')} h-px w-full bg-[#0000000A]`} />
+      {/*
+        分割线逻辑：TipsBadge 出现在"其他信息"行时，下方内容需要向下位移避让。
+        - 有分割线时：CardDivider 动态 margin 控制"参与设计师"位移（mt=40 时 TipsBadge 不遮挡）
+        - 无分割线时："参与设计师" 自己动态 margin 替代分割线的作用
+      */}
+      {/* <CardDivider mt={isComplete ? 20 : (hasFuncPointsTip || hasPageCountTip ? 40 : 20)} /> */}
 
-      <div className="mt-[20px]">
-        <div className="ml-[9px]">
+      <div className={`${isComplete || (!hasFuncPointsTip && !hasPageCountTip) ? 'mt-[20px]' : 'mt-[40px]'}`}>
+        <div>
           <SectionTitle icon="designers" text="参与设计师" weight={600} />
         </div>
       </div>
-      <div className="mt-[12px] min-h-[33px]">
+      <div className="mt-[10px] min-h-[33px]">
         {data.cycleWorkloads.length === 0 && manDays === 0 ? (
           <div className="flex h-[33px] w-full items-center justify-center text-[14px] font-alibaba" style={{ fontWeight: 800, color: '#EEEEEE' }}>
             暂无设计师参与，怎么回事
@@ -420,15 +423,15 @@ export default function RequirementCardExpanded({
         )}
       </div>
 
-      <div className="mt-[20px] h-px w-full bg-[#0000000A]" />
+      <CardDivider mt={20} />
 
       <div className="mt-[20px]">
-        <div className="ml-[9px]">
+        <div>
           <SectionTitle icon="mine" text="你的投入" weight={600} />
         </div>
       </div>
 
-      <div className="mt-[20px] flex items-end justify-between">
+      <div className="mt-[10px] flex items-end justify-between">
         <div className="flex items-center gap-[12px]">
           <ManDayStepper
             value={manDays}
@@ -469,6 +472,10 @@ export default function RequirementCardExpanded({
 
     </div>
   )
+}
+
+function CardDivider({ mt = 20 }: { mt?: number }) {
+  return <div className={`mt-[${mt}px] h-px w-full bg-[#0000000A]`} />
 }
 
 function SectionTitle({ icon, text, weight }: { icon: 'name' | 'info' | 'designers' | 'mine'; text: string; weight: number }) {
