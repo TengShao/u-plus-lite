@@ -25,11 +25,10 @@ function Write-HostL($msg) { Write-Host $msg }
 # 获取本机局域网 IP（192.168.x.x）
 # ============================================================
 function Get-LocalIP {
-    $ip = (ipconfig) -match '192\.168\.\d+\.\d+' | ForEach-Object { $matches[0] } | Select-Object -First 1
-    if (-not $ip) {
-        $adapters = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch "Loopback|Loopback Pseudo-Interface" -and $_.IPAddress -notmatch "^127" }
-        $ip = ($adapters | Select-Object -First 1).IPAddress
-    }
+    $ip = Get-NetIPAddress -AddressFamily IPv4 -PrefixOrigin Manual, Dhcp -ErrorAction SilentlyContinue |
+        Where-Object { $_.IPAddress -like '192.168.*' } |
+        Select-Object -First 1 -ExpandProperty IPAddress
+    if (-not $ip) { $ip = "127.0.0.1" }
     return $ip
 }
 
@@ -263,8 +262,11 @@ function Import-CsvData {
         } elseif (Test-Path $budgetPath) {
             npx tsx prisma/import.ts --budget-items=$budgetPath
         }
-
-        Write-Success "CSV 导入完成"
+        if ($LASTEXITCODE -ne 0) {
+            Write-Fail "CSV 导入失败"
+        } else {
+            Write-Success "CSV 导入完成"
+        }
 
     } elseif ($choice -eq "2") {
         Write-Host ""
@@ -393,7 +395,9 @@ function Deploy-New {
     # 生成 .env
     $envPath = Join-Path $script:PROJECT_ROOT ".env"
     $dbUrl = "file:" + (Join-Path $script:PROJECT_ROOT "prisma\dev.db").Replace("\", "/")
-    $nextAuthSecret = [Convert]::ToBase64String([byte[]]::new(32) | ForEach-Object { Get-Random -Maximum 256 })
+    $bytes = [byte[]]::new(32)
+    [System.Security.Cryptography.RandomNumberGenerator]::GetBytes($bytes)
+    $nextAuthSecret = [Convert]::ToBase64String($bytes)
     $localIP = Get-LocalIP
 
     $envContent = "DATABASE_URL=`"$dbUrl`"" + [Environment]::NewLine
@@ -516,10 +520,15 @@ function Deploy-Update {
         Write-Step "正在更新代码..."
         Set-Location $script:PROJECT_ROOT
         git fetch origin
+        if ($LASTEXITCODE -ne 0) { Write-Warn "git fetch 失败" }
         git stash
+        if ($LASTEXITCODE -ne 0) { Write-Warn "git stash 失败" }
         git checkout master
+        if ($LASTEXITCODE -ne 0) { Write-Warn "git checkout 失败" }
         git pull origin master
+        if ($LASTEXITCODE -ne 0) { Write-Warn "git pull 失败" }
         git stash pop
+        if ($LASTEXITCODE -ne 0) { Write-Warn "git stash pop 失败（可能没有暂存的更改）" }
 
         # 智能构建
         if (Test-SmartBuildNeeded) {
@@ -568,10 +577,15 @@ function Deploy-Update {
 
         Set-Location $script:PROJECT_ROOT
         git fetch origin
+        if ($LASTEXITCODE -ne 0) { Write-Warn "git fetch 失败" }
         git stash
+        if ($LASTEXITCODE -ne 0) { Write-Warn "git stash 失败" }
         git checkout master
+        if ($LASTEXITCODE -ne 0) { Write-Warn "git checkout 失败" }
         git pull origin master
+        if ($LASTEXITCODE -ne 0) { Write-Warn "git pull 失败" }
         git stash pop
+        if ($LASTEXITCODE -ne 0) { Write-Warn "git stash pop 失败（可能没有暂存的更改）" }
 
         # 智能构建
         if (Test-SmartBuildNeeded) {
