@@ -121,9 +121,9 @@ export function DesignerCube({
   return (
     <div
       ref={containerRef}
-      className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] px-[8px] font-alibaba overflow-hidden"
+      className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] px-[8px] font-alibaba"
       style={{
-        width: 'auto',
+        width: Math.max(MIN_WIDTH, contentWidth),
         minWidth: MIN_WIDTH,
         maxWidth: MAX_WIDTH,
       }}
@@ -136,7 +136,7 @@ export function DesignerCube({
           {value ?? '-'}
         </span>
       ) : (
-        <div className="relative mt-[5px] flex shrink-0 items-center gap-[8px] overflow-hidden max-w-full">
+        <div className="relative mt-[5px] flex shrink-0 items-center gap-[8px]">
           {visibleChips.map(({ workload, isMine }) => (
             <DesignerChip
               key={workload.userId}
