@@ -159,7 +159,12 @@ function Initialize-Code {
 
         $destScripts = Join-Path $script:DEPLOY_DIR "scripts"
         if (-not (Test-Path $destScripts)) { New-Item -ItemType Directory -Path $destScripts | Out-Null }
-        Copy-Item -Force $PSCommandPath (Join-Path $destScripts "deploy.ps1")
+        if ([string]::IsNullOrEmpty($PSCommandPath)) {
+            Write-Info "脚本通过管道运行，从 GitHub 下载 deploy.ps1..."
+            Invoke-WebRequest -Uri "https://raw.githubusercontent.com/TengShao/u-plus-lite/master/deploy/deploy.ps1" -OutFile (Join-Path $destScripts "deploy.ps1")
+        } else {
+            Copy-Item -Force $PSCommandPath (Join-Path $destScripts "deploy.ps1")
+        }
 
     } else {
         if (Test-Path $script:DEPLOY_DIR) {
