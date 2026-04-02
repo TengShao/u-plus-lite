@@ -110,7 +110,7 @@ export default function FilterBar({
         onExclusive={(v) => exclusive('designer', v)}
         counts={counts?.designer}
       />
-      <SingleDropdown label="可关闭" options={['true', 'false']} optionLabels={['是', '否']} selected={filters.canClose?.[0] || ''} onSelect={(v) => selectSingle('canClose', v)} counts={counts?.canClose} />
+      <SingleDropdown label="完成" options={['true', 'false']} optionLabels={['是', '否']} selected={filters.canClose?.[0] || ''} onSelect={(v) => selectSingle('canClose', v)} counts={counts?.canClose} />
       <SingleDropdown label="状态" options={['INCOMPLETE', 'COMPLETE']} optionLabels={['未完成', '已完成']} selected={filters.status?.[0] || ''} onSelect={(v) => selectSingle('status', v)} counts={counts?.status} />
     </div>
   )

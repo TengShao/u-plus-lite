@@ -216,7 +216,7 @@ export default function RequirementCardExpanded({
   }
 
   const readonlyCubes = useMemo(() => [
-    { label: '总投入人天', value: computedTotalManDays.toFixed(1), color: '#000000' },
+    { label: '总人天', value: computedTotalManDays.toFixed(1), color: '#000000' },
     { label: '参与人数', value: String(computedParticipantCount), color: '#000000' },
     { label: '投入比', value: rating ? `${computedInputRatio}%` : '-', color: '#000000' },
     { label: '健康度', value: computedHealthStatus || '-', color: computedHealthStatus ? HEALTH_COLORS[computedHealthStatus] : '#000000' },
@@ -336,7 +336,7 @@ export default function RequirementCardExpanded({
           )}
         </Cube>
 
-        <Cube label="本月可关闭" required isEmpty={false} width={120} disabled={isComplete} value={canClose ? '是' : '否'}>
+        <Cube label="本月完成" required isEmpty={false} width={120} disabled={isComplete} value={canClose ? '是' : '否'}>
           <SelectTrigger width={104} value={canClose ? '是' : '否'} isOpen={openMenu === 'canClose'} onToggle={() => userEditable && setOpenMenu(openMenu === 'canClose' ? null : 'canClose')} isHovered={triggerHovered === 'canClose'} onMouseEnter={() => setTriggerHovered('canClose')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'canClose' && userEditable && (
             <MenuSingle width={104} value={canClose ? '是' : '否'} options={['是', '否']} selected={canClose ? '是' : '否'} onPick={(v) => { setCanClose(v === '是'); setOpenMenu(null); markDirty() }} />

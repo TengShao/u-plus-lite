@@ -98,19 +98,16 @@ export default function RequirementCardCollapsed({
       {/* Info cubes + designer area — bottom-left */}
       <div className="absolute bottom-[20px] left-[20px] flex items-start gap-[8px]">
         <Cube label="评级" value={data.rating || '-'} />
-        <Cube label="本月可关闭" value={data.canClose ? '是' : '否'} />
-        <Cube label="总投入人天" value={String(data.totalManDays)} />
+        <Cube label="本月完成" value={data.canClose ? '是' : '否'} />
+        <Cube label="总人天" value={String(data.totalManDays)} />
         <Cube label="投入比" value={data.rating ? `${data.inputRatio}%` : '-'} />
         <Cube label="参与人数" value={String(data.participantCount)} />
-        <div className="flex h-[80px] min-w-[110px] shrink-0 flex-col rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] w-fit">
-          <span className="mt-[14px] text-center text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>参与设计师</span>
-          <div className="flex flex-1 items-center justify-center overflow-hidden px-[10px]">
+        <Cube label="参与设计师" width={110}>
+          <div className="flex items-center gap-[8px]">
             {data.cycleWorkloads.length === 0 ? (
-              <span className="text-[14px] text-black/30 font-alibaba" style={{ fontWeight: 800 }}>
-                暂无
-              </span>
+              <span className="text-[14px] text-black/30 font-alibaba" style={{ fontWeight: 800 }}>暂无</span>
             ) : (
-              <div className="flex items-center gap-[8px]">
+              <>
                 {displayWorkloads.map((w) => {
                   const isMe = w.userId === myUserId
                   return <DesignerChip key={w.userId} name={isMe ? '你' : w.userName} days={String(w.manDays)} mine={isMe} nameWeight={isMe ? 600 : undefined} />
@@ -118,10 +115,10 @@ export default function RequirementCardCollapsed({
                 {extraCount > 0 && (
                   <DesignerChip name={`其他${extraCount}人`} days={String(data.cycleWorkloads.slice(4).reduce((s, w) => s + w.manDays, 0))} />
                 )}
-              </div>
+              </>
             )}
           </div>
-        </div>
+        </Cube>
       </div>
 
       {/* Action buttons — right side, vertically centered with cubes row (y=66 in 152h card) */}

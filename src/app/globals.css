@@ -59,10 +59,13 @@ body {
   height: 100%;
 }
 
-body {
-  margin: 0;
-  background: var(--u-bg-page);
-  color: var(--u-text-primary);
+@layer base {
+  body {
+    margin: 0;
+    background: var(--u-bg-page);
+    color: var(--u-text-primary);
+    font-family: var(--font-alibaba) !important;
+  }
 }
 
 /* Smooth scrolling with native momentum */
