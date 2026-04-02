@@ -674,24 +674,20 @@ deploy_new() {
     if is_port_used 3000; then
         echo ""
         echo -e "${YELLOW}端口 3000 已被占用${NC}"
-        echo "  1 - 查找下一个可用端口"
-        echo "  2 - 手动指定端口"
+        echo "  1 - 帮我释放 3000 端口"
+        echo "  2 - 查找下一个可用端口（注意：可能影响正在使用的用户）"
         echo ""
         echo -n "请选择 [1]: "
         read -r port_choice
         port_choice=${port_choice:-1}
 
         if [ "$port_choice" = "1" ]; then
+            lsof -ti:3000 | xargs kill
+            echo "端口 3000 已释放"
+            PORT=3000
+        else
             PORT=$(find_available_port)
             echo "使用端口: $PORT"
-        else
-            echo -n "请输入端口号: "
-            read -r PORT
-            while is_port_used $PORT; do
-                echo -e "${RED}端口 $PORT 已被占用，请选择其他端口${NC}"
-                echo -n "请输入端口号: "
-                read -r PORT
-            done
         fi
     else
         PORT=3000
