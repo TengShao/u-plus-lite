@@ -23,6 +23,7 @@ export default function RequirementCardCollapsed({
   onDeleteRequest,
   onCompleteRequest,
   onReopenRequest,
+  isLastSubmitted,
 }: {
   data: RequirementData
   cycleStatus: string
@@ -31,6 +32,7 @@ export default function RequirementCardCollapsed({
   onDeleteRequest: (id: number) => void
   onCompleteRequest?: (id: number) => void
   onReopenRequest?: (id: number) => void
+  isLastSubmitted?: boolean
 }) {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'
@@ -80,6 +82,11 @@ export default function RequirementCardCollapsed({
             <Divider />
             <span className="truncate text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>{typesStr}</span>
           </>
+        )}
+        {isLastSubmitted && (
+          <span className="ml-[6px] flex items-center rounded-[4px] bg-[#8eca2e27] px-[3px]" style={{ height: 18 }}>
+            <span className="text-[12px] text-[#8eca2e]">上次提交</span>
+          </span>
         )}
       </div>
 

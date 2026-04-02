@@ -53,6 +53,7 @@ export default function RequirementCardExpanded({
   onReopenRequest,
   defaultPipeline,
   isDraft,
+  onLastSubmitRequest,
 }: {
   data: RequirementData
   cycleId: number
@@ -71,6 +72,7 @@ export default function RequirementCardExpanded({
   isDraft?: boolean
   defaultPipeline?: string | null
   onReopenRequest?: (id: number) => void
+  onLastSubmitRequest?: (id: number) => void
 }) {
   const { data: session } = useSession()
   const { showTips } = useTips()
@@ -112,7 +114,22 @@ export default function RequirementCardExpanded({
   const hasPageCountTip = !isComplete && computedTotalManDays > 0 && pageCount !== Math.round(computedTotalManDays * 1.75)
   const hasAnyTip = hasRatingTip || hasFuncPointsTip || hasPageCountTip
 
-  const [dirty, setDirty] = useState(false)
+  const isDirty = useMemo(() => {
+    const myWorkload = data.cycleWorkloads.find((w) => w.userId === userId)
+    return (
+      name !== data.name ||
+      rating !== (data.rating || '') ||
+      module !== (data.module || '') ||
+      pipeline !== (data.pipeline || defaultPipeline || '') ||
+      JSON.stringify(types) !== JSON.stringify(data.types || []) ||
+      budgetItem !== (data.budgetItem || '') ||
+      canClose !== data.canClose ||
+      funcPoints !== (data.funcPoints ?? data.funcPointsRecommended) ||
+      pageCount !== (data.pageCount ?? 0) ||
+      manDays !== (myWorkload?.manDays ?? 0)
+    )
+  }, [name, rating, module, pipeline, types, budgetItem, canClose, funcPoints, pageCount, manDays, data, defaultPipeline])
+
   const [triedSubmit, setTriedSubmit] = useState(false)
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null)
   const [nameFocused, setNameFocused] = useState(false)
@@ -121,7 +138,7 @@ export default function RequirementCardExpanded({
   const [isCollapsing, setIsCollapsing] = useState(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
 
-  useEffect(() => { onDirtyChange(dirty) }, [dirty, onDirtyChange])
+  useEffect(() => { onDirtyChange(isDirty) }, [isDirty, onDirtyChange])
 
   useEffect(() => {
     function onDocMouseDown(e: MouseEvent) {
@@ -149,10 +166,6 @@ export default function RequirementCardExpanded({
   const budgetInvalid = triedSubmit && !budgetItem
   const funcPointsInvalid = triedSubmit && !funcPoints
   const pageCountInvalid = triedSubmit && !pageCount
-
-  function markDirty() {
-    if (!dirty) setDirty(true)
-  }
 
   function collapseWithAnimation(after?: () => void) {
     if (isCollapsing) return
@@ -200,6 +213,7 @@ export default function RequirementCardExpanded({
     console.log('[RequirementCardExpanded] showTips called')
     onRefresh()
     onDraftResolved(data.id)
+    onLastSubmitRequest?.(data.id)
     collapseWithAnimation()
   }
 
@@ -212,7 +226,6 @@ export default function RequirementCardExpanded({
 
   function toggleType(t: string) {
     setTypes((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t])
-    markDirty()
   }
 
   const readonlyCubes = useMemo(() => [
@@ -241,7 +254,7 @@ export default function RequirementCardExpanded({
                   disabled={!userEditable || isComplete}
                   onFocus={() => setNameFocused(true)}
                   onBlur={() => setNameFocused(false)}
-                  onChange={(e) => { setName(e.target.value); markDirty() }}
+                  onChange={(e) => { setName(e.target.value) }}
                   placeholder="请输入需求组名称"
                   autoFocus={isDraft}
                   className="h-full w-full bg-transparent px-[10px] pr-[40px] text-[16px] leading-[22px] text-black placeholder:text-[#C3C3C3] outline-none"
@@ -251,7 +264,7 @@ export default function RequirementCardExpanded({
                   <button
                     type="button"
                     aria-label="清空需求组名称"
-                    onClick={() => { setName(''); markDirty() }}
+                    onClick={() => { setName('') }}
                     className="absolute right-[10px] top-1/2 -translate-y-1/2"
                   >
                     <img src="/clear-input-icon.svg" alt="" aria-hidden="true" className="h-[18px] w-[18px]" />
@@ -281,7 +294,7 @@ export default function RequirementCardExpanded({
         <Cube label="管线" required isEmpty={!pipeline} width={160} disabled={isComplete} value={pipeline}>
           <SelectTrigger width={144} value={pipeline} isOpen={openMenu === 'pipeline'} onToggle={() => userEditable && setOpenMenu(openMenu === 'pipeline' ? null : 'pipeline')} invalid={pipelineInvalid} isHovered={triggerHovered === 'pipeline'} onMouseEnter={() => setTriggerHovered('pipeline')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'pipeline' && userEditable && (
-            <MenuSingle width={144} value={pipeline} options={pipelineOptions as readonly string[]} selected={pipeline} onPick={(v) => { setPipeline(v); setBudgetItem(''); setOpenMenu(null); markDirty() }} />
+            <MenuSingle width={144} value={pipeline} options={pipelineOptions as readonly string[]} selected={pipeline} onPick={(v) => { setPipeline(v); setBudgetItem(''); setOpenMenu(null) }} />
           )}
         </Cube>
 
@@ -299,7 +312,7 @@ export default function RequirementCardExpanded({
               onMouseLeave={() => setTriggerHovered(null)}
             />
             {openMenu === 'rating' && userEditable && (
-              <MenuSingle width={104} value={rating} options={RATINGS as readonly string[]} selected={rating} onPick={(v) => { setRating(v); setOpenMenu(null); markDirty() }} />
+              <MenuSingle width={104} value={rating} options={RATINGS as readonly string[]} selected={rating} onPick={(v) => { setRating(v); setOpenMenu(null) }} />
             )}
           </Cube>
           {!isComplete && computedRecommendedRating && computedRecommendedRating !== rating && (
@@ -307,7 +320,7 @@ export default function RequirementCardExpanded({
               <TipsBadge
                 label="推荐"
                 value={computedRecommendedRating}
-                onClick={() => { setRating(computedRecommendedRating); markDirty() }}
+                onClick={() => { setRating(computedRecommendedRating) }}
               />
             </div>
           )}
@@ -316,7 +329,7 @@ export default function RequirementCardExpanded({
         <Cube label="设计模块" required isEmpty={!module} width={160} disabled={isComplete} value={module}>
           <SelectTrigger width={144} value={module} isOpen={openMenu === 'module'} onToggle={() => userEditable && setOpenMenu(openMenu === 'module' ? null : 'module')} invalid={moduleInvalid} isHovered={triggerHovered === 'module'} onMouseEnter={() => setTriggerHovered('module')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'module' && userEditable && (
-            <MenuSingle width={144} value={module} options={MODULES as readonly string[]} selected={module} onPick={(v) => { setModule(v); setOpenMenu(null); markDirty() }} />
+            <MenuSingle width={144} value={module} options={MODULES as readonly string[]} selected={module} onPick={(v) => { setModule(v); setOpenMenu(null) }} />
           )}
         </Cube>
 
@@ -330,14 +343,14 @@ export default function RequirementCardExpanded({
         <Cube label="预算项" required isEmpty={!budgetItem} width={280} disabled={isComplete} value={budgetItem}>
           <SelectTrigger width={264} value={budgetItem} isOpen={openMenu === 'budgetItem'} onToggle={() => userEditable && setOpenMenu(openMenu === 'budgetItem' ? null : 'budgetItem')} invalid={budgetInvalid} truncate isHovered={triggerHovered === 'budgetItem'} onMouseEnter={() => setTriggerHovered('budgetItem')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'budgetItem' && userEditable && (
-            <MenuSingle width={264} value={budgetItem} options={budgetOptions} selected={budgetItem} onPick={(v) => { setBudgetItem(v); setOpenMenu(null); markDirty() }} />
+            <MenuSingle width={264} value={budgetItem} options={budgetOptions} selected={budgetItem} onPick={(v) => { setBudgetItem(v); setOpenMenu(null) }} />
           )}
         </Cube>
 
         <Cube label="本月完成" required isEmpty={false} width={120} disabled={isComplete} value={canClose ? '是' : '否'}>
           <SelectTrigger width={104} value={canClose ? '是' : '否'} isOpen={openMenu === 'canClose'} onToggle={() => userEditable && setOpenMenu(openMenu === 'canClose' ? null : 'canClose')} isHovered={triggerHovered === 'canClose'} onMouseEnter={() => setTriggerHovered('canClose')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'canClose' && userEditable && (
-            <MenuSingle width={104} value={canClose ? '是' : '否'} options={['是', '否']} selected={canClose ? '是' : '否'} onPick={(v) => { setCanClose(v === '是'); setOpenMenu(null); markDirty() }} />
+            <MenuSingle width={104} value={canClose ? '是' : '否'} options={['是', '否']} selected={canClose ? '是' : '否'} onPick={(v) => { setCanClose(v === '是'); setOpenMenu(null) }} />
           )}
         </Cube>
       </div>
@@ -354,7 +367,7 @@ export default function RequirementCardExpanded({
             <CubeInput
               width={104}
               value={funcPoints}
-              onChange={(v) => { setFuncPoints(parseInt(v) || 0); markDirty() }}
+              onChange={(v) => { setFuncPoints(parseInt(v) || 0) }}
               placeholder="请输入"
               disabled={!userEditable}
               invalid={funcPointsInvalid}
@@ -365,7 +378,7 @@ export default function RequirementCardExpanded({
               <TipsBadge
                 label="推荐"
                 value={computedFuncPointsRecommended}
-                onClick={() => { setFuncPoints(computedFuncPointsRecommended); markDirty() }}
+                onClick={() => { setFuncPoints(computedFuncPointsRecommended) }}
               />
             </div>
           )}
@@ -376,7 +389,7 @@ export default function RequirementCardExpanded({
             <CubeInput
               width={104}
               value={pageCount}
-              onChange={(v) => { setPageCount(parseInt(v) || 0); markDirty() }}
+              onChange={(v) => { setPageCount(parseInt(v) || 0) }}
               placeholder="请输入"
               disabled={!userEditable}
               invalid={pageCountInvalid}
@@ -387,7 +400,7 @@ export default function RequirementCardExpanded({
               <TipsBadge
                 label="推荐"
                 value={Math.round(computedTotalManDays * 1.75)}
-                onClick={() => { setPageCount(Math.round(computedTotalManDays * 1.75)); markDirty() }}
+                onClick={() => { setPageCount(Math.round(computedTotalManDays * 1.75)) }}
               />
             </div>
           )}
@@ -436,7 +449,6 @@ export default function RequirementCardExpanded({
           <ManDayStepper
             value={manDays}
             onChange={(v) => setManDays(v)}
-            onDirty={markDirty}
             disabled={!userEditable}
             isComplete={isComplete}
           />
@@ -454,13 +466,13 @@ export default function RequirementCardExpanded({
 
           <ActionButton
             variant="cancel"
-            onClick={() => (dirty || isDraft ? onDiscardRequest(data.id) : collapseWithAnimation(() => onDraftResolved(data.id)))}
-            completeText={dirty || isDraft ? '取消' : '收起'}
+            onClick={() => (isDirty || isDraft ? onDiscardRequest(data.id) : collapseWithAnimation(() => onDraftResolved(data.id)))}
+            completeText={isDirty || isDraft ? '取消' : '收起'}
           />
 
           <ActionButton
             variant="submit"
-            disabled={!userEditable && !isComplete}
+            disabled={(!userEditable && !isComplete) || !isDirty}
             lastSubmittedAt={data.lastSubmittedAt}
             onClick={isComplete ? () => onReopenRequest?.(data.id) : handleSubmit}
             completeText={isComplete ? '重启' : undefined}

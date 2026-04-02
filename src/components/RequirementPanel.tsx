@@ -61,12 +61,20 @@ export default function RequirementPanel({
   const [cyclePipelineMemory, setCyclePipelineMemory] = useState<string | null>(null)
   const [isScrolled, setIsScrolled] = useState(false)
   const [isScrollbarVisible, setIsScrollbarVisible] = useState(false)
+  const [lastSubmittedId, setLastSubmittedId] = useState<number | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const scrollbarTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const activeDraftIdRef = useRef<number | null>(null)
   const previousCycleIdRef = useRef<number | null>(null)
   // Track if we're in the process of deleting a draft (to prevent race conditions)
   const draftToDeleteRef = useRef<number | null>(null)
+
+  // Restore last submitted requirement from localStorage
+  useEffect(() => {
+    if (!session?.user?.id) return
+    const stored = localStorage.getItem(`lastSubmittedRequirement_${session.user.id}`)
+    if (stored) setLastSubmittedId(parseInt(stored))
+  }, [session?.user?.id])
 
   // Persist activeDraftId in sessionStorage
   useEffect(() => {
@@ -417,6 +425,12 @@ export default function RequirementPanel({
     }
   }
 
+  function handleLastSubmitChange(id: number) {
+    if (!session?.user?.id) return
+    setLastSubmittedId(id)
+    localStorage.setItem(`lastSubmittedRequirement_${session.user.id}`, String(id))
+  }
+
   // All designers in current cycle for filter
   const designers = useMemo(() => {
     const map = new Map<number, string>()
@@ -607,6 +621,7 @@ export default function RequirementPanel({
                   onReopenRequest={handleReopenRequest}
                   isDraft={rg.id === activeDraftId}
                   defaultPipeline={rg.id === activeDraftId ? (cyclePipelineMemory || undefined) : undefined}
+                  onLastSubmitRequest={handleLastSubmitChange}
                 />
               ) : (
                 <RequirementCardCollapsed
@@ -617,6 +632,7 @@ export default function RequirementPanel({
                   onDeleteRequest={(id) => setPendingDeleteId(id)}
                   onCompleteRequest={handleCompleteRequest}
                   onReopenRequest={handleReopenRequest}
+                  isLastSubmitted={lastSubmittedId === rg.id}
                 />
               )}
               </div>
