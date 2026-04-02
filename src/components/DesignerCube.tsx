@@ -6,8 +6,8 @@ const MAX_WIDTH = 390
 const GAP = 8
 const CHIP_PADDING = 16 // 8px on each side
 const SEPARATOR_WIDTH = 6 // mx-[6px]
-const FIXED_NAME_WIDTH = 84 // max width for name part (approx 6 Chinese chars)
-const DAYS_WIDTH = 40 // max width for days part
+const FIXED_NAME_WIDTH = 56 // max width for name part (4 Chinese chars × 14px)
+const DAYS_WIDTH = 32 // max width for days part (4 chars like "12.5")
 const CHIP_MAX_WIDTH = FIXED_NAME_WIDTH + SEPARATOR_WIDTH + DAYS_WIDTH + CHIP_PADDING
 
 function truncateName(name: string, maxChars: number = 4): string {
