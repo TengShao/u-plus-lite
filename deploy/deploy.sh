@@ -232,13 +232,11 @@ setup_code() {
         cd "$DEPLOY_DIR"
         UPDATE_MODE=true
         PROJECT_ROOT="$DEPLOY_DIR"
-
-        echo "[*] 正在拉取最新代码..."
-        if ! git pull; then
-            echo -e "${RED}[X] 代码拉取失败，请检查网络连接后重试${NC}"
-            exit 1
-        fi
-
+        # 拉取最新代码
+        echo "正在拉取最新代码..."
+        git fetch origin
+        git checkout master
+        git pull origin master
         # 清理旧的构建缓存（防止 .next 中残留的 Prisma 客户端数据库路径导致连接错误数据库）
         if [ -d ".next" ]; then
             echo "清理旧的构建缓存..."

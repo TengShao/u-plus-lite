@@ -145,12 +145,11 @@ function Initialize-Code {
         $script:UPDATE_MODE = $true
         $script:PROJECT_ROOT = $script:DEPLOY_DIR
 
-        Write-Step "正在拉取最新代码..."
-        git pull
-        if ($LASTEXITCODE -ne 0) {
-            Write-Fail "代码拉取失败，请检查网络连接后重试"
-            exit 1
-        }
+        # 拉取最新代码
+        Write-Host "正在拉取最新代码..."
+        git fetch origin
+        git checkout master
+        git pull origin master
 
         $nextDir = Join-Path $script:DEPLOY_DIR ".next"
         if (Test-Path $nextDir) {
@@ -356,27 +355,16 @@ function Initialize-Prisma {
 function Initialize-Admin {
     Write-Step "[5/7] 检查管理员账号..."
 
-    Set-Location $script:PROJECT_ROOT
-
-    # 使用 Prisma 检查是否有管理员（避免依赖 sqlite3 命令）
-    $checkScript = @"
-const { PrismaClient } = require('@prisma/client')
-const prisma = new PrismaClient()
-async function main() {
-  const count = await prisma.user.count({ where: { role: 'ADMIN' } })
-  console.log(count)
-  await prisma.`$disconnect()
-}
-main().catch(() => { console.error('ERROR'); process.exit(1) })
-"@
-
+    $dbPath = Join-Path $script:PROJECT_ROOT "prisma\prod.db"
     $hasAdmin = $false
-    try {
-        $result = npx tsx -e $checkScript 2>$null
-        if ($LASTEXITCODE -eq 0 -and $result -and [int]$result.Trim() -gt 0) {
-            $hasAdmin = $true
-        }
-    } catch {}
+    if (Test-Path $dbPath) {
+        try {
+            $result = & sqlite3 $dbPath "SELECT COUNT(*) FROM User WHERE role='ADMIN';" 2>$null
+            if ($result -and [int]$result -gt 0) {
+                $hasAdmin = $true
+            }
+        } catch {}
+    }
 
     if ($hasAdmin) {
         Write-Info "  已存在管理员账号，跳过创建..."
@@ -413,6 +401,7 @@ main().catch(() => { console.error('ERROR'); process.exit(1) })
         }
     } while ([string]::IsNullOrWhiteSpace($adminPass))
 
+    Set-Location $script:PROJECT_ROOT
     npx tsx prisma/seed.ts $adminName $adminPass
 }
 
