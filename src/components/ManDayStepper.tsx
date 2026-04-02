@@ -55,7 +55,7 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
             type="button"
             disabled={disabled}
             onClick={handleDecrease}
-            className="flex h-[36px] w-[36px] items-center justify-center text-[24px] leading-none text-black/80 disabled:text-black/20 transition-transform duration-100 hover:scale-[1.2] active:scale-[0.95]"
+            className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-white text-[24px] leading-none text-black/80 shadow-[0_1px_3px_#0000001a] border-none transition-transform duration-100 hover:scale-[1.2] active:scale-[0.95] disabled:text-black/20"
             style={{ fontWeight: 300 }}
           >
             🦴
@@ -100,7 +100,7 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
             type="button"
             disabled={disabled}
             onClick={handleIncrease}
-            className="flex h-[36px] w-[36px] items-center justify-center text-[24px] leading-none text-black/80 disabled:text-black/20 transition-transform duration-100 hover:scale-[1.2] active:scale-[0.95]"
+            className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-white text-[24px] leading-none text-black/80 shadow-[0_1px_3px_#0000001a] border-none transition-transform duration-100 hover:scale-[1.2] active:scale-[0.95] disabled:text-black/20"
             style={{ fontWeight: 300 }}
           >
             <span className="inline-block scale-y-[-1]">🍗</span>
