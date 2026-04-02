@@ -112,7 +112,7 @@ generate_secret() {
     elif [ -r /dev/urandom ]; then
         head -c 32 /dev/urandom | base64 | tr -d '\n'
     else
-        date +%s | sha256sum | base64 | head -c 32
+        date +%s | sha256sum | cut -d' ' -f1 | base64 | head -c 32
     fi
 }
 
@@ -561,7 +561,7 @@ import_csv_data() {
             local pipelines_tmp
             pipelines_tmp=$(mktemp)
             echo "$pipelines_content" > "$pipelines_tmp"
-            npx tsx "$PROJECT_ROOT/prisma/import.ts" --pipelines="$pipelines_tmp" 2>/dev/null
+            npx tsx "$PROJECT_ROOT/prisma/import.ts" --pipelines="$pipelines_tmp"
             rm -f "$pipelines_tmp"
         fi
 
@@ -569,7 +569,7 @@ import_csv_data() {
             local budget_tmp
             budget_tmp=$(mktemp)
             echo "$budget_content" > "$budget_tmp"
-            npx tsx "$PROJECT_ROOT/prisma/import.ts" --budget-items="$budget_tmp" 2>/dev/null
+            npx tsx "$PROJECT_ROOT/prisma/import.ts" --budget-items="$budget_tmp"
             rm -f "$budget_tmp"
         fi
     else
@@ -598,13 +598,19 @@ deploy_new() {
         confirm=${confirm:-N}
         if [ "$(echo "$confirm" | tr '[:upper:]' '[:lower:]')" = "y" ]; then
             rm -rf "$DEPLOY_DIR"
-            git clone "$REPO_URL" "$DEPLOY_DIR"
+            if ! git clone "$REPO_URL" "$DEPLOY_DIR"; then
+                print_status "fail" "Git clone 失败"
+                exit 1
+            fi
         else
             echo "部署取消"
             exit 1
         fi
     else
-        git clone "$REPO_URL" "$DEPLOY_DIR"
+        if ! git clone "$REPO_URL" "$DEPLOY_DIR"; then
+            print_status "fail" "Git clone 失败"
+            exit 1
+        fi
     fi
     cd "$DEPLOY_DIR"
     write_helper_scripts
@@ -659,6 +665,10 @@ deploy_new() {
         done
         read_secret "  确认密码: " admin_password_confirm
     done
+    while [ ${#admin_password} -lt 8 ]; do
+        echo "  错误：密码至少8位"
+        read_secret "  密码（至少8位）: " admin_password
+    done
 
     npx tsx "$PROJECT_ROOT/prisma/seed.ts" "$admin_name" "$admin_password"
 
@@ -707,7 +717,10 @@ EOF
     # [6/9] Build
     echo ""
     echo "[6/9] 正在构建生产版本..."
-    npm run build
+    if ! npm run build; then
+        print_status "fail" "npm run build 失败"
+        exit 1
+    fi
 
     # [7/9] PM2 启动
     echo ""
@@ -808,8 +821,14 @@ do_update() {
 
     # Git fetch and pull
     echo "正在拉取最新代码..."
-    git fetch origin
-    git pull origin master
+    if ! git fetch origin; then
+        print_status "fail" "Git fetch 失败"
+        exit 1
+    fi
+    if ! git pull origin master; then
+        print_status "fail" "Git pull 失败"
+        exit 1
+    fi
 
     # 检查 package-lock.json 变化
     local need_npm_install=false
@@ -856,7 +875,10 @@ do_update() {
     # 构建
     echo ""
     echo "正在构建..."
-    npm run build
+    if ! npm run build; then
+        print_status "fail" "npm run build 失败"
+        exit 1
+    fi
 
     # 重启 PM2
     echo ""
