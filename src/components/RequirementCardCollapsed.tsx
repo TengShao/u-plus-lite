@@ -43,6 +43,9 @@ export default function RequirementCardCollapsed({
   const displayCount = data.cycleWorkloads.length > 5 ? 4 : Math.min(5, data.cycleWorkloads.length)
   const displayWorkloads = data.cycleWorkloads.slice(0, displayCount)
   const extraCount = data.cycleWorkloads.length > 5 ? data.cycleWorkloads.length - 4 : 0
+  // Dynamic width for designer Cube based on number of chips displayed
+  const chipCount = data.cycleWorkloads.length === 0 ? 1 : displayCount + (extraCount > 0 ? 1 : 0)
+  const designerCubeWidth = 110 + (chipCount - 1) * 88
 
   const healthColor = data.healthStatus ? HEALTH_COLORS[data.healthStatus] : null
 
@@ -102,7 +105,7 @@ export default function RequirementCardCollapsed({
         <Cube label="总人天" value={String(data.totalManDays)} />
         <Cube label="投入比" value={data.rating ? `${data.inputRatio}%` : '-'} />
         <Cube label="参与人数" value={String(data.participantCount)} />
-        <Cube label="参与设计师" width={110}>
+        <Cube label="参与设计师" width={designerCubeWidth}>
           <div className="flex items-center gap-[8px]">
             {data.cycleWorkloads.length === 0 ? (
               <span className="text-[14px] text-black/30 font-alibaba" style={{ fontWeight: 800 }}>暂无</span>
