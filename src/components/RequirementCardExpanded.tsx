@@ -7,8 +7,7 @@ import { LEVEL_COEFFICIENTS, MODULES, RATINGS, RATING_STANDARDS, TYPES } from '@
 import { getHealthStatus, getSuitableRating } from '@/lib/compute'
 import { useTips } from './Tips'
 import { DeleteIcon, ConfirmIcon, SubmitIcon, ClockIcon, ActionIconButton } from './icons'
-import { Cube } from './Cube'
-import { DesignerCube } from './DesignerCube'
+import { Cube, DesignerChip } from './Cube'
 import { RequiredDot } from './RequiredDot'
 import ManDayStepper from './ManDayStepper'
 
@@ -407,18 +406,21 @@ export default function RequirementCardExpanded({
           <SectionTitle icon="designers" text="参与设计师" weight={600} />
         </div>
       </div>
-      <div className="mt-[10px]">
-        <DesignerCube
-          label="参与设计师"
-          workloads={[
-            ...data.cycleWorkloads.map(w => ({ userId: w.userId, userName: w.userName, manDays: w.manDays })),
-            ...(manDays > 0 && !data.cycleWorkloads.some((w) => w.userId === userId)
-              ? [{ userId: userId, userName: '你', manDays: manDays }]
-              : [])
-          ]}
-          myUserId={userId}
-          value={data.cycleWorkloads.length === 0 && manDays === 0 ? '暂无设计师参与，怎么回事' : undefined}
-        />
+      <div className="mt-[10px] min-h-[33px]">
+        {data.cycleWorkloads.length === 0 && manDays === 0 ? (
+          <div className="flex h-[33px] w-full items-center justify-center text-[14px] font-alibaba" style={{ fontWeight: 800, color: '#EEEEEE' }}>
+            暂无设计师参与，怎么回事
+          </div>
+        ) : (
+          <div className="flex h-[33px] flex-wrap items-center gap-[8px]">
+            {data.cycleWorkloads.map((w) => (
+              <DesignerChip key={w.userId} name={w.userId === userId ? '你' : w.userName} days={String(w.userId === userId ? manDays : w.manDays)} mine={w.userId === userId} nameWeight={w.userId === userId ? 600 : undefined} />
+            ))}
+            {manDays > 0 && !data.cycleWorkloads.some((w) => w.userId === userId) && (
+              <DesignerChip name="你" days={String(manDays)} mine nameWeight={600} />
+            )}
+          </div>
+        )}
       </div>
 
       <CardDivider mt={20} />
