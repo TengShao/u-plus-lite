@@ -358,7 +358,7 @@ const prisma = new PrismaClient()
 async function main() {
   const count = await prisma.user.count({ where: { role: 'ADMIN' } })
   console.log(count)
-  await prisma.\$disconnect()
+  await prisma.`$disconnect()
 }
 main().catch(() => { console.error('ERROR'); process.exit(1) })
 "@
