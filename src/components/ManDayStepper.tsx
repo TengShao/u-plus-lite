@@ -47,15 +47,15 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
   }
 
   return (
-    <div className={`relative flex h-[60px] items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] ${isComplete ? 'w-[64px] justify-center bg-transparent' : 'w-[200px]'}`}>
+    <div className={`relative flex h-[60px] items-center justify-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] ${isComplete ? 'w-[64px] justify-center bg-transparent' : 'w-[200px]'}`}>
       {/* Decrease button with animation — hidden when COMPLETE */}
       {!isComplete && (
-        <div className="relative">
+        <div className="absolute left-[8px] top-1/2 -translate-y-1/2">
           <button
             type="button"
             disabled={disabled}
             onClick={handleDecrease}
-            className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-white text-[24px] leading-none text-black/80 shadow-[0_1px_3px_#0000001a] border-none transition-transform duration-100 hover:scale-[1.2] active:scale-[0.95] disabled:text-black/20"
+            className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-white text-[24px] leading-none text-black/80 shadow-[0_1px_3px_#0000001a] border border-[#EEEEEE] transition-transform duration-100 hover:scale-[1.1] hover:border-[#8ECA2E] active:scale-[0.95] active:border-[#8ECA2E] disabled:text-black/20"
             style={{ fontWeight: 300 }}
           >
             🦴
@@ -88,19 +88,19 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
         }}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        className={`mx-[8px] h-[48px] w-[80px] rounded-[8px] text-center text-[20px] leading-[48px] outline-none ${isComplete ? 'border-transparent bg-transparent' : 'border border-[#EEEEEE]'}`}
+        className={`absolute left-1/2 -translate-x-1/2 h-[48px] w-[80px] rounded-[8px] text-center text-[20px] leading-[48px] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E] ${isComplete ? 'border-transparent bg-transparent' : 'border border-[#EEEEEE]'}`}
         style={{ fontWeight: 800, appearance: 'textfield', WebkitAppearance: 'none', MozAppearance: 'textfield' }}
       />
       <style>{`input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{appearance:none;-webkit-appearance:none;margin:0}`}</style>
 
       {/* Increase button with animation — hidden when COMPLETE */}
       {!isComplete && (
-        <div className="relative">
+        <div className="absolute right-[8px] top-1/2 -translate-y-1/2">
           <button
             type="button"
             disabled={disabled}
             onClick={handleIncrease}
-            className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-white text-[24px] leading-none text-black/80 shadow-[0_1px_3px_#0000001a] border-none transition-transform duration-100 hover:scale-[1.2] active:scale-[0.95] disabled:text-black/20"
+            className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-white text-[24px] leading-none text-black/80 shadow-[0_1px_3px_#0000001a] border border-[#EEEEEE] transition-transform duration-100 hover:scale-[1.1] hover:border-[#8ECA2E] active:scale-[0.95] active:border-[#8ECA2E] disabled:text-black/20"
             style={{ fontWeight: 300 }}
           >
             <span className="inline-block scale-y-[-1]">🍗</span>
