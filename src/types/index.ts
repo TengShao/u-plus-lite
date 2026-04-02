@@ -8,7 +8,6 @@ declare module 'next-auth' {
     role: string
     level: string | null
     pipelines: string
-    lastUsedPipeline?: string | null
   }
   interface Session {
     user: DefaultSession['user'] & {
@@ -17,7 +16,6 @@ declare module 'next-auth' {
       role: string
       level: string | null
       pipelines: string
-      lastUsedPipeline: string | null
     }
   }
 }
@@ -27,7 +25,7 @@ declare module 'next-auth/jwt' {
     id: string
     role: string
     level: string | null
+    name: string
     pipelines: string
-    lastUsedPipeline?: string | null
   }
 }
