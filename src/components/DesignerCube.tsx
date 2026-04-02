@@ -114,7 +114,7 @@ export function DesignerCube({
               <DesignerChip
                 key={w.userId}
                 name={truncateName(isMe ? '你' : w.userName)}
-                days={String(w.manDays)}
+                days={Number(w.manDays).toFixed(1)}
                 mine={isMe}
                 nameWeight={isMe ? 600 : undefined}
               />
@@ -123,7 +123,7 @@ export function DesignerCube({
           {overflow && (
             <DesignerChip
               name={`其他${overflow.count}人`}
-              days={String(overflow.manDays)}
+              days={Number(overflow.manDays).toFixed(1)}
             />
           )}
         </div>
