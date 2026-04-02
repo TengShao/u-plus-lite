@@ -25,8 +25,8 @@ export function Cube({ label, value, labelColor, valueColor, width, required, di
 }) {
   return (
     <div
-      className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] px-[8px] font-alibaba overflow-hidden"
-      style={{ width: width ?? 80 }}
+      className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] px-[8px] font-alibaba"
+      style={{ width: width ?? 'auto', minWidth: width ?? 80 }}
     >
       <span className="mt-[12px] text-[13px] leading-[20px]" style={{ fontWeight: 400, color: labelColor || '#8C8C8C' }}>{label}</span>
       {required && !disabled && isEmpty && <RequiredDot className="right-[8px] top-[8px]" />}
