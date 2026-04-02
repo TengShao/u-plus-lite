@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { DesignerChip } from './Cube'
 
 const MIN_WIDTH = 80
-const MAX_WIDTH = 390
+const MAX_WIDTH = 420
 const GAP = 8
 const CHIP_PADDING = 16 // 8px on each side
 const SEPARATOR_WIDTH = 6 // mx-[6px]
