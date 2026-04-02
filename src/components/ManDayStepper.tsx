@@ -47,7 +47,7 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
   }
 
   return (
-    <div className={`relative flex h-[60px] items-center rounded-[8px] border border-[#EEEEEE] px-[12px] ${isComplete ? 'w-[64px] justify-center bg-transparent' : 'w-[176px] bg-white'}`}>
+    <div className={`relative flex h-[60px] items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] ${isComplete ? 'w-[64px] justify-center bg-transparent' : 'w-[200px]'}`}>
       {/* Decrease button with animation — hidden when COMPLETE */}
       {!isComplete && (
         <div className="relative">
@@ -88,7 +88,7 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
         }}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        className={`mx-[8px] h-[36px] w-[64px] rounded-[8px] text-center text-[20px] leading-[36px] outline-none ${isComplete ? 'border-transparent bg-transparent' : 'border border-[#EEEEEE]'}`}
+        className={`mx-[8px] h-[48px] w-[80px] rounded-[8px] text-center text-[20px] leading-[48px] outline-none ${isComplete ? 'border-transparent bg-transparent' : 'border border-[#EEEEEE]'}`}
         style={{ fontWeight: 800, appearance: 'textfield', WebkitAppearance: 'none', MozAppearance: 'textfield' }}
       />
       <style>{`input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{appearance:none;-webkit-appearance:none;margin:0}`}</style>
