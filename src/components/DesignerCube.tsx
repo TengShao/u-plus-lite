@@ -44,11 +44,11 @@ export function DesignerCube({
       return { visibleWorkloads: [], overflow: null }
     }
 
-    // Sort: mine first, then by userId
+    // Sort: mine first, then by manDays descending
     const sorted = [...workloads].sort((a, b) => {
       if (a.userId === myUserId) return -1
       if (b.userId === myUserId) return 1
-      return a.userId - b.userId
+      return b.manDays - a.manDays
     })
 
     // Calculate how many chips fit
