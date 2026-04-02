@@ -184,7 +184,7 @@ export default function RequirementCardExpanded({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: name.trim(), rating, module, pipeline, types, budgetItem,
-        canClose, funcPoints, pageCount, version: data.version,
+        canClose, funcPoints, pageCount, version: data.version, cycleId,
       }),
     })
 
