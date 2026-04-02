@@ -333,7 +333,7 @@ export default function Header({
 
   async function handleSignOut() {
     await signOut({ redirect: false })
-    window.location.href = '/login'
+    window.location.href = '/'
   }
 
   const hasValue = searchQuery.length > 0
