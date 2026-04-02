@@ -14,7 +14,6 @@ model User {
   role            String   @default("MEMBER")
   level           String?
   pipelines       String   @default("[]")  // JSON array stored as string, e.g. '["管线A","管线B"]'
-  lastUsedPipeline String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -97,4 +96,12 @@ model BudgetItemSetting {
   pipeline PipelineSetting? @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
 
   @@unique([pipelineId, name])
+}
+
+model UserCyclePipeline {
+  userId    Int
+  cycleId   Int
+  pipeline  String
+
+  @@id([userId, cycleId])
 }
