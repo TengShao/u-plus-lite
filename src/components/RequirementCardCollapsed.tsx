@@ -106,7 +106,7 @@ export default function RequirementCardCollapsed({
         <Cube label="投入比" value={data.rating ? `${data.inputRatio}%` : '-'} />
         <Cube label="参与人数" value={String(data.participantCount)} />
         <Cube label="参与设计师" width={designerCubeWidth}>
-          <div className="flex items-center gap-[8px]">
+          <div className="shrink-0 flex items-center gap-[8px]">
             {data.cycleWorkloads.length === 0 ? (
               <span className="text-[14px] text-black/30 font-alibaba" style={{ fontWeight: 800 }}>暂无</span>
             ) : (
