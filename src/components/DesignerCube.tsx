@@ -54,6 +54,8 @@ export function DesignerCube({
     return () => observer.disconnect()
   }, [])
 
+  const effectiveWidth = Math.max(MIN_WIDTH, Math.min(containerWidth, MAX_WIDTH))
+
   const { visibleChips, overflowChip } = useMemo(() => {
     if (!workloads || workloads.length === 0) {
       return { visibleChips: [], overflowChip: null }
@@ -76,7 +78,7 @@ export function DesignerCube({
       const chipWidth = estimateChipWidth(workload.userName, workload.manDays)
       const neededWidth = currentWidth === 0 ? chipWidth : currentWidth + GAP + chipWidth
 
-      if (neededWidth <= containerWidth) {
+      if (neededWidth <= effectiveWidth) {
         visibleChips.push({ workload, isMine: workload.userId === myUserId })
         currentWidth = neededWidth
       } else {
@@ -91,7 +93,7 @@ export function DesignerCube({
     }
 
     return { visibleChips, overflowChip }
-  }, [workloads, myUserId, containerWidth])
+  }, [workloads, myUserId, effectiveWidth])
 
   return (
     <div
@@ -114,6 +116,7 @@ export function DesignerCube({
               name={isMine ? '你' : workload.userName}
               days={String(workload.manDays)}
               mine={isMine}
+              nameWeight={isMine ? 600 : undefined}
             />
           ))}
           {overflowChip && (
