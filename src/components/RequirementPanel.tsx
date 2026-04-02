@@ -32,14 +32,12 @@ export default function RequirementPanel({
   refreshKey,
   onRefresh,
   onDraftChange,
-  userPrimaryPipeline,
 }: {
   cycleId: number | null
   searchQuery: string
   refreshKey: number
   onRefresh: () => void
   onDraftChange?: (hasDraft: boolean) => void
-  userPrimaryPipeline?: string | null
 }) {
   const { data: session } = useSession()
   const { showTips } = useTips()
@@ -60,6 +58,7 @@ export default function RequirementPanel({
   const [pendingReopenId, setPendingReopenId] = useState<number | null>(null)
   const [cycle, setCycle] = useState<{ id: number; status: string } | null>(null)
   const [filters, setFilters] = useState<Record<string, string[]>>({})
+  const [cyclePipelineMemory, setCyclePipelineMemory] = useState<string | null>(null)
   const [isScrolled, setIsScrolled] = useState(false)
   const [isScrollbarVisible, setIsScrollbarVisible] = useState(false)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -218,6 +217,12 @@ export default function RequirementPanel({
     fetch('/api/settings')
       .then((r) => r.json())
       .then(setPipelineSettings)
+    // Fetch per-cycle pipeline memory
+    if (cycleId) {
+      fetch(`/api/users/cycle-pipeline?cycleId=${cycleId}`)
+        .then((r) => r.json())
+        .then((data) => setCyclePipelineMemory(data.pipeline ?? null))
+    }
   }, [cycleId, refreshKey])
 
   // Notify parent when draft status changes
@@ -601,7 +606,7 @@ export default function RequirementPanel({
                   onCompleteRequest={handleCompleteRequest}
                   onReopenRequest={handleReopenRequest}
                   isDraft={rg.id === activeDraftId}
-                  defaultPipeline={rg.id === activeDraftId ? userPrimaryPipeline : undefined}
+                  defaultPipeline={rg.id === activeDraftId ? (cyclePipelineMemory || undefined) : undefined}
                 />
               ) : (
                 <RequirementCardCollapsed
