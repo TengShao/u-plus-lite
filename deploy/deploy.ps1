@@ -369,18 +369,24 @@ function Deploy-New {
     if (Test-PortUsed 3000) {
         Write-Warn "端口 3000 被占用"
         Write-Host ""
-        Write-Host "  1 - 查找下一个可用端口"
-        Write-Host "  2 - 手动输入端口"
+        Write-Host "  1 - 结束占用端口 3000 的进程"
+        Write-Host "  2 - 查找下一个可用端口"
+        Write-Host "  3 - 手动输入端口"
         Write-Host ""
         Write-Host -NoNewline "请选择 [1]: "
         $portChoice = Read-Host
 
         if ($portChoice -eq "2") {
+            $script:SELECTED_PORT = Find-AvailablePort
+            Write-Host "  将使用端口: $script:SELECTED_PORT"
+        } elseif ($portChoice -eq "3") {
             Write-Host -NoNewline "请输入端口号: "
             $script:SELECTED_PORT = [int](Read-Host)
         } else {
-            $script:SELECTED_PORT = Find-AvailablePort
-            Write-Host "  将使用端口: $script:SELECTED_PORT"
+            # 默认选项 1: 结束占用端口 3000 的进程
+            Get-NetTCPConnection -LocalPort 3000 | Stop-Process -Force
+            $script:SELECTED_PORT = 3000
+            Write-Host "  端口 3000 已释放，将使用端口: $script:SELECTED_PORT"
         }
     }
 
