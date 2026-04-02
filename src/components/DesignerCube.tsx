@@ -41,16 +41,24 @@ export function DesignerCube({
   value,
 }: DesignerCubeProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [containerWidth, setContainerWidth] = useState(MAX_WIDTH)
+  const [containerWidth, setContainerWidth] = useState(0)
 
+  // Measure available width from parent after mount
   useEffect(() => {
     if (!containerRef.current) return
+    // Get initial available width from parent's content rect
+    const initialWidth = containerRef.current.parentElement?.getBoundingClientRect().width ?? MAX_WIDTH
+    setContainerWidth(initialWidth)
+
+    // Also observe parent for resize
+    const parent = containerRef.current.parentElement
+    if (!parent) return
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         setContainerWidth(entry.contentRect.width)
       }
     })
-    observer.observe(containerRef.current)
+    observer.observe(parent)
     return () => observer.disconnect()
   }, [])
 
@@ -99,7 +107,11 @@ export function DesignerCube({
     <div
       ref={containerRef}
       className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] px-[8px] font-alibaba"
-      style={{ width: Math.max(MIN_WIDTH, Math.min(containerWidth, MAX_WIDTH)) }}
+      style={{
+        width: 'auto',
+        minWidth: MIN_WIDTH,
+        maxWidth: MAX_WIDTH,
+      }}
     >
       <span className="mt-[12px] text-[13px] leading-[20px]" style={{ fontWeight: 400, color: '#8C8C8C' }}>
         {label}
