@@ -16,7 +16,7 @@
 
 **macOS / Linux：**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/deploy/deploy.sh | bash
+curl -fsSL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/deploy/deploy.sh -o /tmp/deploy.sh && bash /tmp/deploy.sh
 ```
 
 **Windows（PowerShell）：**
