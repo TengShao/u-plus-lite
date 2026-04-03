@@ -198,8 +198,8 @@ function Detect-Deployment {
         Write-Host ""
         Write-Step "选择部署模式"
         Write-Host ""
-        Write-Host "  1 - 全新部署（首次安装）"
-        Write-Host "  2 - 自定义路径部署"
+        Write-Host "  1 - 全新部署"
+        Write-Host "  2 - 指定已部署目录"
         Write-Host ""
         Write-Host -NoNewline "请选择（直接回车选择 1，输入 q 退出）: "
         $choice = Read-Host
