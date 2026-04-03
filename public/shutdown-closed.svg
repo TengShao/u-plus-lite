@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="24px" height="24px" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <title>shutdown</title>
-    <g id="shutdown" stroke="none" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
-        <line x1="12" y1="2" x2="12" y2="12" id="路径" stroke="color(display-p3 0.000 0.000 0.000)"></line>
-        <path d="M18.4,6.6 C21.9085792,10.1098709 21.9138198,15.797508 18.4117147,19.3138387 C14.9096095,22.8301693 9.22199789,22.8479849 5.69793296,19.3536626 C2.17386803,15.8593403 2.14347768,10.171782 5.63,6.64" id="路径" stroke="color(display-p3 0.000 0.000 0.000)"></path>
-    </g>
-</svg>
