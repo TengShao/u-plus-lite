@@ -351,7 +351,7 @@ detect_deployment() {
 # 写入内嵌的 seed.ts 和 import.ts
 # ============================================================
 write_helper_scripts() {
-    # seed.ts - 支持命令行参数
+    # seed.ts - 支持命令行参数和删除管理员
     cat > "$PROJECT_ROOT/prisma/seed.ts" << 'SEED_EOF'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
@@ -359,8 +359,17 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  const providedName = process.argv[2]
-  const providedPassword = process.argv[3]
+  const args = process.argv.slice(2)
+  const resetMode = args.includes('--reset')
+
+  if (resetMode) {
+    // 删除所有管理员
+    await prisma.user.deleteMany({ where: { role: 'ADMIN' } })
+    console.log('已删除所有管理员账号')
+  }
+
+  const providedName = args[0]
+  const providedPassword = args[1]
 
   if (providedName && providedPassword) {
     const hashedPassword = await bcrypt.hash(providedPassword, 10)
@@ -969,6 +978,41 @@ do_update() {
         echo "检测到数据库结构变化，正在更新数据库..."
         npx prisma generate
         npx prisma db push --accept-data-loss
+    fi
+
+    # 修改管理员密码
+    echo ""
+    echo "是否修改管理员账号密码？"
+    echo "  1 - 跳过（沿用现有账号）"
+    echo "  2 - 修改"
+    echo ""
+    echo -n "请选择（直接回车选择 1）: "
+    read -r admin_choice
+    admin_choice=${admin_choice:-1}
+
+    if [ "$admin_choice" = "2" ]; then
+        echo ""
+        echo -n "  管理员姓名: "
+        read -r admin_name
+        while [ -z "$admin_name" ]; do
+            echo "  错误：管理员姓名不能为空"
+            echo -n "  管理员姓名: "
+            read -r admin_name
+        done
+
+        read_secret "  密码（至少8位）: " admin_password
+        while [ -z "$admin_password" ]; do
+            echo "  错误：密码不能为空"
+            read_secret "  密码（至少8位）: " admin_password
+        done
+
+        while [ ${#admin_password} -lt 8 ]; do
+            echo "  错误：密码至少8位"
+            read_secret "  密码（至少8位）: " admin_password
+        done
+
+        DATABASE_URL="file:$PROJECT_ROOT/prisma/prod.db" npx tsx "$PROJECT_ROOT/prisma/seed.ts" --reset "$admin_name" "$admin_password"
+        print_status "ok" "管理员账号已更新"
     fi
 
     # 写入辅助脚本
