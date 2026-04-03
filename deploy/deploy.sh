@@ -324,13 +324,18 @@ detect_deployment() {
 
             custom_path=$(eval echo "$custom_path")
 
-            if [ ! -d "$custom_path/.git" ]; then
+            # 检查指定路径是否是 git 仓库
+            if [ -d "$custom_path/.git" ]; then
+                DEPLOY_MODE="update"
+                DEPLOY_DIR="$custom_path"
+            # 检查是否有 u-plus-lite 子文件夹
+            elif [ -d "$custom_path/u-plus-lite/.git" ]; then
+                DEPLOY_MODE="update"
+                DEPLOY_DIR="$custom_path/u-plus-lite"
+            else
                 echo -e "${RED}错误：$custom_path 不是 Git 仓库${NC}"
                 exit 1
             fi
-
-            DEPLOY_MODE="update"
-            DEPLOY_DIR="$custom_path"
         fi
     fi
 
