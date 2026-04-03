@@ -33,7 +33,9 @@ jobs:
           git config user.email "tengshao@users.noreply.github.com"
 
       - name: Delete existing tag (if any)
-        run: git tag -d ${{ github.ref_name }} || true
+        run: |
+          git tag -d ${{ github.ref_name }} || true
+          git push origin :refs/tags/${{ github.ref_name }} || true
 
       - name: Create GitHub Release
         env:
