@@ -627,8 +627,8 @@ deploy_new() {
     # [3/9] Prisma
     echo ""
     echo "[3/9] 正在初始化数据库..."
-    npx prisma generate
-    npx prisma db push --accept-data-loss
+    DATABASE_URL="file:$DEPLOY_DIR/prisma/prod.db" npx prisma generate
+    DATABASE_URL="file:$DEPLOY_DIR/prisma/prod.db" npx prisma db push --accept-data-loss
 
     # [4/9] 创建管理员
     echo ""
