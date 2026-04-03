@@ -199,7 +199,7 @@ function Detect-Deployment {
         Write-Step "选择部署模式"
         Write-Host ""
         Write-Host "  1 - 全新部署"
-        Write-Host "  2 - 指定已部署目录"
+        Write-Host "  2 - 指定已部署路径"
         Write-Host ""
         Write-Host -NoNewline "请选择（直接回车选择 1，输入 q 退出）: "
         $choice = Read-Host

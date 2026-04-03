@@ -284,7 +284,7 @@ detect_deployment() {
         echo ""
         echo "请选择部署模式："
         echo "  1 - 全新部署"
-        echo "  2 - 指定已部署目录"
+        echo "  2 - 指定已部署路径"
         echo ""
         echo -n "请选择（直接回车选择 1，输入 q 退出）: "
         read -r choice
