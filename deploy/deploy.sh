@@ -984,10 +984,10 @@ do_uninstall() {
     echo "  1. 删除 PM2 服务"
     echo "  2. 删除部署目录: $DEPLOY_DIR"
     echo ""
-    echo -n "确认卸载？请输入 YES: "
+    echo -n "确认卸载？（输入 YES 确认）: "
     read -r confirm
 
-    if [ "$confirm" != "YES" ]; then
+    if [ "$(echo "$confirm" | tr '[:lower:]' '[:upper:]')" != "YES" ]; then
         echo "取消卸载操作"
         exit 0
     fi

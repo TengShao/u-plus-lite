@@ -616,9 +616,9 @@ function Deploy-Update {
     } elseif ($choice -eq "2") {
         # 卸载
         Write-Host ""
-        Write-Host -NoNewline "确认卸载？此操作将删除所有数据，输入 YES 确认: "
+        Write-Host -NoNewline "确认卸载？（输入 YES 确认）: "
         $confirm = Read-Host
-        if ($confirm -ne "YES") {
+        if ($confirm.ToUpper() -ne "YES") {
             Write-Info "已取消卸载"
             return
         }
