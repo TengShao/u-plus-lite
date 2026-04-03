@@ -244,7 +244,7 @@ fetch_latest_version() {
         LATEST_VERSION="unknown"
     fi
 
-    # 显示当前项目版本
+    # 显示当前项目版本（仅当已有部署时）
     if [ -d "$DEFAULT_DIR/.git" ]; then
         if [ -f "$DEFAULT_DIR/version.txt" ]; then
             CURRENT_VERSION=$(cat "$DEFAULT_DIR/version.txt" | tr -d ' \n')
@@ -271,7 +271,8 @@ detect_deployment() {
         echo "检测到已有部署: $DEPLOY_DIR"
     else
         echo "未检测到现有部署"
-        echo "当前版本: 全新部署"
+        echo ""
+        echo "当前版本: $LATEST_VERSION（全新部署）"
         echo ""
         echo "请选择部署模式："
         echo "  1 - 全新部署（克隆最新代码）"
