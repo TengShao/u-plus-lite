@@ -194,7 +194,7 @@ function Detect-Deployment {
         Write-Host "  1 - 全新部署（首次安装）"
         Write-Host "  2 - 自定义路径部署"
         Write-Host ""
-        Write-Host -NoNewline "请选择 [1]（输入 q 退出）: "
+        Write-Host -NoNewline "请选择（直接回车选择 1，输入 q 退出）: "
         $choice = Read-Host
 
         if ($choice -eq "q" -or $choice -eq "Q") {
@@ -263,7 +263,7 @@ function Import-CsvData {
     Write-Host "  2 - 指定自定义路径"
     Write-Host "  3 - 跳过（稍后手动导入）"
     Write-Host ""
-    Write-Host -NoNewline "请选择 [3]（输入 q 退出）: "
+    Write-Host -NoNewline "请选择（直接回车选择 3，输入 q 退出）: "
     $choice = Read-Host
 
     if ($choice -eq "q" -or $choice -eq "Q") {
@@ -422,7 +422,7 @@ function Deploy-New {
         Write-Host "  2 - 查找下一个可用端口"
         Write-Host "  3 - 手动输入端口"
         Write-Host ""
-        Write-Host -NoNewline "请选择 [1]（输入 q 退出）: "
+        Write-Host -NoNewline "请选择（直接回车选择 1，输入 q 退出）: "
         $portChoice = Read-Host
 
         if ($portChoice -eq "q" -or $portChoice -eq "Q") {
@@ -572,7 +572,7 @@ function Deploy-Update {
     Write-Host "  2 - 卸载（删除所有数据）"
     Write-Host "  3 - 重新安装（保留数据库）"
     Write-Host ""
-    Write-Host -NoNewline "请选择 [1]（输入 q 退出）: "
+    Write-Host -NoNewline "请选择（直接回车选择 1，输入 q 退出）: "
     $choice = Read-Host
     if ([string]::IsNullOrWhiteSpace($choice)) { $choice = "1" }
 

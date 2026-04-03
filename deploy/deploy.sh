@@ -279,7 +279,7 @@ detect_deployment() {
         echo "  1 - 全新部署（克隆最新代码）"
         echo "  2 - 指定已有目录（需为 Git 仓库）"
         echo ""
-        echo -n "请选择 [1]（输入 q 退出）: "
+        echo -n "请选择（直接回车选择 1，输入 q 退出）: "
         read -r choice
         choice=${choice:-1}
 
@@ -537,7 +537,7 @@ import_csv_data() {
     echo "  2 - 直接粘贴 CSV 内容"
     echo "  3 - 跳过（稍后通过 Web 端手动添加）"
     echo ""
-    echo -n "请选择 [3]（输入 q 退出）: "
+    echo -n "请选择（直接回车选择 3，输入 q 退出）: "
     read -r choice
     choice=${choice:-3}
 
@@ -761,7 +761,7 @@ deploy_new() {
         echo "  1 - 帮我释放 3000 端口"
         echo "  2 - 查找下一个可用端口（注意：可能影响正在使用的用户）"
         echo ""
-        echo -n "请选择 [1]（输入 q 退出）: "
+        echo -n "请选择（直接回车选择 1，输入 q 退出）: "
         read -r port_choice
         port_choice=${port_choice:-1}
 
@@ -857,7 +857,7 @@ deploy_update() {
     echo "  2 - 卸载"
     echo "  3 - 重新安装"
     echo ""
-    echo -n "请选择 [1]（输入 q 退出）: "
+    echo -n "请选择（直接回车选择 1，输入 q 退出）: "
     read -r update_choice
     update_choice=${update_choice:-1}
 
