@@ -277,7 +277,7 @@ detect_deployment() {
         echo "未检测到现有部署"
         echo ""
         if [ "$LATEST_VERSION" != "unknown" ]; then
-            echo "当前版本: v${LATEST_VERSION}（全新部署）"
+            echo "当前最新版本: v${LATEST_VERSION}"
         else
             echo "当前版本: 全新部署"
         fi
