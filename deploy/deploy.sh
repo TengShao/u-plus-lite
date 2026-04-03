@@ -308,6 +308,10 @@ detect_deployment() {
 
             custom_path=${custom_path:-$DEFAULT_DIR}
             custom_path=$(eval echo "$custom_path")
+            # 确保路径以 u-plus-lite 结尾
+            if [[ "$custom_path" != */u-plus-lite ]]; then
+                custom_path="$custom_path/u-plus-lite"
+            fi
             DEPLOY_DIR="$custom_path"
         else
             echo -n "请输入已有项目路径（输入 q 退出）: "
