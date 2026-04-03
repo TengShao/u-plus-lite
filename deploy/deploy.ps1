@@ -288,6 +288,8 @@ function Import-CsvData {
         Write-Host ""
         Write-Step "正在导入管线和预算项..."
         Set-Location $script:PROJECT_ROOT
+        $dbUrl = "file:" + (Join-Path $script:PROJECT_ROOT "prisma\prod.db").Replace("\", "/")
+        $env:DATABASE_URL = $dbUrl
 
         if ((Test-Path $pipelinesPath) -and (Test-Path $budgetPath)) {
             npx tsx prisma/import.ts --pipelines=$pipelinesPath --budget-items=$budgetPath
@@ -319,6 +321,8 @@ function Import-CsvData {
 
         if (-not [string]::IsNullOrWhiteSpace($pipelinesPath) -or -not [string]::IsNullOrWhiteSpace($budgetPath)) {
             Set-Location $script:PROJECT_ROOT
+            $dbUrl = "file:" + (Join-Path $script:PROJECT_ROOT "prisma\prod.db").Replace("\", "/")
+            $env:DATABASE_URL = $dbUrl
             if (-not [string]::IsNullOrWhiteSpace($pipelinesPath) -and -not [string]::IsNullOrWhiteSpace($budgetPath)) {
                 npx tsx prisma/import.ts --pipelines=$pipelinesPath --budget-items=$budgetPath
             } elseif (-not [string]::IsNullOrWhiteSpace($pipelinesPath)) {

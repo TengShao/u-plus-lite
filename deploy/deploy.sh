@@ -597,7 +597,7 @@ import_csv_data() {
         if [ -n "$cmd_args" ]; then
             echo ""
             echo "正在导入数据..."
-            npx tsx "$PROJECT_ROOT/prisma/import.ts" $cmd_args
+            DATABASE_URL="file:$PROJECT_ROOT/prisma/prod.db" npx tsx "$PROJECT_ROOT/prisma/import.ts" $cmd_args
         else
             echo "未指定文件，跳过导入"
         fi
@@ -616,7 +616,7 @@ import_csv_data() {
             local pipelines_tmp
             pipelines_tmp=$(mktemp)
             echo "$pipelines_content" > "$pipelines_tmp"
-            npx tsx "$PROJECT_ROOT/prisma/import.ts" --pipelines="$pipelines_tmp"
+            DATABASE_URL="file:$PROJECT_ROOT/prisma/prod.db" npx tsx "$PROJECT_ROOT/prisma/import.ts" --pipelines="$pipelines_tmp"
             rm -f "$pipelines_tmp"
         fi
 
@@ -624,7 +624,7 @@ import_csv_data() {
             local budget_tmp
             budget_tmp=$(mktemp)
             echo "$budget_content" > "$budget_tmp"
-            npx tsx "$PROJECT_ROOT/prisma/import.ts" --budget-items="$budget_tmp"
+            DATABASE_URL="file:$PROJECT_ROOT/prisma/prod.db" npx tsx "$PROJECT_ROOT/prisma/import.ts" --budget-items="$budget_tmp"
             rm -f "$budget_tmp"
         fi
     else
