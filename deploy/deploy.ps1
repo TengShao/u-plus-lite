@@ -208,22 +208,25 @@ function Detect-Deployment {
         }
 
         if ($choice -eq "2") {
-            Write-Host -NoNewline "请输入已有项目路径（输入 q 退出）: "
-            $customPath = Read-Host
-            if ($customPath -eq "q" -or $customPath -eq "Q") {
-                Write-Host "已取消部署"
-                exit 0
-            }
-            if (-not [string]::IsNullOrWhiteSpace($customPath)) {
-                $gitDir = Join-Path $customPath ".git"
-                $subGitDir = Join-Path $customPath "u-plus-lite\.git"
-                if (Test-Path $gitDir) {
-                    $script:DEFAULT_DIR = $customPath
-                } elseif (Test-Path $subGitDir) {
-                    $script:DEFAULT_DIR = Join-Path $customPath "u-plus-lite"
-                } else {
-                    Write-Host -ForegroundColor Red "错误：$customPath 不是 Git 仓库"
-                    exit 1
+            while ($true) {
+                Write-Host -NoNewline "请输入已有项目路径（输入 q 退出）: "
+                $customPath = Read-Host
+                if ($customPath -eq "q" -or $customPath -eq "Q") {
+                    Write-Host "已取消部署"
+                    exit 0
+                }
+                if (-not [string]::IsNullOrWhiteSpace($customPath)) {
+                    $gitDir = Join-Path $customPath ".git"
+                    $subGitDir = Join-Path $customPath "u-plus-lite\.git"
+                    if (Test-Path $gitDir) {
+                        $script:DEFAULT_DIR = $customPath
+                        break
+                    } elseif (Test-Path $subGitDir) {
+                        $script:DEFAULT_DIR = Join-Path $customPath "u-plus-lite"
+                        break
+                    } else {
+                        Write-Host -ForegroundColor Red "错误：$customPath 不是 Git 仓库"
+                    }
                 }
             }
         } else {

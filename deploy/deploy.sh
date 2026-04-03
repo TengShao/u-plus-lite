@@ -314,28 +314,31 @@ detect_deployment() {
             fi
             DEPLOY_DIR="$custom_path"
         else
-            echo -n "请输入已有项目路径（输入 q 退出）: "
-            read -r custom_path
+            while true; do
+                echo -n "请输入已有项目路径（输入 q 退出）: "
+                read -r custom_path
 
-            if [ "$custom_path" = "q" ] || [ "$custom_path" = "Q" ]; then
-                echo "已取消部署"
-                exit 0
-            fi
+                if [ "$custom_path" = "q" ] || [ "$custom_path" = "Q" ]; then
+                    echo "已取消部署"
+                    exit 0
+                fi
 
-            custom_path=$(eval echo "$custom_path")
+                custom_path=$(eval echo "$custom_path")
 
-            # 检查指定路径是否是 git 仓库
-            if [ -d "$custom_path/.git" ]; then
-                DEPLOY_MODE="update"
-                DEPLOY_DIR="$custom_path"
-            # 检查是否有 u-plus-lite 子文件夹
-            elif [ -d "$custom_path/u-plus-lite/.git" ]; then
-                DEPLOY_MODE="update"
-                DEPLOY_DIR="$custom_path/u-plus-lite"
-            else
-                echo -e "${RED}错误：$custom_path 不是 Git 仓库${NC}"
-                exit 1
-            fi
+                # 检查指定路径是否是 git 仓库
+                if [ -d "$custom_path/.git" ]; then
+                    DEPLOY_MODE="update"
+                    DEPLOY_DIR="$custom_path"
+                    break
+                # 检查是否有 u-plus-lite 子文件夹
+                elif [ -d "$custom_path/u-plus-lite/.git" ]; then
+                    DEPLOY_MODE="update"
+                    DEPLOY_DIR="$custom_path/u-plus-lite"
+                    break
+                else
+                    echo -e "${RED}错误：$custom_path 不是 Git 仓库${NC}"
+                fi
+            done
         fi
     fi
 
