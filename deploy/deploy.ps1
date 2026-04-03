@@ -726,10 +726,14 @@ function Main {
 
     # 显示当前版本
     if ($DEPLOY_MODE -eq "new") {
-        Write-Host "当前版本: 全新部署"
+        if ($latestVer -and $latestVer -ne "unknown") {
+            Write-Host "当前最新版本: v$latestVer"
+        } else {
+            Write-Host "当前版本: 全新部署"
+        }
     } else {
         $currentVer = Get-LocalVersion $DEFAULT_DIR
-        Write-Host "当前版本: $currentVer"
+        Write-Host "当前版本: v$currentVer"
     }
     Write-Host ""
 
