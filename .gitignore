@@ -32,3 +32,11 @@ public/logo.svg
 
 # TypeScript
 tsconfig.tsbuildinfo
+
+# Logs
+npm-debug.log*
+yarn-error.log
+
+# Environment
+.env.local
+.env.*.local
