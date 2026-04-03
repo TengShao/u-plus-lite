@@ -249,6 +249,8 @@ fetch_latest_version() {
 # 获取当前项目版本
 # ============================================================
 fetch_current_version() {
+    echo ""
+    echo "DEBUG: fetch_current_version called, DEPLOY_MODE=$DEPLOY_MODE DEPLOY_DIR=$DEPLOY_DIR"
     if [ "$DEPLOY_MODE" = "new" ]; then
         CURRENT_VERSION="全新部署"
     elif [ -f "$DEPLOY_DIR/version.txt" ]; then
