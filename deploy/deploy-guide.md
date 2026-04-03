@@ -34,19 +34,17 @@ irm https://raw.githubusercontent.com/TengShao/u-plus-lite/master/deploy/deploy.
 
 | 步骤 | 内容 | 说明 |
 |------|------|------|
-| 1 | 检测环境 | 自动检测并安装 Git、Node.js、PM2（如缺失） |
-| 2 | 获取最新版本 | 从 GitHub API 获取最新代码 |
-| 3 | 检测部署状态 | 首次部署或已有部署 |
-| 4 | 克隆代码 | 首次部署时克隆代码仓库 |
-| 5 | 安装依赖 | npm install |
-| 6 | Prisma 初始化 | prisma generate + db push |
-| 7 | 创建管理员 | 仅首次部署，交互式输入账号密码 |
-| 8 | .env 配置 | 自动配置 NEXTAUTH_URL |
-| 9 | 端口配置 | 检测 3000 端口，冲突时提供替代方案 |
-| 10 | 构建 | npm run build |
-| 11 | 启动服务 | PM2 启动应用 |
-| 12 | CSV 导入 | 可选导入管线和预算项 |
-| 13 | 开机自启 | 配置 PM2 开机自启 |
+| [1/9] | Git Clone | 首次部署时克隆代码仓库 |
+| [2/9] | 安装依赖 | npm install |
+| [3/9] | Prisma 初始化 | prisma generate + db push |
+| [4/9] | 创建管理员 | 仅首次部署，交互式输入账号密码 |
+| [5/9] | 配置环境变量 | NEXTAUTH_SECRET、NEXTAUTH_URL（含端口配置） |
+| [6/9] | 构建 | npm run build |
+| [7/9] | PM2 启动 | 配置服务并启动 |
+| [8/9] | 保存版本信息 | 写入 version.txt |
+| [9/9] | CSV 导入 | 可选导入管线和预算项 |
+
+部署后询问是否配置开机自启。
 
 ---
 
@@ -66,10 +64,10 @@ pm2 restart u-plus-lite
 
 ## 更新部署
 
-已有部署目录重新运行相同命令：
+已有部署目录重新运行脚本：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/deploy/deploy.sh | bash
+curl -fsSL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/deploy/deploy.sh -o /tmp/deploy.sh && bash /tmp/deploy.sh
 ```
 
 或直接运行本地脚本：
@@ -78,7 +76,7 @@ curl -fsSL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/deploy/
 bash ~/u-plus-lite/deploy/deploy.sh
 ```
 
-选择「更新」选项，脚本会自动拉取代码、智能构建并重启服务。
+脚本检测到已有部署后会进入更新模式，可选择：更新、卸载、重新安装。
 
 **数据安全：** 数据库文件完全不受影响。
 
@@ -119,7 +117,7 @@ npx tsx prisma/export.ts
 
 ### 导入管线和预算项
 
-部署脚本 Step 12 支持导入 CSV 文件。CSV 格式如下：
+部署脚本 [9/9] 支持导入 CSV 文件。CSV 格式如下：
 
 **管线文件（示例）：**
 ```csv
