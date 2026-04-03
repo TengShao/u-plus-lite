@@ -276,7 +276,12 @@ detect_deployment() {
 
         if [ "$choice" = "1" ]; then
             DEPLOY_MODE="new"
-            DEPLOY_DIR="$DEFAULT_DIR"
+            echo ""
+            echo -n "请输入部署目录路径 [${DEFAULT_DIR}]: "
+            read -r custom_path
+            custom_path=${custom_path:-$DEFAULT_DIR}
+            custom_path=$(eval echo "$custom_path")
+            DEPLOY_DIR="$custom_path"
         else
             echo -n "请输入已有项目路径: "
             read -r custom_path
