@@ -4,8 +4,16 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  const providedName = process.argv[2]
-  const providedPassword = process.argv[3]
+  const args = process.argv.slice(2)
+  const resetMode = args.includes('--reset')
+  const providedName = resetMode ? args[1] : process.argv[2]
+  const providedPassword = resetMode ? args[2] : process.argv[3]
+
+  if (resetMode) {
+    // 绕过外键约束删除管理员（用户可能有关联的 workload 记录）
+    await prisma.$executeRaw`DELETE FROM User WHERE role = 'ADMIN'`
+    console.log('已删除所有管理员账号')
+  }
 
   if (providedName && providedPassword) {
     const hashedPassword = await bcrypt.hash(providedPassword, 10)

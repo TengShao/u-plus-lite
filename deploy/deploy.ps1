@@ -635,6 +635,50 @@ function Deploy-Update {
         # 重启 PM2
         Write-Step "重启服务..."
         pm2 restart u-plus-lite
+
+        # 修改管理员密码
+        Write-Host ""
+        Write-Host "是否修改管理员账号密码？"
+        Write-Host "  1 - 跳过（沿用现有账号）"
+        Write-Host "  2 - 修改"
+        Write-Host ""
+        Write-Host -NoNewline "请选择（直接回车选择 1）: "
+        $adminChoice = Read-Host
+        if ([string]::IsNullOrWhiteSpace($adminChoice)) { $adminChoice = "1" }
+
+        if ($adminChoice -eq "2") {
+            Write-Host ""
+            Write-Host -NoNewline "  管理员姓名: "
+            $adminName = Read-Host
+            while ([string]::IsNullOrWhiteSpace($adminName)) {
+                Write-Host "  错误：管理员姓名不能为空"
+                Write-Host -NoNewline "  管理员姓名: "
+                $adminName = Read-Host
+            }
+
+            do {
+                $adminPassPlain = Read-Secret "  密码（至少8位）: "
+                if ([string]::IsNullOrWhiteSpace($adminPassPlain)) {
+                    Write-Warn "  密码不能为空"
+                    continue
+                }
+                if ($adminPassPlain.Length -lt 8) {
+                    Write-Warn "  密码至少8位"
+                    $adminPassPlain = ""
+                    continue
+                }
+                $adminPassConfirm = Read-Secret "  确认密码: "
+                if ($adminPassPlain -ne $adminPassConfirm) {
+                    Write-Warn "  两次密码不一致"
+                    $adminPassPlain = ""
+                }
+            } while ([string]::IsNullOrWhiteSpace($adminPassPlain))
+
+            $env:DATABASE_URL = "file:$script:PROJECT_ROOT\prisma\prod.db"
+            npx tsx "$script:PROJECT_ROOT\prisma\seed.ts" --reset $adminName $adminPassPlain
+            Write-Success "  管理员账号已更新"
+        }
+
         Write-Success "更新完成"
 
     } elseif ($choice -eq "2") {
