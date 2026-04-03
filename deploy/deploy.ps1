@@ -671,6 +671,15 @@ function Main {
     # 部署模式检测
     Detect-Deployment
 
+    # 显示当前版本
+    if ($DEPLOY_MODE -eq "new") {
+        Write-Host "当前版本: 全新部署"
+    } else {
+        $currentVer = Get-LocalVersion $DEFAULT_DIR
+        Write-Host "当前版本: $currentVer"
+    }
+    Write-Host ""
+
     # 执行部署
     if ($DEPLOY_MODE -eq "new") {
         Deploy-New

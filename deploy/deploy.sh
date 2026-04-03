@@ -250,6 +250,22 @@ fetch_latest_version() {
 }
 
 # ============================================================
+# 获取当前项目版本
+# ============================================================
+fetch_current_version() {
+    if [ "$DEPLOY_MODE" = "new" ]; then
+        CURRENT_VERSION="全新部署"
+    elif [ -f "$DEPLOY_DIR/version.txt" ]; then
+        CURRENT_VERSION=$(cat "$DEPLOY_DIR/version.txt" | tr -d ' \n')
+    elif [ -d "$DEPLOY_DIR/.git" ]; then
+        CURRENT_VERSION=$(git -C "$DEPLOY_DIR" describe --tags --abbrev=0 2>/dev/null | tr -d ' \n') || CURRENT_VERSION="unknown"
+    else
+        CURRENT_VERSION="unknown"
+    fi
+    echo "当前版本: $CURRENT_VERSION"
+}
+
+# ============================================================
 # 检测部署状态
 # ============================================================
 detect_deployment() {
@@ -959,6 +975,7 @@ main() {
     check_dependencies
     fetch_latest_version
     detect_deployment
+    fetch_current_version
 
     if [ "$DEPLOY_MODE" = "new" ]; then
         deploy_new
