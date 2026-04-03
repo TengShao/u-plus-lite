@@ -241,7 +241,11 @@ fetch_latest_version() {
             print_status "ok" "最新版本: v$LATEST_VERSION"
         fi
     else
-        LATEST_VERSION="unknown"
+        # API 失败时尝试从 git remote 获取最新 tag
+        LATEST_VERSION=$(git ls-remote --tags origin 2>/dev/null | cut -d$'\t' -f2 | grep -E '^refs/tags/v[0-9]' | sed 's/refs\/tags\/v//' | sort -V | tail -1) || LATEST_VERSION="unknown"
+        if [ "$LATEST_VERSION" != "unknown" ]; then
+            print_status "ok" "最新版本: v$LATEST_VERSION"
+        fi
     fi
 
     # 显示当前项目版本（仅当已有部署时）
@@ -272,8 +276,11 @@ detect_deployment() {
     else
         echo "未检测到现有部署"
         echo ""
-        LATEST_VERSION=${LATEST_VERSION:-"unknown"}
-        echo "当前版本: v${LATEST_VERSION}（全新部署）"
+        if [ "$LATEST_VERSION" != "unknown" ]; then
+            echo "当前版本: v${LATEST_VERSION}（全新部署）"
+        else
+            echo "当前版本: 全新部署"
+        fi
         echo ""
         echo "请选择部署模式："
         echo "  1 - 全新部署（克隆最新代码）"
