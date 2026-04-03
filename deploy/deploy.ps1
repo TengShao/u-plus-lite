@@ -194,6 +194,8 @@ function Detect-Deployment {
         Write-Warn "检测到已有部署，进入更新模式"
     } else {
         Write-Host ""
+        Write-Host "默认路径 ($DEFAULT_DIR) 未检测到现有部署"
+        Write-Host ""
         Write-Step "选择部署模式"
         Write-Host ""
         Write-Host "  1 - 全新部署（首次安装）"

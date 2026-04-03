@@ -274,7 +274,7 @@ detect_deployment() {
         DEPLOY_DIR="$DEFAULT_DIR"
         echo "检测到已有部署: $DEPLOY_DIR"
     else
-        echo "未检测到现有部署"
+        echo "默认路径 (${DEFAULT_DIR}) 未检测到现有部署"
         echo ""
         if [ "$LATEST_VERSION" != "unknown" ]; then
             echo "当前最新版本: v${LATEST_VERSION}"
