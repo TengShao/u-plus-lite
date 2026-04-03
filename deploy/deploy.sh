@@ -251,7 +251,7 @@ fetch_latest_version() {
         else
             CURRENT_VERSION=$(git -C "$DEFAULT_DIR" describe --tags --abbrev=0 2>/dev/null | tr -d ' \n') || CURRENT_VERSION="unknown"
         fi
-        echo "当前版本: $CURRENT_VERSION"
+        echo "当前版本: v$CURRENT_VERSION"
     fi
 }
 
@@ -850,17 +850,7 @@ deploy_update() {
 
     cd "$PROJECT_ROOT"
 
-    # 读取本地版本
-    if [ -f "version.txt" ]; then
-        LOCAL_VERSION=$(cat version.txt | tr -d ' \n')
-    else
-        LOCAL_VERSION="unknown"
-    fi
-
-    echo "当前版本: $LOCAL_VERSION"
-    echo "最新版本: v$LATEST_VERSION"
     echo ""
-
     echo "请选择操作："
     echo "  1 - 更新（推荐）"
     echo "  2 - 卸载"
