@@ -241,13 +241,11 @@ fetch_latest_version() {
         LATEST_VERSION=$(echo "$response" | grep '"tag_name"' | sed 's/.*"v\?\([^"]*\)".*/\1/' | tr -d ' ')
         if [ -z "$LATEST_VERSION" ]; then
             LATEST_VERSION="unknown"
-            print_status "warn" "无法解析最新版本号"
         else
             print_status "ok" "最新版本: v$LATEST_VERSION"
         fi
     else
         LATEST_VERSION="unknown"
-        print_status "warn" "无法获取最新版本（网络问题）"
     fi
 }
 
