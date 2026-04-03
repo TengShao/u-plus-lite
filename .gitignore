@@ -27,16 +27,16 @@ prisma/exports/
 # Superpowers
 .superpowers/
 
+# Logs
+npm-debug.log*
+yarn-error.log
+
+# Local env files (prefer .env which is already ignored)
+.env.local
+.env.production
+
 # Local generated assets
 public/logo.svg
 
 # TypeScript
 tsconfig.tsbuildinfo
-
-# Logs
-npm-debug.log*
-yarn-error.log
-
-# Environment
-.env.local
-.env.*.local
