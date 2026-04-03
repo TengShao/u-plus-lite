@@ -151,6 +151,11 @@ function Get-LatestVersion {
         $response = Invoke-RestMethod -Uri "https://api.github.com/repos/TengShao/u-plus-lite/releases/latest" -TimeoutSec 10
         return $response.tag_name -replace "^v", ""
     } catch {
+        # API 失败时从 git remote 获取
+        try {
+            $tag = git ls-remote --tags origin 2>$null | ForEach-Object { $_.Split("`t")[1] } | Where-Object { $_ -match '^refs/tags/v[0-9]' } | ForEach-Object { $_ -replace 'refs/tags/v', '' -replace '\^\{\}', '' } | Sort-Object -Descending | Select-Object -First 1
+            if ($tag) { return $tag }
+        } catch {}
         return "unknown"
     }
 }
