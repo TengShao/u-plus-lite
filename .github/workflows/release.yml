@@ -29,6 +29,9 @@ jobs:
           git config user.name "TengShao"
           git config user.email "tengshao@users.noreply.github.com"
 
+      - name: Delete existing tag (if any)
+        run: git tag -d ${{ github.ref_name }} || true
+
       - name: Create GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
