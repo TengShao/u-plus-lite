@@ -71,7 +71,7 @@ model Workload {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  user             User             @relation(fields: [userId], references: [id])
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   requirementGroup RequirementGroup @relation(fields: [requirementGroupId], references: [id], onDelete: Cascade)
   billingCycle     BillingCycle     @relation(fields: [billingCycleId], references: [id])
 
