@@ -272,7 +272,8 @@ detect_deployment() {
     else
         echo "未检测到现有部署"
         echo ""
-        echo "当前版本: $LATEST_VERSION（全新部署）"
+        LATEST_VERSION=${LATEST_VERSION:-"unknown"}
+        echo "当前版本: v${LATEST_VERSION}（全新部署）"
         echo ""
         echo "请选择部署模式："
         echo "  1 - 全新部署（克隆最新代码）"
