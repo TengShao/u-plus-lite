@@ -169,7 +169,7 @@ function Get-LocalVersion($deployDir) {
         Push-Location $deployDir
         try {
             $tag = git describe --tags --abbrev=0 2>$null
-            if ($tag) { return $tag -replace "^v", "" }
+            if ($tag) { return $tag -replace "\^\{\}", "" -replace "^v", "" }
         } catch {}
         Pop-Location
     }

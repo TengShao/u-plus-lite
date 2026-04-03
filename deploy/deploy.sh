@@ -242,7 +242,7 @@ fetch_latest_version() {
         fi
     else
         # API 失败时尝试从 git remote 获取最新 tag
-        LATEST_VERSION=$(git ls-remote --tags origin 2>/dev/null | cut -d$'\t' -f2 | grep -E '^refs/tags/v[0-9]' | sed 's/refs\/tags\/v//' | sort -V | tail -1) || LATEST_VERSION="unknown"
+        LATEST_VERSION=$(git ls-remote --tags origin 2>/dev/null | cut -d$'\t' -f2 | grep -E '^refs/tags/v[0-9]' | sed 's/refs\/tags\/v//' | sed 's/\^{}//' | sort -V | tail -1) || LATEST_VERSION="unknown"
         if [ "$LATEST_VERSION" != "unknown" ]; then
             print_status "ok" "最新版本: v$LATEST_VERSION"
         fi
@@ -253,7 +253,7 @@ fetch_latest_version() {
         if [ -f "$DEFAULT_DIR/version.txt" ]; then
             CURRENT_VERSION=$(cat "$DEFAULT_DIR/version.txt" | tr -d ' \n')
         else
-            CURRENT_VERSION=$(git -C "$DEFAULT_DIR" describe --tags --abbrev=0 2>/dev/null | tr -d ' \n') || CURRENT_VERSION="unknown"
+            CURRENT_VERSION=$(git -C "$DEFAULT_DIR" describe --tags --abbrev=0 2>/dev/null | sed 's/\^{}//' | tr -d ' \n') || CURRENT_VERSION="unknown"
         fi
         echo "当前版本: v$CURRENT_VERSION"
     fi
