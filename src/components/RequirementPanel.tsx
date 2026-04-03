@@ -5,6 +5,7 @@ import FilterBar from './FilterBar'
 import RequirementCardCollapsed from './RequirementCardCollapsed'
 import RequirementCardExpanded from './RequirementCardExpanded'
 import ConfirmDialog from './ConfirmDialog'
+import ImportModal from './ImportModal'
 import { useTips } from './Tips'
 import { ActionIconButton } from './icons'
 
@@ -46,6 +47,7 @@ export default function RequirementPanel({
   const [hasUnsaved, setHasUnsaved] = useState(false)
   const [pendingExpandId, setPendingExpandId] = useState<number | null>(null)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
   const [showDraftExistsConfirm, setShowDraftExistsConfirm] = useState(false)
   const [showSwitchCycleConfirm, setShowSwitchCycleConfirm] = useState(false)
   const [pendingCycleId, setPendingCycleId] = useState<number | null>(null)
@@ -559,7 +561,11 @@ export default function RequirementPanel({
             />
           </div>
           <div className="ml-auto flex items-center gap-[12px]">
-            <ActionIconButton type="upload-dark" disabled={false} onClick={() => {}} />
+            <ActionIconButton
+              type="upload-dark"
+              disabled={!cycleId || cycle?.status === 'CLOSED'}
+              onClick={() => setShowImportModal(true)}
+            />
             <button
               onClick={handleCreateRequirement}
               className={`flex h-[46px] w-[159px] items-center justify-center rounded-[12px] text-[18px] leading-[25px] text-white transition-transform ${
@@ -640,7 +646,14 @@ export default function RequirementPanel({
           </div>
         )}
       </div>
-      {showDiscardConfirm && (
+      {showImportModal && cycleId && (
+          <ImportModal
+            cycleId={cycleId}
+            onClose={() => setShowImportModal(false)}
+            onImportComplete={onRefresh}
+          />
+        )}
+        {showDiscardConfirm && (
         <ConfirmDialog
           title="放弃修改"
           message="有未保存的修改，是否放弃？"
