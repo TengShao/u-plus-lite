@@ -243,24 +243,16 @@ fetch_latest_version() {
     else
         LATEST_VERSION="unknown"
     fi
-}
 
-# ============================================================
-# 获取当前项目版本
-# ============================================================
-fetch_current_version() {
-    echo ""
-    echo "DEBUG: fetch_current_version called, DEPLOY_MODE=$DEPLOY_MODE DEPLOY_DIR=$DEPLOY_DIR"
-    if [ "$DEPLOY_MODE" = "new" ]; then
-        CURRENT_VERSION="全新部署"
-    elif [ -f "$DEPLOY_DIR/version.txt" ]; then
-        CURRENT_VERSION=$(cat "$DEPLOY_DIR/version.txt" | tr -d ' \n')
-    elif [ -d "$DEPLOY_DIR/.git" ]; then
-        CURRENT_VERSION=$(git -C "$DEPLOY_DIR" describe --tags --abbrev=0 2>/dev/null | tr -d ' \n') || CURRENT_VERSION="unknown"
-    else
-        CURRENT_VERSION="unknown"
+    # 显示当前项目版本
+    if [ -d "$DEFAULT_DIR/.git" ]; then
+        if [ -f "$DEFAULT_DIR/version.txt" ]; then
+            CURRENT_VERSION=$(cat "$DEFAULT_DIR/version.txt" | tr -d ' \n')
+        else
+            CURRENT_VERSION=$(git -C "$DEFAULT_DIR" describe --tags --abbrev=0 2>/dev/null | tr -d ' \n') || CURRENT_VERSION="unknown"
+        fi
+        echo "当前版本: $CURRENT_VERSION"
     fi
-    echo "当前版本: $CURRENT_VERSION"
 }
 
 # ============================================================
@@ -279,6 +271,7 @@ detect_deployment() {
         echo "检测到已有部署: $DEPLOY_DIR"
     else
         echo "未检测到现有部署"
+        echo "当前版本: 全新部署"
         echo ""
         echo "请选择部署模式："
         echo "  1 - 全新部署（克隆最新代码）"
@@ -1053,7 +1046,6 @@ main() {
     check_dependencies
     fetch_latest_version
     detect_deployment
-    fetch_current_version
 
     if [ "$DEPLOY_MODE" = "new" ]; then
         deploy_new
