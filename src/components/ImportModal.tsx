@@ -1,0 +1,278 @@
+// src/components/ImportModal.tsx
+
+'use client'
+import { useState, useRef } from 'react'
+
+interface ParsedItem {
+  originalText: string
+  manDays: number
+  designers: string[]
+}
+
+interface ParsedGroup {
+  name: string
+  action: 'MATCH' | 'CREATE_NEW'
+  matchedGroup: { id: number; name: string } | null
+  matchReason: string
+  items: ParsedItem[]
+}
+
+interface Props {
+  cycleId: number
+  onClose: () => void
+  onImportComplete: () => void
+}
+
+export default function ImportModal({ cycleId, onClose, onImportComplete }: Props) {
+  const [step, setStep] = useState<'input' | 'preview'>('input')
+  const [rawContent, setRawContent] = useState('')
+  const [groups, setGroups] = useState<ParsedGroup[]>([])
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [editingGroupName, setEditingGroupName] = useState<number | null>(null)
+  const [editedName, setEditedName] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // 处理 CSV 文件上传
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setRawContent(ev.target?.result as string ?? '')
+    }
+    reader.readAsText(file)
+  }
+
+  // 调用解析 API
+  async function handleParse() {
+    if (!rawContent.trim()) return
+    setIsLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/import/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: rawContent, cycleId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? '解析失败')
+      setGroups(data.groups)
+      setStep('preview')
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // 删除单个条目
+  function handleDeleteItem(groupIdx: number, itemIdx: number) {
+    setGroups(prev => {
+      const next = [...prev]
+      next[groupIdx] = { ...next[groupIdx] }
+      next[groupIdx].items = next[groupIdx].items.filter((_, i) => i !== itemIdx)
+      return next
+    })
+  }
+
+  // 删除整组
+  function handleDeleteGroup(groupIdx: number) {
+    setGroups(prev => prev.filter((_, i) => i !== groupIdx))
+  }
+
+  // 编辑组名
+  function handleStartEditName(groupIdx: number, currentName: string) {
+    setEditingGroupName(groupIdx)
+    setEditedName(currentName)
+  }
+
+  function handleSaveEditName(groupIdx: number) {
+    setGroups(prev => {
+      const next = [...prev]
+      next[groupIdx] = { ...next[groupIdx], name: editedName }
+      return next
+    })
+    setEditingGroupName(null)
+  }
+
+  // 多选切换
+  function handleToggleSelect(groupIdx: number) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(groupIdx)) next.delete(groupIdx)
+      else next.add(groupIdx)
+      return next
+    })
+  }
+
+  // 合并选中组
+  function handleMergeSelected() {
+    if (selectedIds.size < 2) return
+    const selectedGroups = groups.filter((_, i) => selectedIds.has(i))
+    const mergedItems = selectedGroups.flatMap(g => g.items)
+    const newGroup: ParsedGroup = {
+      name: '新合并需求组',
+      action: 'CREATE_NEW',
+      matchedGroup: null,
+      matchReason: '',
+      items: mergedItems,
+    }
+    const remaining = groups.filter((_, i) => !selectedIds.has(i))
+    setGroups([...remaining, newGroup])
+    setSelectedIds(new Set())
+  }
+
+  // 确认导入
+  async function handleConfirm() {
+    const decisions = groups.map(g => ({
+      name: g.name,
+      action: g.action === 'MATCH' ? 'MERGE' : 'CREATE',
+      targetGroupId: g.matchedGroup?.id ?? null,
+      items: g.items,
+    }))
+    setIsLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/import/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cycleId, decisions }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? '导入失败')
+      onImportComplete()
+      onClose()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 font-alibaba" onClick={onClose}>
+      <div className="flex flex-col rounded-[24px] bg-[#F9F9F9]" style={{ width: 680, maxHeight: '80vh' }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-black/10">
+          <span className="text-[18px] font-bold text-black">导入需求组</span>
+          <button onClick={onClose} className="text-black/40 hover:text-black">✕</button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {step === 'input' ? (
+            <div className="flex flex-col gap-4">
+              <textarea
+                className="w-full h-48 p-3 rounded-lg border border-[#EEEEEE] text-[14px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E] resize-none"
+                style={{ fontFamily: 'inherit' }}
+                placeholder="粘贴纯文本或 CSV 内容..."
+                value={rawContent}
+                onChange={e => setRawContent(e.target.value)}
+              />
+              <div className="flex items-center gap-3">
+                <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 h-10 px-4 rounded-[8px] border border-[#EEEEEE] bg-white text-[14px] text-black hover:border-[#8ECA2E]"
+                >
+                  📎 上传 CSV
+                </button>
+                {fileInputRef.current?.files?.[0] && (
+                  <span className="text-[14px] text-[#8ECA2E]">{fileInputRef.current.files[0].name}</span>
+                )}
+              </div>
+              {error && <div className="text-[14px] text-red-500">{error}</div>}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {groups.length === 0 ? (
+                <div className="text-center py-8 text-[#C3C3C3]">未解析出任何需求组</div>
+              ) : (
+                groups.map((group, gi) => (
+                  <div key={gi} className="rounded-[12px] border border-[#EEEEEE] bg-white p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(gi)}
+                        onChange={() => handleToggleSelect(gi)}
+                        className="w-4 h-4"
+                      />
+                      {editingGroupName === gi ? (
+                        <input
+                          className="flex-1 h-8 px-2 rounded border border-[#8ECA2E] text-[14px] text-black outline-none"
+                          value={editedName}
+                          onChange={e => setEditedName(e.target.value)}
+                          onBlur={() => handleSaveEditName(gi)}
+                          onKeyDown={e => e.key === 'Enter' && handleSaveEditName(gi)}
+                          autoFocus
+                        />
+                      ) : (
+                        <span
+                          className="flex-1 text-[16px] font-bold text-black cursor-pointer hover:text-[#8ECA2E]"
+                          onClick={() => handleStartEditName(gi, group.name)}
+                        >
+                          {group.name}
+                        </span>
+                      )}
+                      <span className={`text-[12px] px-2 py-0.5 rounded-full ${group.action === 'MATCH' ? 'bg-[rgba(142,202,46,0.15)] text-[#8ECA2E]' : 'bg-[rgba(0,0,0,0.05)] text-[#999]'}`}>
+                        {group.action === 'MATCH' ? `已有「${group.matchedGroup?.name}」` : '新建'}
+                      </span>
+                      <button onClick={() => handleDeleteGroup(gi)} className="text-[#E96631] text-[14px] hover:underline">删除</button>
+                    </div>
+                    <div className="flex flex-col gap-1 pl-7">
+                      {group.items.map((item, ii) => (
+                        <div key={ii} className="flex items-center justify-between text-[13px]">
+                          <span className="text-[#666]">{item.originalText}</span>
+                          <span className="text-black font-bold">{item.manDays} 人天</span>
+                          <button onClick={() => handleDeleteItem(gi, ii)} className="text-[#E96631] hover:underline">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+              {selectedIds.size >= 2 && (
+                <button
+                  onClick={handleMergeSelected}
+                  className="self-center px-4 py-2 rounded-[8px] border border-[#8ECA2E] text-[14px] text-[#8ECA2E] hover:bg-[rgba(142,202,46,0.1)]"
+                >
+                  合并选中的 {selectedIds.size} 个组
+                </button>
+              )}
+              {error && <div className="text-[14px] text-red-500">{error}</div>}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-black/10">
+          <button
+            onClick={step === 'input' ? onClose : () => setStep('input')}
+            className="h-10 w-28 rounded-[8px] bg-[#F2F2F2] text-[16px] font-bold text-black"
+          >
+            {step === 'input' ? '取消' : '上一步'}
+          </button>
+          {step === 'input' ? (
+            <button
+              onClick={handleParse}
+              disabled={!rawContent.trim() || isLoading}
+              className="h-10 w-28 rounded-[8px] bg-black text-[16px] font-bold text-white disabled:bg-[#B6B6B6]"
+            >
+              {isLoading ? '解析中...' : '解析'}
+            </button>
+          ) : (
+            <button
+              onClick={handleConfirm}
+              disabled={groups.length === 0 || isLoading}
+              className="h-10 w-28 rounded-[8px] bg-[#8ECA2E] text-[16px] font-bold text-white disabled:bg-[#B6B6B6]"
+            >
+              {isLoading ? '导入中...' : '确认导入'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
