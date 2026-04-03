@@ -92,16 +92,12 @@ find_available_port() {
     echo $port
 }
 
-# 静默读取密码
+# 静默读取密码（跨平台兼容）
 read_secret() {
     local prompt="$1"
     local var_name="$2"
     echo -n "$prompt"
-    trap 'stty echo 2>/dev/null' EXIT INT TERM
-    stty -echo 2>/dev/null
-    read -r "$var_name"
-    stty echo 2>/dev/null
-    trap - EXIT INT TERM
+    read -s -r "$var_name"
     echo ""
 }
 
