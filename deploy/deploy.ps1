@@ -185,14 +185,21 @@ function Get-LocalVersion($deployDir) {
 # 检测部署状态
 # ============================================================
 function Detect-Deployment {
-    # 自动检测：脚本自身所在目录就是项目根目录
+    # 自动检测：参考重新部署的逻辑
     $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $scriptProjectRoot = Split-Path -Parent $scriptPath
-    $scriptGitDir = Join-Path $scriptProjectRoot ".git"
+    $scriptParent = Split-Path -Parent $scriptPath
+    $scriptGitDir = Join-Path $scriptParent ".git"
 
     if (Test-Path $scriptGitDir) {
+        # 脚本在项目的 deploy/ 子目录中（如 u-plus-lite/deploy/）
         $script:DEPLOY_MODE = "update"
-        $script:PROJECT_ROOT = $scriptProjectRoot
+        $script:PROJECT_ROOT = $scriptParent
+        Write-Host ""
+        Write-Warn "自动检测到项目目录: $script:PROJECT_ROOT"
+    } elseif (Test-Path (Join-Path $scriptParent "u-plus-lite\.git")) {
+        # 脚本在项目的兄弟目录中（如 Downloads/deploy/，项目在 Downloads/u-plus-lite/）
+        $script:DEPLOY_MODE = "update"
+        $script:PROJECT_ROOT = Join-Path $scriptParent "u-plus-lite"
         Write-Host ""
         Write-Warn "自动检测到项目目录: $script:PROJECT_ROOT"
     } elseif (Test-Path (Join-Path $DEFAULT_DIR ".git")) {
@@ -254,9 +261,16 @@ function Detect-Deployment {
                     $script:DEFAULT_DIR = Join-Path $script:DEFAULT_DIR "u-plus-lite"
                 }
             }
+            # 检查输入路径是否已是 git 仓库，如果是改为更新模式
+            if (Test-Path (Join-Path $script:DEFAULT_DIR ".git")) {
+                $script:DEPLOY_MODE = "update"
+                Write-Host ""
+                Write-Warn "检测到已有部署，进入更新模式: $script:DEFAULT_DIR"
+            } else {
+                $script:DEPLOY_MODE = "new"
+            }
         }
 
-        $script:DEPLOY_MODE = "new"
         $script:PROJECT_ROOT = $DEFAULT_DIR
     }
 }

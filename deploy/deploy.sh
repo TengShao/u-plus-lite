@@ -269,14 +269,20 @@ detect_deployment() {
     echo "=========================================="
     echo ""
 
-    # 自动检测：脚本自身所在目录就是项目根目录
+    # 自动检测：参考重新部署的逻辑
     local script_path
     script_path="$(cd "$(dirname "$0")" && pwd)"
-    local script_project_root="$(dirname "$script_path")"
+    local script_parent="$(dirname "$script_path")"
 
-    if [ -d "$script_project_root/.git" ]; then
+    if [ -d "$script_parent/.git" ]; then
+        # 脚本在项目的 deploy/ 子目录中（如 u-plus-lite/deploy/）
         DEPLOY_MODE="update"
-        DEPLOY_DIR="$script_project_root"
+        DEPLOY_DIR="$script_parent"
+        echo "自动检测到项目目录: $DEPLOY_DIR"
+    elif [ -d "$script_parent/u-plus-lite/.git" ]; then
+        # 脚本在项目的兄弟目录中（如 Downloads/deploy/，项目在 Downloads/u-plus-lite/）
+        DEPLOY_MODE="update"
+        DEPLOY_DIR="$script_parent/u-plus-lite"
         echo "自动检测到项目目录: $DEPLOY_DIR"
     elif [ -d "$DEFAULT_DIR/.git" ]; then
         DEPLOY_MODE="update"
@@ -321,7 +327,15 @@ detect_deployment() {
             if [[ "$custom_path" != */u-plus-lite ]]; then
                 custom_path="$custom_path/u-plus-lite"
             fi
-            DEPLOY_DIR="$custom_path"
+
+            # 检查输入路径是否已是 git 仓库，如果是改为更新模式
+            if [ -d "$custom_path/.git" ]; then
+                DEPLOY_MODE="update"
+                DEPLOY_DIR="$custom_path"
+                echo "检测到已有部署，进入更新模式: $DEPLOY_DIR"
+            else
+                DEPLOY_DIR="$custom_path"
+            fi
         else
             while true; do
                 echo -n "请输入已有项目路径（输入 q 退出）: "
