@@ -209,7 +209,7 @@ function Detect-Deployment {
         } else {
             # 全新部署也提示确认路径
             Write-Host ""
-            Write-Host -NoNewline "请输入部署目录路径 [$script:DEFAULT_DIR]: "
+            Write-Host -NoNewline "请输入部署目录路径（直接回车使用 $script:DEFAULT_DIR）: "
             $customPath = Read-Host
             if (-not [string]::IsNullOrWhiteSpace($customPath)) {
                 $script:DEFAULT_DIR = $customPath

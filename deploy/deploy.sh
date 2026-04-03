@@ -277,7 +277,7 @@ detect_deployment() {
         if [ "$choice" = "1" ]; then
             DEPLOY_MODE="new"
             echo ""
-            echo -n "请输入部署目录路径 [${DEFAULT_DIR}]: "
+            echo -n "请输入部署目录路径（直接回车使用 ${DEFAULT_DIR}）: "
             read -r custom_path
             custom_path=${custom_path:-$DEFAULT_DIR}
             custom_path=$(eval echo "$custom_path")
