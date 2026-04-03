@@ -291,12 +291,6 @@ detect_deployment() {
     else
         echo "默认路径 (${DEFAULT_DIR}) 未检测到现有部署"
         echo ""
-        if [ "$LATEST_VERSION" != "unknown" ]; then
-            echo "当前最新版本: v${LATEST_VERSION}"
-        else
-            echo "当前版本: 全新部署"
-        fi
-        echo ""
         echo "请选择部署模式："
         echo "  1 - 全新部署"
         echo "  2 - 指定已部署路径"
