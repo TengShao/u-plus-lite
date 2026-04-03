@@ -924,9 +924,12 @@ do_update() {
         print_status "fail" "Git fetch 失败"
         exit 1
     fi
-    if ! git pull origin master; then
-        print_status "fail" "Git pull 失败"
-        exit 1
+    local pull_output
+    pull_output=$(git pull origin master 2>&1)
+    if echo "$pull_output" | grep -q "Already up to date."; then
+        echo "已经是最新的。"
+    else
+        echo "$pull_output"
     fi
 
     # 检查 package-lock.json 变化

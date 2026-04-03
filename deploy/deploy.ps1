@@ -611,8 +611,12 @@ function Deploy-Update {
         if ($LASTEXITCODE -ne 0) { Write-Warn "git stash 失败" }
         git checkout master
         if ($LASTEXITCODE -ne 0) { Write-Warn "git checkout 失败" }
-        git pull origin master
-        if ($LASTEXITCODE -ne 0) { Write-Warn "git pull 失败" }
+        $pullOutput = git pull origin master 2>&1
+        if ($pullOutput -match "Already up to date") {
+            Write-Host "已经是最新的。"
+        } else {
+            Write-Host $pullOutput
+        }
         git stash pop
         if ($LASTEXITCODE -ne 0) { Write-Warn "git stash pop 失败（可能没有暂存的更改）" }
 
@@ -668,8 +672,12 @@ function Deploy-Update {
         if ($LASTEXITCODE -ne 0) { Write-Warn "git stash 失败" }
         git checkout master
         if ($LASTEXITCODE -ne 0) { Write-Warn "git checkout 失败" }
-        git pull origin master
-        if ($LASTEXITCODE -ne 0) { Write-Warn "git pull 失败" }
+        $pullOutput = git pull origin master 2>&1
+        if ($pullOutput -match "Already up to date") {
+            Write-Host "已经是最新的。"
+        } else {
+            Write-Host $pullOutput
+        }
         git stash pop
         if ($LASTEXITCODE -ne 0) { Write-Warn "git stash pop 失败（可能没有暂存的更改）" }
 
