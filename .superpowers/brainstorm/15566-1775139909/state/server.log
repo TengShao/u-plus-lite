@@ -1,4 +1,0 @@
-{"type":"server-started","port":50187,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:50187","screen_dir":"/Users/tengshao/Drive/Project/u-plus-lite/.superpowers/brainstorm/15566-1775139909/content","state_dir":"/Users/tengshao/Drive/Project/u-plus-lite/.superpowers/brainstorm/15566-1775139909/state"}
-{"type":"screen-added","file":"/Users/tengshao/Drive/Project/u-plus-lite/.superpowers/brainstorm/15566-1775139909/content/layout-v1.html"}
-{"source":"user-event","type":"click","text":"B\n    \n      需要调整\n      逻辑与预期不符，我来指出问题","choice":"no","id":null,"timestamp":1775140191701}
-{"type":"server-stopped","reason":"idle timeout"}
