@@ -755,7 +755,7 @@ deploy_new() {
         fi
     done
 
-    npx tsx "$PROJECT_ROOT/prisma/seed.ts" "$admin_name" "$admin_password"
+    DATABASE_URL="file:$DEPLOY_DIR/prisma/prod.db" npx tsx "$PROJECT_ROOT/prisma/seed.ts" "$admin_name" "$admin_password"
 
     # [5/9] 配置 .env
     echo ""
