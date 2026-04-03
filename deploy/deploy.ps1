@@ -206,6 +206,17 @@ function Detect-Deployment {
                     $script:DEFAULT_DIR = Join-Path $script:DEFAULT_DIR "u-plus-lite"
                 }
             }
+        } else {
+            # 全新部署也提示确认路径
+            Write-Host ""
+            Write-Host -NoNewline "请输入部署目录路径 [$script:DEFAULT_DIR]: "
+            $customPath = Read-Host
+            if (-not [string]::IsNullOrWhiteSpace($customPath)) {
+                $script:DEFAULT_DIR = $customPath
+                if ((Split-Path $script:DEFAULT_DIR -Leaf) -ne "u-plus-lite") {
+                    $script:DEFAULT_DIR = Join-Path $script:DEFAULT_DIR "u-plus-lite"
+                }
+            }
         }
 
         $script:DEPLOY_MODE = "new"
@@ -321,6 +332,8 @@ function Deploy-New {
     }
 
     # [3/9] Prisma 初始化
+    $dbUrl = "file:" + (Join-Path $script:PROJECT_ROOT "prisma\prod.db").Replace("\", "/")
+    $env:DATABASE_URL = $dbUrl
     Write-Step "[3/9] 生成 Prisma 客户端..."
     npx prisma generate
     Write-Step "[3/9] 应用数据库迁移..."
