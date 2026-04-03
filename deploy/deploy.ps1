@@ -185,9 +185,17 @@ function Get-LocalVersion($deployDir) {
 # 检测部署状态
 # ============================================================
 function Detect-Deployment {
-    $gitDir = Join-Path $DEFAULT_DIR ".git"
+    # 自动检测：脚本自身所在目录就是项目根目录
+    $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $scriptProjectRoot = Split-Path -Parent $scriptPath
+    $scriptGitDir = Join-Path $scriptProjectRoot ".git"
 
-    if (Test-Path $gitDir) {
+    if (Test-Path $scriptGitDir) {
+        $script:DEPLOY_MODE = "update"
+        $script:PROJECT_ROOT = $scriptProjectRoot
+        Write-Host ""
+        Write-Warn "自动检测到项目目录: $script:PROJECT_ROOT"
+    } elseif (Test-Path (Join-Path $DEFAULT_DIR ".git")) {
         $script:DEPLOY_MODE = "update"
         $script:PROJECT_ROOT = $DEFAULT_DIR
         Write-Host ""

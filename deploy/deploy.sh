@@ -269,7 +269,16 @@ detect_deployment() {
     echo "=========================================="
     echo ""
 
-    if [ -d "$DEFAULT_DIR/.git" ]; then
+    # 自动检测：脚本自身所在目录就是项目根目录
+    local script_path
+    script_path="$(cd "$(dirname "$0")" && pwd)"
+    local script_project_root="$(dirname "$script_path")"
+
+    if [ -d "$script_project_root/.git" ]; then
+        DEPLOY_MODE="update"
+        DEPLOY_DIR="$script_project_root"
+        echo "自动检测到项目目录: $DEPLOY_DIR"
+    elif [ -d "$DEFAULT_DIR/.git" ]; then
         DEPLOY_MODE="update"
         DEPLOY_DIR="$DEFAULT_DIR"
         echo "检测到已有部署: $DEPLOY_DIR"
