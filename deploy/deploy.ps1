@@ -194,12 +194,21 @@ function Detect-Deployment {
         Write-Host "  1 - 全新部署（首次安装）"
         Write-Host "  2 - 自定义路径部署"
         Write-Host ""
-        Write-Host -NoNewline "请选择 [1]: "
+        Write-Host -NoNewline "请选择 [1]（输入 q 退出）: "
         $choice = Read-Host
 
+        if ($choice -eq "q" -or $choice -eq "Q") {
+            Write-Host "已取消部署"
+            exit 0
+        }
+
         if ($choice -eq "2") {
-            Write-Host -NoNewline "请输入部署目录路径: "
+            Write-Host -NoNewline "请输入部署目录路径（输入 q 退出）: "
             $customPath = Read-Host
+            if ($customPath -eq "q" -or $customPath -eq "Q") {
+                Write-Host "已取消部署"
+                exit 0
+            }
             if (-not [string]::IsNullOrWhiteSpace($customPath)) {
                 $script:DEFAULT_DIR = $customPath
                 if ((Split-Path $script:DEFAULT_DIR -Leaf) -ne "u-plus-lite") {
@@ -209,8 +218,12 @@ function Detect-Deployment {
         } else {
             # 全新部署也提示确认路径
             Write-Host ""
-            Write-Host -NoNewline "请输入部署目录路径（直接回车使用 $script:DEFAULT_DIR）: "
+            Write-Host -NoNewline "请输入部署目录路径（直接回车使用 $script:DEFAULT_DIR，输入 q 退出）: "
             $customPath = Read-Host
+            if ($customPath -eq "q" -or $customPath -eq "Q") {
+                Write-Host "已取消部署"
+                exit 0
+            }
             if (-not [string]::IsNullOrWhiteSpace($customPath)) {
                 $script:DEFAULT_DIR = $customPath
                 if ((Split-Path $script:DEFAULT_DIR -Leaf) -ne "u-plus-lite") {
@@ -250,8 +263,13 @@ function Import-CsvData {
     Write-Host "  2 - 指定自定义路径"
     Write-Host "  3 - 跳过（稍后手动导入）"
     Write-Host ""
-    Write-Host -NoNewline "请选择 [3]: "
+    Write-Host -NoNewline "请选择 [3]（输入 q 退出）: "
     $choice = Read-Host
+
+    if ($choice -eq "q" -or $choice -eq "Q") {
+        Write-Host "已取消部署"
+        exit 0
+    }
 
     if ($choice -eq "1") {
         $pipelinesPath = Join-Path $script:PROJECT_ROOT "deploy\pipelines.csv"
@@ -281,10 +299,18 @@ function Import-CsvData {
 
     } elseif ($choice -eq "2") {
         Write-Host ""
-        Write-Host -NoNewline "管线 CSV 路径（留空跳过）: "
+        Write-Host -NoNewline "管线 CSV 路径（留空跳过，输入 q 退出）: "
         $pipelinesPath = Read-Host
-        Write-Host -NoNewline "预算项 CSV 路径（留空跳过）: "
+        if ($pipelinesPath -eq "q" -or $pipelinesPath -eq "Q") {
+            Write-Host "已取消部署"
+            exit 0
+        }
+        Write-Host -NoNewline "预算项 CSV 路径（留空跳过，输入 q 退出）: "
         $budgetPath = Read-Host
+        if ($budgetPath -eq "q" -or $budgetPath -eq "Q") {
+            Write-Host "已取消部署"
+            exit 0
+        }
 
         if (-not [string]::IsNullOrWhiteSpace($pipelinesPath) -or -not [string]::IsNullOrWhiteSpace($budgetPath)) {
             Set-Location $script:PROJECT_ROOT
@@ -347,15 +373,23 @@ function Deploy-New {
     $adminPass = ""
 
     do {
-        Write-Host -NoNewline "  管理员姓名: "
+        Write-Host -NoNewline "  管理员姓名（输入 q 退出）: "
         $adminName = Read-Host
+        if ($adminName -eq "q" -or $adminName -eq "Q") {
+            Write-Host "已取消部署"
+            exit 0
+        }
         if ([string]::IsNullOrWhiteSpace($adminName)) {
             Write-Warn "  姓名不能为空"
         }
     } while ([string]::IsNullOrWhiteSpace($adminName))
 
     do {
-        $adminPass = Read-Secret "  密码: "
+        $adminPass = Read-Secret "  密码（至少8位，输入 q 退出）: "
+        if ($adminPass -eq "q" -or $adminPass -eq "Q") {
+            Write-Host "已取消部署"
+            exit 0
+        }
         if ([string]::IsNullOrWhiteSpace($adminPass)) {
             Write-Warn "  密码不能为空"
             continue
@@ -388,15 +422,25 @@ function Deploy-New {
         Write-Host "  2 - 查找下一个可用端口"
         Write-Host "  3 - 手动输入端口"
         Write-Host ""
-        Write-Host -NoNewline "请选择 [1]: "
+        Write-Host -NoNewline "请选择 [1]（输入 q 退出）: "
         $portChoice = Read-Host
+
+        if ($portChoice -eq "q" -or $portChoice -eq "Q") {
+            Write-Host "已取消部署"
+            exit 0
+        }
 
         if ($portChoice -eq "2") {
             $script:SELECTED_PORT = Find-AvailablePort
             Write-Host "  将使用端口: $script:SELECTED_PORT"
         } elseif ($portChoice -eq "3") {
-            Write-Host -NoNewline "请输入端口号: "
-            $script:SELECTED_PORT = [int](Read-Host)
+            Write-Host -NoNewline "请输入端口号（输入 q 退出）: "
+            $portInput = Read-Host
+            if ($portInput -eq "q" -or $portInput -eq "Q") {
+                Write-Host "已取消部署"
+                exit 0
+            }
+            $script:SELECTED_PORT = [int]$portInput
         } else {
             # 默认选项 1: 结束占用端口 3000 的进程
             Get-NetTCPConnection -LocalPort 3000 | Stop-Process -Force
@@ -474,8 +518,12 @@ function Deploy-New {
     Write-Host ""
     Write-Step "配置 PM2 自动启动"
     Write-Host ""
-    Write-Host -NoNewline "  是否设置开机自动启动？[Y/n]: "
+    Write-Host -NoNewline "  是否设置开机自动启动？[Y/n]（输入 q 退出）: "
     $autostart = Read-Host
+    if ($autostart -eq "q" -or $autostart -eq "Q") {
+        Write-Host "已取消部署"
+        exit 0
+    }
     if ($autostart -ne "n" -and $autostart -ne "N") {
         pm2 startup
         pm2 save
@@ -524,9 +572,14 @@ function Deploy-Update {
     Write-Host "  2 - 卸载（删除所有数据）"
     Write-Host "  3 - 重新安装（保留数据库）"
     Write-Host ""
-    Write-Host -NoNewline "请选择 [1]: "
+    Write-Host -NoNewline "请选择 [1]（输入 q 退出）: "
     $choice = Read-Host
     if ([string]::IsNullOrWhiteSpace($choice)) { $choice = "1" }
+
+    if ($choice -eq "q" -or $choice -eq "Q") {
+        Write-Host "已取消部署"
+        exit 0
+    }
 
     if ($choice -eq "1") {
         # 更新模式
