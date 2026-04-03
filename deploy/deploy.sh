@@ -282,21 +282,38 @@ detect_deployment() {
         echo "  1 - 全新部署（克隆最新代码）"
         echo "  2 - 指定已有目录（需为 Git 仓库）"
         echo ""
-        echo -n "请选择 [1]: "
+        echo -n "请选择 [1]（输入 q 退出）: "
         read -r choice
         choice=${choice:-1}
+
+        if [ "$choice" = "q" ] || [ "$choice" = "Q" ]; then
+            echo "已取消部署"
+            exit 0
+        fi
 
         if [ "$choice" = "1" ]; then
             DEPLOY_MODE="new"
             echo ""
-            echo -n "请输入部署目录路径（直接回车使用 ${DEFAULT_DIR}）: "
+            echo -n "请输入部署目录路径（直接回车使用 ${DEFAULT_DIR}，输入 q 退出）: "
             read -r custom_path
+
+            if [ "$custom_path" = "q" ] || [ "$custom_path" = "Q" ]; then
+                echo "已取消部署"
+                exit 0
+            fi
+
             custom_path=${custom_path:-$DEFAULT_DIR}
             custom_path=$(eval echo "$custom_path")
             DEPLOY_DIR="$custom_path"
         else
-            echo -n "请输入已有项目路径: "
+            echo -n "请输入已有项目路径（输入 q 退出）: "
             read -r custom_path
+
+            if [ "$custom_path" = "q" ] || [ "$custom_path" = "Q" ]; then
+                echo "已取消部署"
+                exit 0
+            fi
+
             custom_path=$(eval echo "$custom_path")
 
             if [ ! -d "$custom_path/.git" ]; then
@@ -523,9 +540,14 @@ import_csv_data() {
     echo "  2 - 直接粘贴 CSV 内容"
     echo "  3 - 跳过（稍后通过 Web 端手动添加）"
     echo ""
-    echo -n "请选择 [3]: "
+    echo -n "请选择 [3]（输入 q 退出）: "
     read -r choice
     choice=${choice:-3}
+
+    if [ "$choice" = "q" ] || [ "$choice" = "Q" ]; then
+        echo "已取消部署"
+        exit 0
+    fi
 
     if [ "$choice" = "1" ]; then
         echo ""
@@ -534,8 +556,13 @@ import_csv_data() {
         echo "    UGC研发"
         echo "    UGC运营"
         echo ""
-        echo -n "文件路径（直接回车跳过）: "
+        echo -n "文件路径（直接回车跳过，输入 q 退出）: "
         read -r pipelines_path
+
+        if [ "$pipelines_path" = "q" ] || [ "$pipelines_path" = "Q" ]; then
+            echo "已取消部署"
+            exit 0
+        fi
 
         echo ""
         echo "请输入预算项文件路径（CSV格式）: "
@@ -543,8 +570,13 @@ import_csv_data() {
         echo "    UGC研发,UGC商业化功能"
         echo "    UGC运营,乐园会员体系"
         echo ""
-        echo -n "文件路径（直接回车跳过）: "
+        echo -n "文件路径（直接回车跳过，输入 q 退出）: "
         read -r budget_path
+
+        if [ "$budget_path" = "q" ] || [ "$budget_path" = "Q" ]; then
+            echo "已取消部署"
+            exit 0
+        fi
 
         local cmd_args=""
         if [ -n "$pipelines_path" ]; then
@@ -651,36 +683,68 @@ deploy_new() {
     local admin_password=""
     local admin_password_confirm=""
 
-    read -p "  管理员姓名: " admin_name
+    read -p "  管理员姓名（输入 q 退出）: " admin_name
+    if [ "$admin_name" = "q" ] || [ "$admin_name" = "Q" ]; then
+        echo "已取消部署"
+        exit 0
+    fi
     while [ -z "$admin_name" ]; do
         echo "  错误：管理员姓名不能为空"
-        read -p "  管理员姓名: " admin_name
+        read -p "  管理员姓名（输入 q 退出）: " admin_name
+        if [ "$admin_name" = "q" ] || [ "$admin_name" = "Q" ]; then
+            echo "已取消部署"
+            exit 0
+        fi
     done
 
-    read_secret "  密码（至少8位）: " admin_password
+    read_secret "  密码（至少8位，输入 q 退出）: " admin_password
+    if [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ]; then
+        echo "已取消部署"
+        exit 0
+    fi
     while [ -z "$admin_password" ]; do
         echo "  错误：密码不能为空"
-        read_secret "  密码（至少8位）: " admin_password
+        read_secret "  密码（至少8位，输入 q 退出）: " admin_password
+        if [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ]; then
+            echo "已取消部署"
+            exit 0
+        fi
     done
 
     while [ ${#admin_password} -lt 8 ]; do
         echo "  错误：密码至少8位"
-        read_secret "  密码（至少8位）: " admin_password
+        read_secret "  密码（至少8位，输入 q 退出）: " admin_password
+        if [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ]; then
+            echo "已取消部署"
+            exit 0
+        fi
     done
 
     read_secret "  确认密码: " admin_password_confirm
     while [ "$admin_password" != "$admin_password_confirm" ]; do
         echo "  错误：两次输入的密码不一致"
-        read_secret "  密码（至少8位）: " admin_password
+        read_secret "  密码（至少8位，输入 q 退出）: " admin_password
+        if [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ]; then
+            echo "已取消部署"
+            exit 0
+        fi
         while [ ${#admin_password} -lt 8 ]; do
             echo "  错误：密码至少8位"
-            read_secret "  密码（至少8位）: " admin_password
+            read_secret "  密码（至少8位，输入 q 退出）: " admin_password
+            if [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ]; then
+                echo "已取消部署"
+                exit 0
+            fi
         done
         read_secret "  确认密码: " admin_password_confirm
     done
     while [ ${#admin_password} -lt 8 ]; do
         echo "  错误：密码至少8位"
-        read_secret "  密码（至少8位）: " admin_password
+        read_secret "  密码（至少8位，输入 q 退出）: " admin_password
+        if [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ]; then
+            echo "已取消部署"
+            exit 0
+        fi
     done
 
     npx tsx "$PROJECT_ROOT/prisma/seed.ts" "$admin_name" "$admin_password"
@@ -700,9 +764,14 @@ deploy_new() {
         echo "  1 - 帮我释放 3000 端口"
         echo "  2 - 查找下一个可用端口（注意：可能影响正在使用的用户）"
         echo ""
-        echo -n "请选择 [1]: "
+        echo -n "请选择 [1]（输入 q 退出）: "
         read -r port_choice
         port_choice=${port_choice:-1}
+
+        if [ "$port_choice" = "q" ] || [ "$port_choice" = "Q" ]; then
+            echo "已取消部署"
+            exit 0
+        fi
 
         if [ "$port_choice" = "1" ]; then
             lsof -ti:3000 | xargs kill
@@ -755,9 +824,15 @@ EOF
 
     # 自启配置
     echo ""
-    echo "是否配置开机自启？[Y/n]: "
+    echo "是否配置开机自启？[Y/n]（输入 q 退出）: "
     read -r enable_autostart
     enable_autostart=${enable_autostart:-Y}
+
+    if [ "$enable_autostart" = "q" ] || [ "$enable_autostart" = "Q" ]; then
+        echo "已取消部署"
+        exit 0
+    fi
+
     if [ "$(echo "$enable_autostart" | tr '[:upper:]' '[:lower:]')" = "y" ]; then
         echo "（可能需要输入本机管理员密码）"
         env PATH="$PATH:/usr/local/bin" pm2 startup 2>/dev/null || true
@@ -795,9 +870,14 @@ deploy_update() {
     echo "  2 - 卸载"
     echo "  3 - 重新安装"
     echo ""
-    echo -n "请选择 [1]: "
+    echo -n "请选择 [1]（输入 q 退出）: "
     read -r update_choice
     update_choice=${update_choice:-1}
+
+    if [ "$update_choice" = "q" ] || [ "$update_choice" = "Q" ]; then
+        echo "已取消部署"
+        exit 0
+    fi
 
     if [ "$update_choice" = "1" ]; then
         do_update
