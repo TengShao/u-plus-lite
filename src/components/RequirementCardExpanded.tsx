@@ -373,7 +373,7 @@ export default function RequirementCardExpanded({
         console.log('[Refresh] conflicted fields:', Array.from(newConflicted))
         onRefresh()
         setHas409Conflict(false)
-        showTips('positive', newConflicted.size > 0 ? '橙色字段已被其他人修改，其他字段保留了你的编辑。' : '数据已刷新。')
+        showTips('positive', newConflicted.size > 0 ? '橙色字段已被其他人修改，其他字段保留了你的编辑' : '数据已刷新')
       } else {
         showTips('negative', '刷新失败，请重试')
       }
