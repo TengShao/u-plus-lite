@@ -24,25 +24,68 @@ export interface ParseResult {
   groups: ParsedGroup[]
 }
 
-// Ollama API (local)
+export type LLMProvider = 'ollama' | 'minimax'
+
+function getProvider(): LLMProvider {
+  return (process.env.NEXT_PUBLIC_LLM_PROVIDER as LLMProvider) || 'ollama'
+}
+
+function getOllamaModel(): string {
+  return process.env.NEXT_PUBLIC_OLLAMA_MODEL || 'qwen3:4b'
+}
+
 async function callLLM(content: string, systemPrompt: string): Promise<string> {
+  const provider = getProvider()
+
+  if (provider === 'minimax') {
+    const apiKey = process.env.MINIMAX_API_KEY
+    if (!apiKey) throw new Error('MINIMAX_API_KEY not set')
+
+    const res = await fetch('https://api.minimax.chat/v1/text/chatcompletion_v2', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'MiniMax-M2.7-highspeed',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content },
+        ],
+        temperature: 0.3,
+        reasoning_effort: 'none',
+      }),
+    })
+
+    if (!res.ok) {
+      const err = await res.text()
+      throw new Error(`MiniMax API error: ${res.status} ${err}`)
+    }
+
+    const data = await res.json()
+    return data.choices?.[0]?.message?.content ?? ''
+  }
+
+  // Default: Ollama
+  const model = getOllamaModel()
   const res = await fetch('http://localhost:11434/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'qwen3:4b',
+      model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content },
       ],
       stream: false,
-      reasoning_effort: 'none',  // disable thinking to avoid polluting JSON output
+      reasoning_effort: 'none',
     }),
   })
 
   if (!res.ok) {
     const err = await res.text()
-    throw new Error(`LLM API error: ${res.status} ${err}`)
+    throw new Error(`Ollama API error: ${res.status} ${err}`)
   }
 
   const data = await res.json()

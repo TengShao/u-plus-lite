@@ -7,7 +7,7 @@ type User = { id: number; name: string; role: string; level: string | null }
 type BudgetItem = { id: number; name: string }
 type Pipeline = { id: number; name: string; budgetItems: BudgetItem[] }
 
-type Tab = 'members' | 'pipelines' | 'budget'
+type Tab = 'members' | 'pipelines' | 'budget' | 'llm'
 
 type EditingMember = { id: number; name: string; level: string; role: string }
 type EditingBudgetItem = { id: number; pipelineId: number; name: string }
@@ -31,6 +31,13 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
   const [budgetItemSearch, setBudgetItemSearch] = useState('')
   const [expandedPipelines, setExpandedPipelines] = useState<Record<number, boolean>>({})
 
+  // LLM settings state
+  const [llmProvider, setLlmProvider] = useState<'ollama' | 'minimax'>('ollama')
+  const [llmOllamaModel, setLlmOllamaModel] = useState('qwen3:4b')
+  const [llmMinimaxKey, setLlmMinimaxKey] = useState('')
+  const [llmSaving, setLlmSaving] = useState(false)
+  const [llmMsg, setLlmMsg] = useState<string | null>(null)
+
   const [isAddingPipeline, setIsAddingPipeline] = useState(false)
   const [newPipelineName, setNewPipelineName] = useState('')
   const [newItemPipelineId, setNewItemPipelineId] = useState<number | null>(null)
@@ -38,6 +45,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
   useEffect(() => {
     fetchUsers()
     fetchSettings()
+    fetchLLMSettings()
   }, [])
 
   async function fetchUsers() {
@@ -46,6 +54,42 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
 
   async function fetchSettings() {
     fetch('/api/settings').then((r) => r.json()).then(setPipelines)
+  }
+
+  async function fetchLLMSettings() {
+    const r = await fetch('/api/settings/llm')
+    if (r.ok) {
+      const data = await r.json()
+      setLlmProvider(data.provider as 'ollama' | 'minimax')
+      setLlmOllamaModel(data.ollamaModel)
+    }
+  }
+
+  async function saveLLMSettings() {
+    setLlmSaving(true)
+    setLlmMsg(null)
+    try {
+      const res = await fetch('/api/settings/llm', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: llmProvider,
+          ollamaModel: llmOllamaModel,
+          minimaxKey: llmMinimaxKey || undefined,
+        }),
+      })
+      if (res.ok) {
+        setLlmMsg('保存成功')
+        setLlmMinimaxKey('')
+      } else {
+        const err = await res.json()
+        setLlmMsg(err.error || '保存失败')
+      }
+    } catch {
+      setLlmMsg('保存失败')
+    } finally {
+      setLlmSaving(false)
+    }
   }
 
   async function updateUser(userId: number, data: { name?: string; role?: string; level?: string }) {
@@ -321,13 +365,90 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
             >
               预算项管理
             </button>
+            <button
+              onClick={() => setActiveTab('llm')}
+              className={`text-lg font-bold ${activeTab === 'llm' ? 'text-black' : 'text-gray-400'}`}
+            >
+              LLM
+            </button>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
         </div>
 
         {/* Content */}
         <div className="max-h-[60vh] overflow-auto p-6">
-          {activeTab === 'members' ? (
+          {activeTab === 'llm' ? (
+            <>
+              <div className="flex flex-col gap-6">
+                {/* Provider */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">供应商</label>
+                  <div className="flex gap-3">
+                    {(['ollama', 'minimax'] as const).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setLlmProvider(p)}
+                        className={`px-4 py-2 rounded border text-sm font-medium transition-colors ${
+                          llmProvider === p
+                            ? 'bg-black text-white border-black'
+                            : 'bg-white text-gray-600 border-gray-300 hover:border-black'
+                        }`}
+                      >
+                        {p === 'ollama' ? 'Ollama (本地)' : 'MiniMax (云端)'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Ollama fields */}
+                {llmProvider === 'ollama' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">模型名称</label>
+                    <input
+                      type="text"
+                      value={llmOllamaModel}
+                      onChange={(e) => setLlmOllamaModel(e.target.value)}
+                      className="w-64 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-black"
+                      placeholder="qwen3:4b"
+                    />
+                    <p className="mt-1 text-xs text-gray-400">例如：qwen3:4b、llama3 等，需已在 Ollama 中下载</p>
+                  </div>
+                )}
+
+                {/* MiniMax fields */}
+                {llmProvider === 'minimax' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">API Key</label>
+                    <input
+                      type="password"
+                      value={llmMinimaxKey}
+                      onChange={(e) => setLlmMinimaxKey(e.target.value)}
+                      className="w-80 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-black font-mono"
+                      placeholder="sk-cp-..."
+                      autoComplete="off"
+                    />
+                    <p className="mt-1 text-xs text-gray-400">不填则使用 .env.local 中的默认 Key</p>
+                  </div>
+                )}
+
+                {/* Save button */}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={saveLLMSettings}
+                    disabled={llmSaving}
+                    className="px-5 py-2 bg-black text-white rounded text-sm hover:bg-gray-800 disabled:bg-gray-400"
+                  >
+                    {llmSaving ? '保存中...' : '保存'}
+                  </button>
+                  {llmMsg && (
+                    <span className={`text-sm ${llmMsg.includes('成功') ? 'text-green-600' : 'text-red-500'}`}>
+                      {llmMsg}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : activeTab === 'members' ? (
             <>
               {/* Add member button */}
               <div className="mb-4 flex justify-end">
