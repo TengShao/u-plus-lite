@@ -1,6 +1,6 @@
 'use client'
 import { useSession } from 'next-auth/react'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import AuthModal from '@/components/AuthModal'
 import Header from '@/components/Header'
 import CycleSidebar from '@/components/CycleSidebar'
@@ -13,10 +13,27 @@ export default function Home() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [isClient, setIsClient] = useState(false)
   const [hasDraft, setHasDraft] = useState(false)
+  const previousUserIdRef = useRef<string | undefined>(undefined)
 
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  // Clear all draft sessionStorage when user changes (login/logout/switch)
+  useEffect(() => {
+    if (status !== 'authenticated') return
+    const currentUserId = session?.user?.id
+    const previousUserId = previousUserIdRef.current
+    if (previousUserId !== undefined && previousUserId !== currentUserId) {
+      // User changed — clear all draft sessionStorage
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.startsWith('draft_')) {
+          sessionStorage.removeItem(key)
+        }
+      })
+    }
+    previousUserIdRef.current = currentUserId
+  }, [session?.user?.id, status])
 
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin')
 

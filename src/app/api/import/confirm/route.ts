@@ -21,7 +21,14 @@ export async function POST(req: Request) {
   const session = await getSession()
   if (!session) return unauthorized()
 
-  const { cycleId, decisions } = await req.json()
+  let body: { cycleId?: number; decisions?: Decision[] }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const { cycleId, decisions } = body
 
   if (!cycleId || !decisions?.length) {
     return NextResponse.json({ error: 'cycleId and decisions are required' }, { status: 400 })
@@ -29,54 +36,60 @@ export async function POST(req: Request) {
 
   const results: { groupId: number; importedCount: number }[] = []
 
-  for (const decision of decisions) {
-    const typedDecision = decision as Decision
-
-    if (typedDecision.action === 'MERGE' && typedDecision.targetGroupId) {
-      // 追加 Workload 到已有需求组
-      for (const item of typedDecision.items) {
-        const user = await prisma.user.findFirst({
-          where: { name: { in: item.designers } },
-        })
-        if (user) {
-          await prisma.workload.create({
-            data: {
-              userId: user.id,
-              requirementGroupId: typedDecision.targetGroupId,
-              billingCycleId: parseInt(String(cycleId)),
-              manDays: item.manDays,
-            },
-          })
+  try {
+    for (const decision of decisions) {
+      if (decision.action === 'MERGE' && decision.targetGroupId) {
+        // 按设计师去重合并：同组同设计师的多条人天累加为一条 Workload
+        const byDesigner = new Map<number, number>()
+        for (const item of decision.items) {
+          for (const designer of item.designers) {
+            const user = await prisma.user.findFirst({ where: { name: designer } })
+            if (user) {
+              byDesigner.set(user.id, (byDesigner.get(user.id) ?? 0) + item.manDays)
+            }
+          }
         }
-      }
-      results.push({ groupId: typedDecision.targetGroupId, importedCount: typedDecision.items.length })
-    } else if (typedDecision.action === 'CREATE') {
-      // 创建新需求组 + Workload
-      const newGroup = await prisma.requirementGroup.create({
-        data: {
-          name: typedDecision.name,
-          createdInCycleId: parseInt(String(cycleId)),
-          createdBy: parseInt(session.user.id),
-        },
-      })
-      for (const item of typedDecision.items) {
-        const user = await prisma.user.findFirst({
-          where: { name: { in: item.designers } },
-        })
-        if (user) {
-          await prisma.workload.create({
-            data: {
-              userId: user.id,
-              requirementGroupId: newGroup.id,
-              billingCycleId: parseInt(String(cycleId)),
-              manDays: item.manDays,
-            },
-          })
+        for (const [userId, manDays] of Array.from(byDesigner.entries())) {
+          try {
+            await prisma.workload.create({
+              data: { userId, requirementGroupId: decision.targetGroupId, billingCycleId: cycleId, manDays },
+            })
+          } catch (err: any) {
+            if (err?.code !== 'P2002') throw err
+          }
         }
+        results.push({ groupId: decision.targetGroupId, importedCount: byDesigner.size })
+      } else if (decision.action === 'CREATE') {
+        const newGroup = await prisma.requirementGroup.create({
+          data: {
+            name: decision.name,
+            createdInCycleId: cycleId,
+            createdBy: parseInt(session.user.id),
+          },
+        })
+        const byDesigner = new Map<number, number>()
+        for (const item of decision.items) {
+          for (const designer of item.designers) {
+            const user = await prisma.user.findFirst({ where: { name: designer } })
+            if (user) {
+              byDesigner.set(user.id, (byDesigner.get(user.id) ?? 0) + item.manDays)
+            }
+          }
+        }
+        for (const [userId, manDays] of Array.from(byDesigner.entries())) {
+          try {
+            await prisma.workload.create({
+              data: { userId, requirementGroupId: newGroup.id, billingCycleId: cycleId, manDays },
+            })
+          } catch (err: any) {
+            if (err?.code !== 'P2002') throw err
+          }
+        }
+        results.push({ groupId: newGroup.id, importedCount: byDesigner.size })
       }
-      results.push({ groupId: newGroup.id, importedCount: typedDecision.items.length })
     }
+    return NextResponse.json({ results })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 })
   }
-
-  return NextResponse.json({ results })
 }

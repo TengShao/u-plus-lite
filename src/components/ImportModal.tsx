@@ -80,6 +80,11 @@ export default function ImportModal({ cycleId, onClose, onImportComplete }: Prop
   // 删除整组
   function handleDeleteGroup(groupIdx: number) {
     setGroups(prev => prev.filter((_, i) => i !== groupIdx))
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.delete(groupIdx)
+      return next
+    })
   }
 
   // 编辑组名
@@ -95,6 +100,15 @@ export default function ImportModal({ cycleId, onClose, onImportComplete }: Prop
       return next
     })
     setEditingGroupName(null)
+  }
+
+  // 全选 / 取消全选
+  function handleToggleSelectAll() {
+    if (selectedIds.size === groups.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(groups.map((_, i) => i)))
+    }
   }
 
   // 多选切换
@@ -126,6 +140,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete }: Prop
 
   // 确认导入
   async function handleConfirm() {
+    if (groups.length === 0) return
     const decisions = groups.map(g => ({
       name: g.name,
       action: g.action === 'MATCH' ? 'MERGE' : 'CREATE',
@@ -146,10 +161,12 @@ export default function ImportModal({ cycleId, onClose, onImportComplete }: Prop
       onClose()
     } catch (err: any) {
       setError(err.message)
-    } finally {
       setIsLoading(false)
     }
   }
+
+  const allSelected = groups.length > 0 && selectedIds.size === groups.length
+  const someSelected = selectedIds.size > 0 && selectedIds.size < groups.length
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 font-alibaba" onClick={onClose}>
@@ -186,60 +203,77 @@ export default function ImportModal({ cycleId, onClose, onImportComplete }: Prop
               {error && <div className="text-[14px] text-red-500">{error}</div>}
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
               {groups.length === 0 ? (
                 <div className="text-center py-8 text-[#C3C3C3]">未解析出任何需求组</div>
               ) : (
-                groups.map((group, gi) => (
-                  <div key={gi} className="rounded-[12px] border border-[#EEEEEE] bg-white p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(gi)}
-                        onChange={() => handleToggleSelect(gi)}
-                        className="w-4 h-4"
-                      />
-                      {editingGroupName === gi ? (
-                        <input
-                          className="flex-1 h-8 px-2 rounded border border-[#8ECA2E] text-[14px] text-black outline-none"
-                          value={editedName}
-                          onChange={e => setEditedName(e.target.value)}
-                          onBlur={() => handleSaveEditName(gi)}
-                          onKeyDown={e => e.key === 'Enter' && handleSaveEditName(gi)}
-                          autoFocus
-                        />
-                      ) : (
-                        <span
-                          className="flex-1 text-[16px] font-bold text-black cursor-pointer hover:text-[#8ECA2E]"
-                          onClick={() => handleStartEditName(gi, group.name)}
-                        >
-                          {group.name}
-                        </span>
-                      )}
-                      <span className={`text-[12px] px-2 py-0.5 rounded-full ${group.action === 'MATCH' ? 'bg-[rgba(142,202,46,0.15)] text-[#8ECA2E]' : 'bg-[rgba(0,0,0,0.05)] text-[#999]'}`}>
-                        {group.action === 'MATCH' ? `已有「${group.matchedGroup?.name}」` : '新建'}
-                      </span>
-                      <button onClick={() => handleDeleteGroup(gi)} className="text-[#E96631] text-[14px] hover:underline">删除</button>
-                    </div>
-                    <div className="flex flex-col gap-1 pl-7">
-                      {group.items.map((item, ii) => (
-                        <div key={ii} className="flex items-center justify-between text-[13px]">
-                          <span className="text-[#666]">{item.originalText}</span>
-                          <span className="text-black font-bold">{item.manDays} 人天</span>
-                          <button onClick={() => handleDeleteItem(gi, ii)} className="text-[#E96631] hover:underline">×</button>
-                        </div>
-                      ))}
-                    </div>
+                <>
+                  {/* 全选操作栏 */}
+                  <div className="flex items-center gap-3 px-1">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={(el) => { if (el) el.indeterminate = someSelected }}
+                      onChange={handleToggleSelectAll}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-[13px] text-[#666]">
+                      {selectedIds.size > 0 ? `已选 ${selectedIds.size} 项` : '全选'}
+                    </span>
+                    {selectedIds.size >= 2 && (
+                      <button
+                        onClick={handleMergeSelected}
+                        className="ml-auto px-3 py-1 rounded-[6px] border border-[#8ECA2E] text-[13px] text-[#8ECA2E] hover:bg-[rgba(142,202,46,0.1)]"
+                      >
+                        合并选中的 {selectedIds.size} 个组
+                      </button>
+                    )}
                   </div>
-                ))
-              )}
-              {selectedIds.size >= 2 && (
-                <button
-                  onClick={handleMergeSelected}
-                  className="self-center px-4 py-2 rounded-[8px] border border-[#8ECA2E] text-[14px] text-[#8ECA2E] hover:bg-[rgba(142,202,46,0.1)]"
-                >
-                  合并选中的 {selectedIds.size} 个组
-                </button>
+
+                  {/* 分组卡片列表 */}
+                  {groups.map((group, gi) => (
+                    <div key={gi} className="rounded-[12px] border border-[#EEEEEE] bg-white p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(gi)}
+                          onChange={() => handleToggleSelect(gi)}
+                          className="w-4 h-4"
+                        />
+                        {editingGroupName === gi ? (
+                          <input
+                            className="flex-1 h-8 px-2 rounded border border-[#8ECA2E] text-[14px] text-black outline-none"
+                            value={editedName}
+                            onChange={e => setEditedName(e.target.value)}
+                            onBlur={() => handleSaveEditName(gi)}
+                            onKeyDown={e => e.key === 'Enter' && handleSaveEditName(gi)}
+                            autoFocus
+                          />
+                        ) : (
+                          <span
+                            className="flex-1 text-[16px] font-bold text-black cursor-pointer hover:text-[#8ECA2E]"
+                            onClick={() => handleStartEditName(gi, group.name)}
+                          >
+                            {group.name}
+                          </span>
+                        )}
+                        <span className={`text-[12px] px-2 py-0.5 rounded-full ${group.action === 'MATCH' ? 'bg-[rgba(142,202,46,0.15)] text-[#8ECA2E]' : 'bg-[rgba(0,0,0,0.05)] text-[#999]'}`}>
+                          {group.action === 'MATCH' ? `已有「${group.matchedGroup?.name}」` : '新建'}
+                        </span>
+                        <button onClick={() => handleDeleteGroup(gi)} className="text-[#E96631] text-[14px] hover:underline">删除</button>
+                      </div>
+                      <div className="flex flex-col gap-1 pl-7">
+                        {group.items.map((item, ii) => (
+                          <div key={ii} className="flex items-center justify-between text-[13px]">
+                            <span className="text-[#666]">{item.originalText}</span>
+                            <span className="text-black font-bold">{item.manDays} 人天</span>
+                            <button onClick={() => handleDeleteItem(gi, ii)} className="text-[#E96631] hover:underline">×</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </>
               )}
               {error && <div className="text-[14px] text-red-500">{error}</div>}
             </div>
@@ -249,7 +283,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete }: Prop
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-black/10">
           <button
-            onClick={step === 'input' ? onClose : () => setStep('input')}
+            onClick={step === 'input' ? onClose : () => { setStep('input'); setGroups([]); setError(null) }}
             className="h-10 w-28 rounded-[8px] bg-[#F2F2F2] text-[16px] font-bold text-black"
           >
             {step === 'input' ? '取消' : '上一步'}
@@ -266,7 +300,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete }: Prop
             <button
               onClick={handleConfirm}
               disabled={groups.length === 0 || isLoading}
-              className="h-10 w-28 rounded-[8px] bg-[#8ECA2E] text-[16px] font-bold text-white disabled:bg-[#B6B6B6]"
+              className="h-10 w-32 rounded-[8px] bg-[#8ECA2E] text-[16px] font-bold text-white disabled:bg-[#B6B6B6]"
             >
               {isLoading ? '导入中...' : '确认导入'}
             </button>

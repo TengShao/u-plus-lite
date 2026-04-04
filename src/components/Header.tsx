@@ -332,6 +332,12 @@ export default function Header({
   }
 
   async function handleSignOut() {
+    // Clear all draft sessionStorage before signing out
+    Object.keys(sessionStorage).forEach((key) => {
+      if (key.startsWith('draft_')) {
+        sessionStorage.removeItem(key)
+      }
+    })
     await signOut({ redirect: false })
     window.location.href = '/'
   }

@@ -9,7 +9,14 @@ export async function POST(req: Request) {
   const session = await getSession()
   if (!session) return unauthorized()
 
-  const { content, cycleId } = await req.json()
+  let body: { content?: string; cycleId?: number }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const { content, cycleId } = body
 
   if (!content?.trim() || !cycleId) {
     return NextResponse.json({ error: 'content and cycleId are required' }, { status: 400 })
