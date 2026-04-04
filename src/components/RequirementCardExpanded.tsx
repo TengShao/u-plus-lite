@@ -93,6 +93,8 @@ export default function RequirementCardExpanded({
   const [manDays, setManDays] = useState(myWorkload?.manDays ?? 0)
   const [conflictedFields, setConflictedFields] = useState<Set<string>>(new Set())
   const [has409Conflict, setHas409Conflict] = useState(false)
+  // Use ref for version to avoid stale closure issue in handleRefreshConflictAndRetry
+  const versionRef = useRef(data.version)
 
   // Store original server values at mount time for conflict detection
   const originalDataRef = useRef(data)
@@ -127,6 +129,7 @@ export default function RequirementCardExpanded({
           }
           // Update originalDataRef so future conflict detection is accurate
           originalDataRef.current = fresh
+          versionRef.current = fresh.version
           // Notify parent to refresh its data too
           onRefresh()
         }
@@ -245,15 +248,16 @@ export default function RequirementCardExpanded({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: name.trim(), rating, module, pipeline, types, budgetItem,
-        canClose, funcPoints, pageCount, version: data.version, cycleId,
+        canClose, funcPoints, pageCount, version: versionRef.current, cycleId,
       }),
     })
 
     if (!res.ok) {
       if (res.status === 409) {
-        const err = await res.json().catch(() => ({ error: '数据已被其他人修改，请刷新后重试' }))
-        showTips('negative', err.error || '数据已被其他人修改，请刷新后重试')
-        setHas409Conflict(true)
+        const err = await res.json().catch(() => ({ error: '数据已被其他人修改' }))
+        showTips('negative', err.error || '数据已被其他人修改')
+        await handleRefreshConflictAndRetry()
+        return
       }
       return
     }
@@ -379,6 +383,94 @@ export default function RequirementCardExpanded({
       }
     } catch (err) {
       console.error('[Refresh] error:', err)
+      showTips('negative', '刷新失败')
+    }
+  }
+
+  async function handleRefreshConflictAndRetry() {
+    try {
+      const res = await fetch(`/api/requirements/${data.id}?cycleId=${cycleId}`)
+      if (!res.ok) {
+        showTips('negative', '刷新失败，请重试')
+        return
+      }
+      const fresh = await res.json()
+      const newConflicted = new Set<string>()
+      const original = originalDataRef.current
+
+      if (name !== original.name) {
+        if (fresh.name !== original.name) newConflicted.add('name')
+      } else {
+        setName(fresh.name || '')
+      }
+
+      if (rating !== (original.rating || '')) {
+        if ((fresh.rating || '') !== (original.rating || '')) newConflicted.add('rating')
+      } else {
+        setRating(fresh.rating || '')
+      }
+
+      if (module !== (original.module || '')) {
+        if ((fresh.module || '') !== (original.module || '')) newConflicted.add('module')
+      } else {
+        setModule(fresh.module || '')
+      }
+
+      if (pipeline !== (original.pipeline || defaultPipeline || '')) {
+        if ((fresh.pipeline || defaultPipeline || '') !== (original.pipeline || defaultPipeline || '')) newConflicted.add('pipeline')
+      } else {
+        setPipeline(fresh.pipeline || defaultPipeline || '')
+      }
+
+      const freshTypes = Array.isArray(fresh.types) ? fresh.types : []
+      if (JSON.stringify(types) !== JSON.stringify(original.types || [])) {
+        if (JSON.stringify(freshTypes) !== JSON.stringify(original.types || [])) newConflicted.add('types')
+      } else {
+        setTypes(freshTypes)
+      }
+
+      if (budgetItem !== (original.budgetItem || '')) {
+        if ((fresh.budgetItem || '') !== (original.budgetItem || '')) newConflicted.add('budgetItem')
+      } else {
+        setBudgetItem(fresh.budgetItem || '')
+      }
+
+      if (funcPoints !== (original.funcPoints ?? 0)) {
+        if ((fresh.funcPoints ?? 0) !== (original.funcPoints ?? 0)) newConflicted.add('funcPoints')
+      } else {
+        setFuncPoints(fresh.funcPoints ?? 0)
+      }
+
+      if (pageCount !== (original.pageCount ?? 0)) {
+        if ((fresh.pageCount ?? 0) !== (original.pageCount ?? 0)) newConflicted.add('pageCount')
+      } else {
+        setPageCount(fresh.pageCount ?? 0)
+      }
+
+      const freshWorkload = fresh.cycleWorkloads?.find((w: any) => w.userId === userId)
+      const serverManDays = freshWorkload?.manDays ?? 0
+      const originalManDays = original.cycleWorkloads?.find((w: any) => w.userId === userId)?.manDays ?? 0
+      if (manDays !== originalManDays) {
+        if (serverManDays !== originalManDays) newConflicted.add('manDays')
+      } else {
+        setManDays(serverManDays)
+      }
+
+      versionRef.current = fresh.version
+      originalDataRef.current = fresh
+      setConflictedFields(newConflicted)
+      onRefresh()
+
+      if (newConflicted.size > 0) {
+        showTips('positive', '橙色字段已被其他人修改，其他字段保留了你的编辑。')
+        setHas409Conflict(false)
+      } else {
+        showTips('positive', '数据已刷新，正在提交...')
+        setHas409Conflict(false)
+        await handleSubmit()
+      }
+    } catch (err) {
+      console.error('[RefreshAndRetry] error:', err)
       showTips('negative', '刷新失败')
     }
   }
