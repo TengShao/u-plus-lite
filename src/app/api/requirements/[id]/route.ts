@@ -22,6 +22,11 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   })
   if (!rg) return NextResponse.json({ error: '需求组不存在' }, { status: 404 })
 
+  // Manual join for lastSubmitter to avoid Prisma relation issues
+  const lastSubmitterName = rg.lastSubmittedBy
+    ? (await prisma.user.findUnique({ where: { id: rg.lastSubmittedBy }, select: { name: true } }))?.name ?? null
+    : null
+
   const cycleWorkloads = rg.workloads
     .filter((w) => w.billingCycleId === cycleId)
     .map((w) => ({
@@ -37,12 +42,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     ...rg,
     types: rg.types ? JSON.parse(rg.types) : [],
     cycleWorkloads,
+    lastSubmitterName,
   })
 }
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const session = await getSession()
   if (!session) return unauthorized()
+  console.log('[PATCH] session.user:', JSON.stringify(session.user))
 
   const id = parseInt(params.id)
   const data = await req.json()
@@ -81,6 +88,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       pageCount: data.pageCount,
       version: { increment: 1 },
       lastSubmittedAt: new Date(),
+      lastSubmittedBy: parseInt(session.user.id),
     },
   })
   // Upsert cycle-specific pipeline memory

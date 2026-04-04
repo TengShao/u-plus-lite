@@ -21,6 +21,7 @@ export type RequirementData = {
   pipeline: string | null; types: string[]; budgetItem: string | null; canClose: boolean
   isBuilt: boolean; funcPoints: number | null; pageCount: number | null; version: number
   createdInCycleId: number; createdBy: number; lastSubmittedAt: string | null
+  lastSubmitterName?: string
   totalManDays: number; totalConvertedManDays: number; participantCount: number
   inputRatio: number; healthStatus: string | null; recommendedRating: string
   funcPointsRecommended: number; cycleWorkloads: WorkloadEntry[]

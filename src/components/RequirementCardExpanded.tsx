@@ -649,6 +649,7 @@ export default function RequirementCardExpanded({
             variant="submit"
             disabled={(!userEditable && !isComplete) || (!has409Conflict && !isDirty)}
             lastSubmittedAt={data.lastSubmittedAt}
+            lastSubmitterName={data.lastSubmitterName}
             onClick={has409Conflict ? handleRefreshConflict : (isComplete ? () => onReopenRequest?.(data.id) : handleSubmit)}
             completeText={has409Conflict ? '刷新' : (isComplete ? '重启' : undefined)}
             hideIcon={isComplete || has409Conflict}
@@ -787,7 +788,7 @@ function CubeInput({ width, value, onChange, placeholder = '请输入', disabled
   )
 }
 
-function ActionButton({ variant, disabled, lastSubmittedAt, onClick, completeText, hideIcon }: { variant: 'cancel' | 'submit'; disabled?: boolean; lastSubmittedAt?: string | null; onClick: () => void; completeText?: string; hideIcon?: boolean }) {
+function ActionButton({ variant, disabled, lastSubmittedAt, lastSubmitterName, onClick, completeText, hideIcon }: { variant: 'cancel' | 'submit'; disabled?: boolean; lastSubmittedAt?: string | null; lastSubmitterName?: string; onClick: () => void; completeText?: string; hideIcon?: boolean }) {
   const [hover, setHover] = useState(false)
   const [active, setActive] = useState(false)
   const isCancel = variant === 'cancel'
@@ -799,8 +800,9 @@ function ActionButton({ variant, disabled, lastSubmittedAt, onClick, completeTex
           <div className="absolute bottom-[68px] left-1/2 flex -translate-x-1/2 items-center whitespace-nowrap text-[12px] text-black/30" style={{ fontWeight: 400 }}>
             <span className="mr-[4px]"><ClockIcon /></span>
             {new Date(lastSubmittedAt).toLocaleString('zh-CN', {
-              year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
+              month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
             })}
+            {lastSubmitterName && <span className="ml-1">{lastSubmitterName}</span>}
           </div>
         )}
         <button

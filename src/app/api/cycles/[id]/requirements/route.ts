@@ -40,6 +40,13 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
   })
 
+  // Manual join for lastSubmitter to avoid Prisma relation issues
+  const lastSubmitterIds = Array.from(new Set(requirements.map((rg) => rg.lastSubmittedBy).filter((id): id is number => id !== null)))
+  const lastSubmitters = lastSubmitterIds.length > 0
+    ? await prisma.user.findMany({ where: { id: { in: lastSubmitterIds } }, select: { id: true, name: true } })
+    : []
+  const lastSubmitterMap = Object.fromEntries(lastSubmitters.map((u) => [u.id, u.name]))
+
   const result = requirements.map((rg) => {
     const cycleWorkloads = rg.workloads.filter((w) => w.billingCycleId === cycleId)
     const totalManDays = cycleWorkloads.reduce((sum, w) => sum + w.manDays, 0)
@@ -66,6 +73,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       healthStatus,
       recommendedRating,
       funcPointsRecommended: Math.round(totalManDays * 6.2),
+      lastSubmitterName: rg.lastSubmittedBy ? (lastSubmitterMap[rg.lastSubmittedBy] ?? null) : null,
       cycleWorkloads: cycleWorkloads.map((w) => ({
         id: w.id,
         userId: w.userId,
