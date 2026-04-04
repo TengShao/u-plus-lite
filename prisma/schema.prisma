@@ -14,8 +14,9 @@ model User {
   role            String   @default("MEMBER")
   level           String?
   pipelines       String   @default("[]")  // JSON array stored as string, e.g. '["管线A","管线B"]'
-  createdAt       DateTime @default(now())
+  createdAt       DateTime  @default(now())
   updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
 
   createdCycles       BillingCycle[]      @relation("CycleCreator")
   createdRequirements RequirementGroup[]  @relation("RequirementCreator")

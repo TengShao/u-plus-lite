@@ -17,13 +17,20 @@ export async function DELETE(
   }
 
   const target = await prisma.user.findUnique({ where: { id: userId } })
-  if (target?.role === 'ADMIN') {
-    const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } })
+  if (!target || target.deletedAt) {
+    return NextResponse.json({ error: '用户不存在' }, { status: 404 })
+  }
+  if (target.role === 'ADMIN') {
+    const adminCount = await prisma.user.count({ where: { role: 'ADMIN', deletedAt: null } })
     if (adminCount <= 1) {
       return NextResponse.json({ error: '不能删除最后一个管理员' }, { status: 400 })
     }
   }
 
-  await prisma.user.delete({ where: { id: userId } })
+  // 软删除：只设置 deletedAt，不真正删除数据
+  await prisma.user.update({
+    where: { id: userId },
+    data: { deletedAt: new Date() },
+  })
   return NextResponse.json({ success: true })
 }

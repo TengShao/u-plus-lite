@@ -65,8 +65,12 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
     if (res.ok) {
       setUsers((prev) => prev.filter((u) => u.id !== userId))
     } else {
-      const err = await res.json()
-      alert(err.error || '删除失败')
+      let errMsg = '删除失败'
+      try {
+        const err = await res.json()
+        errMsg = err.error || errMsg
+      } catch {}
+      alert(errMsg)
     }
   }
 

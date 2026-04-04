@@ -8,6 +8,7 @@ export async function GET() {
   if (session.user.role !== 'ADMIN') return forbidden()
 
   const users = await prisma.user.findMany({
+    where: { deletedAt: null },
     select: { id: true, name: true, role: true, level: true, pipelines: true },
     orderBy: { name: 'asc' },
   })

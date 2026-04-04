@@ -14,7 +14,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.name || !credentials?.password) return null
         const user = await prisma.user.findUnique({ where: { name: credentials.name } })
-        if (!user) return null
+        if (!user || user.deletedAt) return null
         const valid = await bcrypt.compare(credentials.password, user.password)
         if (!valid) return null
         return { id: String(user.id), name: user.name, role: user.role, level: user.level, pipelines: user.pipelines }
