@@ -3,6 +3,16 @@ import { Fragment, useEffect, useState } from 'react'
 import { LEVELS } from '@/lib/constants'
 import ConfirmDialog from './ConfirmDialog'
 
+function IconClear() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M3 3L11 11M3 11L11 3" stroke="#C8C8C8" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+const MASK_DOTS = '············'
+
 type User = { id: number; name: string; role: string; level: string | null }
 type BudgetItem = { id: number; name: string }
 type Pipeline = { id: number; name: string; budgetItems: BudgetItem[] }
@@ -35,6 +45,8 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
   const [llmProvider, setLlmProvider] = useState<'ollama' | 'minimax'>('ollama')
   const [llmOllamaModel, setLlmOllamaModel] = useState('qwen3:4b')
   const [llmMinimaxKey, setLlmMinimaxKey] = useState('')
+  const [llmMinimaxKeySaved, setLlmMinimaxKeySaved] = useState(false)
+  const [llmMinimaxKeyCleared, setLlmMinimaxKeyCleared] = useState(false)
   const [llmSaving, setLlmSaving] = useState(false)
   const [llmMsg, setLlmMsg] = useState<string | null>(null)
 
@@ -62,12 +74,29 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
       const data = await r.json()
       setLlmProvider(data.provider as 'ollama' | 'minimax')
       setLlmOllamaModel(data.ollamaModel)
+      setLlmMinimaxKeySaved(!!data.minimaxKeySet)
     }
   }
 
   async function saveLLMSettings() {
     setLlmSaving(true)
     setLlmMsg(null)
+    // Determine minimaxKey value to send:
+    // - empty string + was saved → null (delete key)
+    // - empty string + was not saved → undefined (no change)
+    // - has value → the value (update key)
+    let minimaxKeyToSend: string | null | undefined
+    if (llmMinimaxKey === '' && llmMinimaxKeyCleared) {
+      // User explicitly cleared — delete key
+      minimaxKeyToSend = null
+    } else if (llmMinimaxKey === '') {
+      // Empty but not explicitly cleared — no change
+      minimaxKeyToSend = undefined
+    } else if (llmMinimaxKey && llmMinimaxKey !== MASK_DOTS) {
+      minimaxKeyToSend = llmMinimaxKey
+    } else {
+      minimaxKeyToSend = undefined
+    }
     try {
       const res = await fetch('/api/settings/llm', {
         method: 'PATCH',
@@ -75,12 +104,21 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
         body: JSON.stringify({
           provider: llmProvider,
           ollamaModel: llmOllamaModel,
-          minimaxKey: llmMinimaxKey || undefined,
+          minimaxKey: minimaxKeyToSend,
         }),
       })
       if (res.ok) {
         setLlmMsg('保存成功')
-        setLlmMinimaxKey('')
+        if (minimaxKeyToSend !== undefined && minimaxKeyToSend !== null) {
+          // User typed a new key — save succeeded, clear input and show dots
+          setLlmMinimaxKey('')
+          setLlmMinimaxKeySaved(true)
+        } else if (minimaxKeyToSend === null) {
+          // User explicitly cleared — delete from env and reset state
+          setLlmMinimaxKey('')
+          setLlmMinimaxKeySaved(false)
+          setLlmMinimaxKeyCleared(false)
+        }
       } else {
         const err = await res.json()
         setLlmMsg(err.error || '保存失败')
@@ -404,13 +442,25 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                 {llmProvider === 'ollama' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">模型名称</label>
-                    <input
-                      type="text"
-                      value={llmOllamaModel}
-                      onChange={(e) => setLlmOllamaModel(e.target.value)}
-                      className="w-64 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-black"
-                      placeholder="qwen3:4b"
-                    />
+                    <div className="relative inline-flex items-center">
+                      <input
+                        type="text"
+                        value={llmOllamaModel}
+                        onChange={(e) => setLlmOllamaModel(e.target.value)}
+                        className="w-64 rounded border border-gray-300 px-3 py-2 pr-8 text-sm hover:border-[#8ECA2E] focus:border-[#8ECA2E] focus:outline-none"
+                        placeholder="qwen3:4b"
+                      />
+                      {llmOllamaModel && (
+                        <button
+                          type="button"
+                          className="absolute right-2 flex items-center justify-center text-[#C8C8C8] hover:text-black"
+                          onClick={() => setLlmOllamaModel('')}
+                          aria-label="清空"
+                        >
+                          <IconClear />
+                        </button>
+                      )}
+                    </div>
                     <p className="mt-1 text-xs text-gray-400">例如：qwen3:4b、llama3 等，需已在 Ollama 中下载</p>
                   </div>
                 )}
@@ -419,15 +469,36 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                 {llmProvider === 'minimax' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">API Key</label>
-                    <input
-                      type="password"
-                      value={llmMinimaxKey}
-                      onChange={(e) => setLlmMinimaxKey(e.target.value)}
-                      className="w-80 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-black font-mono"
-                      placeholder="sk-cp-..."
-                      autoComplete="off"
-                    />
-                    <p className="mt-1 text-xs text-gray-400">不填则使用 .env.local 中的默认 Key</p>
+                    <div className="relative inline-flex items-center">
+                      <input
+                        type="text"
+                        value={llmMinimaxKeyCleared ? '' : (llmMinimaxKeySaved && !llmMinimaxKey ? MASK_DOTS : llmMinimaxKey)}
+                        onChange={(e) => {
+                          setLlmMinimaxKey(e.target.value)
+                          setLlmMinimaxKeyCleared(false)
+                        }}
+                        className="w-80 rounded border border-gray-300 px-3 py-2 pr-8 text-sm hover:border-[#8ECA2E] focus:border-[#8ECA2E] focus:outline-none font-mono tracking-widest"
+                        placeholder="sk-cp-..."
+                        autoComplete="new-password"
+                        data-1p-ignore
+                      />
+                      {(llmMinimaxKey || (llmMinimaxKeySaved && !llmMinimaxKey)) && (
+                        <button
+                          type="button"
+                          className="absolute right-2 flex items-center justify-center text-[#C8C8C8] hover:text-black"
+                          onClick={() => {
+                            setLlmMinimaxKey('')
+                            setLlmMinimaxKeyCleared(true)
+                          }}
+                          aria-label="清空"
+                        >
+                          <IconClear />
+                        </button>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-400">
+                      {llmMinimaxKeySaved && !llmMinimaxKeyCleared ? 'API使用中' : '当前未配置API'}
+                    </p>
                   </div>
                 )}
 

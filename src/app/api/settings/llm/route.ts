@@ -60,7 +60,9 @@ export async function PATCH(req: Request) {
   if (ollamaModel) {
     env['NEXT_PUBLIC_OLLAMA_MODEL'] = ollamaModel
   }
-  if (minimaxKey) {
+  if (minimaxKey === null) {
+    delete env['MINIMAX_API_KEY']
+  } else if (minimaxKey) {
     env['MINIMAX_API_KEY'] = minimaxKey
   }
 

@@ -39,7 +39,7 @@ async function callLLM(content: string, systemPrompt: string): Promise<string> {
 
   if (provider === 'minimax') {
     const apiKey = process.env.MINIMAX_API_KEY
-    if (!apiKey) throw new Error('MINIMAX_API_KEY not set')
+    if (!apiKey) throw new Error('API未配置')
 
     const res = await fetch('https://api.minimax.chat/v1/text/chatcompletion_v2', {
       method: 'POST',
@@ -60,7 +60,7 @@ async function callLLM(content: string, systemPrompt: string): Promise<string> {
 
     if (!res.ok) {
       const err = await res.text()
-      throw new Error(`MiniMax API error: ${res.status} ${err}`)
+      throw new Error(`MiniMax API错误: ${res.status}`)
     }
 
     const data = await res.json()
@@ -85,7 +85,7 @@ async function callLLM(content: string, systemPrompt: string): Promise<string> {
 
   if (!res.ok) {
     const err = await res.text()
-    throw new Error(`Ollama API error: ${res.status} ${err}`)
+    throw new Error(`Ollama API错误: ${res.status}`)
   }
 
   const data = await res.json()
@@ -168,5 +168,9 @@ export async function parseWorkload(
   if (firstBrace !== -1 && lastBrace !== -1) {
     jsonStr = jsonStr.substring(firstBrace, lastBrace + 1)
   }
-  return JSON.parse(jsonStr) as ParseResult
+  try {
+    return JSON.parse(jsonStr) as ParseResult
+  } catch {
+    throw new Error('LLM返回格式解析失败，请重试')
+  }
 }
