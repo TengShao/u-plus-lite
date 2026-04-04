@@ -23,12 +23,12 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     },
   })
 
-  // Visible in this cycle: have workload in cycle OR INCOMPLETE and created in/before cycle
+  // Visible in this cycle: have workload in cycle OR (INCOMPLETE and created by current user)
   const requirements = await prisma.requirementGroup.findMany({
     where: {
       OR: [
         { workloads: { some: { billingCycleId: cycleId } } },
-        { status: 'INCOMPLETE', createdInCycleId: { lte: cycleId } },
+        { status: 'INCOMPLETE', createdInCycleId: { lte: cycleId }, createdBy: parseInt(session.user.id) },
       ],
     },
     include: {

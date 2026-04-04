@@ -91,6 +91,54 @@ export default function RequirementCardExpanded({
   const [pageCount, setPageCount] = useState(data.pageCount ?? 0)
   const myWorkload = data.cycleWorkloads.find((w) => w.userId === userId)
   const [manDays, setManDays] = useState(myWorkload?.manDays ?? 0)
+  const [conflictedFields, setConflictedFields] = useState<Set<string>>(new Set())
+  const [has409Conflict, setHas409Conflict] = useState(false)
+
+  // Store original server values at mount time for conflict detection
+  const originalDataRef = useRef(data)
+  useEffect(() => {
+    originalDataRef.current = data
+  }, [data])
+
+  // Fetch fresh data from server when expanded (component mounts due to key change)
+  const [isLoadingFresh, setIsLoadingFresh] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    async function fetchFreshData() {
+      setIsLoadingFresh(true)
+      try {
+        const res = await fetch(`/api/requirements/${data.id}?cycleId=${cycleId}`)
+        if (res.ok && !cancelled) {
+          const fresh = await res.json()
+          // Update all local state with fresh data
+          setName(fresh.name || '')
+          setRating(fresh.rating || '')
+          setModule(fresh.module || '')
+          setPipeline(fresh.pipeline || defaultPipeline || '')
+          setTypes(Array.isArray(fresh.types) ? fresh.types : [])
+          setBudgetItem(fresh.budgetItem || '')
+          setCanClose(!!fresh.canClose)
+          setFuncPoints(fresh.funcPoints ?? fresh.funcPointsRecommended ?? 0)
+          setPageCount(fresh.pageCount ?? 0)
+          // Update workload manDays for current user
+          const freshWorkload = fresh.cycleWorkloads?.find((w: any) => w.userId === userId)
+          if (freshWorkload) {
+            setManDays(freshWorkload.manDays ?? 0)
+          }
+          // Update originalDataRef so future conflict detection is accurate
+          originalDataRef.current = fresh
+          // Notify parent to refresh its data too
+          onRefresh()
+        }
+      } catch (err) {
+        console.error('[RequirementCardExpanded] failed to fetch fresh data on expand:', err)
+      } finally {
+        if (!cancelled) setIsLoadingFresh(false)
+      }
+    }
+    fetchFreshData()
+    return () => { cancelled = true }
+  }, [data.id]) // Only re-run when requirement ID changes (i.e., when expanding a different card)
 
   // Real-time computed values based on local manDays
   const computedTotalManDays = data.totalManDays - (myWorkload?.manDays ?? 0) + manDays
@@ -201,7 +249,14 @@ export default function RequirementCardExpanded({
       }),
     })
 
-    if (!res.ok) return
+    if (!res.ok) {
+      if (res.status === 409) {
+        const err = await res.json().catch(() => ({ error: '数据已被其他人修改，请刷新后重试' }))
+        showTips('negative', err.error || '数据已被其他人修改，请刷新后重试')
+        setHas409Conflict(true)
+      }
+      return
+    }
 
     await fetch(`/api/requirements/${data.id}/workload`, {
       method: 'PUT',
@@ -215,6 +270,117 @@ export default function RequirementCardExpanded({
     onDraftResolved(data.id)
     onLastSubmitRequest?.(data.id)
     collapseWithAnimation()
+  }
+
+  async function handleRefreshConflict() {
+    try {
+      const res = await fetch(`/api/requirements/${data.id}?cycleId=${cycleId}`)
+      if (res.ok) {
+        const fresh = await res.json()
+        const newConflicted = new Set<string>()
+        const original = originalDataRef.current
+
+        console.log('[Refresh] original.name:', original.name, 'local name:', name, 'fresh.name:', fresh.name)
+
+        // If user modified field, keep local. If server changed, mark conflicted.
+        if (name !== original.name) {
+          // User modified, check if server also changed
+          if (fresh.name !== original.name) {
+            newConflicted.add('name')
+          }
+          // Keep local name (no setName call needed - state already has local value)
+        } else {
+          // User didn't modify - use server value
+          setName(fresh.name)
+        }
+
+        // For rating, only update if user hasn't changed it
+        if (rating !== (original.rating || '')) {
+          if ((fresh.rating || '') !== (original.rating || '')) {
+            newConflicted.add('rating')
+          }
+        } else {
+          setRating(fresh.rating || '')
+        }
+
+        // Similar for other fields...
+        if (module !== (original.module || '')) {
+          if ((fresh.module || '') !== (original.module || '')) {
+            newConflicted.add('module')
+          }
+        } else {
+          setModule(fresh.module || '')
+        }
+
+        if (pipeline !== (original.pipeline || defaultPipeline || '')) {
+          if ((fresh.pipeline || defaultPipeline || '') !== (original.pipeline || defaultPipeline || '')) {
+            newConflicted.add('pipeline')
+          }
+        } else {
+          setPipeline(fresh.pipeline || defaultPipeline || '')
+        }
+
+        const freshTypes = Array.isArray(fresh.types) ? fresh.types : []
+        if (JSON.stringify(types) !== JSON.stringify(original.types || [])) {
+          if (JSON.stringify(freshTypes) !== JSON.stringify(original.types || [])) {
+            newConflicted.add('types')
+          }
+        } else {
+          setTypes(freshTypes)
+        }
+
+        if (budgetItem !== (original.budgetItem || '')) {
+          if ((fresh.budgetItem || '') !== (original.budgetItem || '')) {
+            newConflicted.add('budgetItem')
+          }
+        } else {
+          setBudgetItem(fresh.budgetItem || '')
+        }
+
+        if (funcPoints !== (original.funcPoints ?? 0)) {
+          if ((fresh.funcPoints ?? 0) !== (original.funcPoints ?? 0)) {
+            newConflicted.add('funcPoints')
+          }
+        } else {
+          setFuncPoints(fresh.funcPoints ?? 0)
+        }
+
+        if (pageCount !== (original.pageCount ?? 0)) {
+          if ((fresh.pageCount ?? 0) !== (original.pageCount ?? 0)) {
+            newConflicted.add('pageCount')
+          }
+        } else {
+          setPageCount(fresh.pageCount ?? 0)
+        }
+
+        const freshWorkload = fresh.cycleWorkloads?.find((w: any) => w.userId === userId)
+        const serverManDays = freshWorkload?.manDays ?? 0
+        const originalManDays = original.cycleWorkloads?.find((w: any) => w.userId === userId)?.manDays ?? 0
+        const localManDaysValue = manDays  // local state at time of handler call
+        console.log('[Refresh] manDays - original:', originalManDays, 'server:', serverManDays, 'local:', localManDaysValue)
+        if (localManDaysValue !== originalManDays) {
+          // User modified manDays - keep local, mark conflicted if server also changed
+          if (serverManDays !== originalManDays) {
+            newConflicted.add('manDays')
+          }
+          // Don't call setManDays - keep local value
+        } else {
+          // User didn't modify - use server value
+          setManDays(serverManDays)
+        }
+
+        setConflictedFields(newConflicted)
+        console.log('[Refresh] conflicted fields:', Array.from(newConflicted))
+        onRefresh()
+        setHas409Conflict(false)
+        showTips('positive', newConflicted.size > 0 ? '橙色字段已被其他人修改，其他字段保留了你的编辑。' : '数据已刷新。')
+      } else {
+        showTips('negative', '刷新失败，请重试')
+      }
+    } catch (err) {
+      console.error('[Refresh] error:', err)
+      showTips('negative', '刷新失败')
+    }
   }
 
   async function handleDelete() {
@@ -240,12 +406,17 @@ export default function RequirementCardExpanded({
       {/* 需求名称区域: 标题+输入框+信息方块 一行布局 */}
       <div className="flex items-start">
         <div className="w-[600px]">
+            <div className="flex items-center gap-2">
             <SectionTitle icon="name" text="需求名称" weight={600} />
+            {isLoadingFresh && (
+              <span className="text-xs text-[#999]">加载最新数据中...</span>
+            )}
+          </div>
           <div className="relative mt-[10px] flex items-center">
             <div className="relative w-[600px]">
               <div
-                className={`relative h-[42px] rounded-[8px] border ${nameInvalid ? 'bg-[rgba(255,0,0,0.08)] shadow-[0_0_3px_rgba(0,0,0,0.06)]' : 'bg-white'}`}
-                style={{ borderColor: nameInvalid ? '#FF7D7D' : isComplete ? 'transparent' : nameFocused ? GREEN : nameHovered ? GREEN : '#EEEEEE', transition: 'border-color 0.15s' }}
+                className={`relative h-[42px] rounded-[8px] border ${conflictedFields.has('name') ? 'bg-[rgba(245,166,35,0.2)]' : nameInvalid ? 'bg-[rgba(255,0,0,0.08)] shadow-[0_0_3px_rgba(0,0,0,0.06)]' : 'bg-white'}`}
+                style={{ borderColor: conflictedFields.has('name') ? '#F5A623' : nameInvalid ? '#FF7D7D' : isComplete ? 'transparent' : nameFocused ? GREEN : nameHovered ? GREEN : '#EEEEEE', transition: 'border-color 0.15s, background-color 0.15s' }}
                 onMouseEnter={() => setNameHovered(true)}
                 onMouseLeave={() => setNameHovered(false)}
               >
@@ -292,7 +463,7 @@ export default function RequirementCardExpanded({
 
       <div className="mt-[10px] flex gap-[8px]">
         <Cube label="管线" required isEmpty={!pipeline} width={160} disabled={isComplete} value={pipeline}>
-          <SelectTrigger width={144} value={pipeline} isOpen={openMenu === 'pipeline'} onToggle={() => userEditable && setOpenMenu(openMenu === 'pipeline' ? null : 'pipeline')} invalid={pipelineInvalid} isHovered={triggerHovered === 'pipeline'} onMouseEnter={() => setTriggerHovered('pipeline')} onMouseLeave={() => setTriggerHovered(null)} />
+          <SelectTrigger width={144} value={pipeline} isOpen={openMenu === 'pipeline'} onToggle={() => userEditable && setOpenMenu(openMenu === 'pipeline' ? null : 'pipeline')} invalid={pipelineInvalid} conflicted={conflictedFields.has('pipeline')} isHovered={triggerHovered === 'pipeline'} onMouseEnter={() => setTriggerHovered('pipeline')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'pipeline' && userEditable && (
             <MenuSingle width={144} value={pipeline} options={pipelineOptions as readonly string[]} selected={pipeline} onPick={(v) => { setPipeline(v); setBudgetItem(''); setOpenMenu(null) }} />
           )}
@@ -307,6 +478,7 @@ export default function RequirementCardExpanded({
               isOpen={openMenu === 'rating'}
               onToggle={() => userEditable && setOpenMenu(openMenu === 'rating' ? null : 'rating')}
               invalid={ratingInvalid}
+              conflicted={conflictedFields.has('rating')}
               isHovered={triggerHovered === 'rating'}
               onMouseEnter={() => setTriggerHovered('rating')}
               onMouseLeave={() => setTriggerHovered(null)}
@@ -327,28 +499,28 @@ export default function RequirementCardExpanded({
         </div>
 
         <Cube label="设计模块" required isEmpty={!module} width={160} disabled={isComplete} value={module}>
-          <SelectTrigger width={144} value={module} isOpen={openMenu === 'module'} onToggle={() => userEditable && setOpenMenu(openMenu === 'module' ? null : 'module')} invalid={moduleInvalid} isHovered={triggerHovered === 'module'} onMouseEnter={() => setTriggerHovered('module')} onMouseLeave={() => setTriggerHovered(null)} />
+          <SelectTrigger width={144} value={module} isOpen={openMenu === 'module'} onToggle={() => userEditable && setOpenMenu(openMenu === 'module' ? null : 'module')} invalid={moduleInvalid} conflicted={conflictedFields.has('module')} isHovered={triggerHovered === 'module'} onMouseEnter={() => setTriggerHovered('module')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'module' && userEditable && (
             <MenuSingle width={144} value={module} options={MODULES as readonly string[]} selected={module} onPick={(v) => { setModule(v); setOpenMenu(null) }} />
           )}
         </Cube>
 
         <Cube label="类型" isEmpty={types.length === 0} width={160} disabled={isComplete} value={types.join(' / ')}>
-          <SelectTrigger width={144} value={types.join(' / ')} isOpen={openMenu === 'types'} onToggle={() => userEditable && setOpenMenu(openMenu === 'types' ? null : 'types')} isHovered={triggerHovered === 'types'} onMouseEnter={() => setTriggerHovered('types')} onMouseLeave={() => setTriggerHovered(null)} />
+          <SelectTrigger width={144} value={types.join(' / ')} isOpen={openMenu === 'types'} onToggle={() => userEditable && setOpenMenu(openMenu === 'types' ? null : 'types')} conflicted={conflictedFields.has('types')} isHovered={triggerHovered === 'types'} onMouseEnter={() => setTriggerHovered('types')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'types' && userEditable && (
             <MenuMulti width={144} value={types.join(' / ')} options={TYPES as readonly string[]} selected={types} onToggle={(v) => toggleType(v)} />
           )}
         </Cube>
 
         <Cube label="预算项" required isEmpty={!budgetItem} width={280} disabled={isComplete} value={budgetItem}>
-          <SelectTrigger width={264} value={budgetItem} isOpen={openMenu === 'budgetItem'} onToggle={() => userEditable && setOpenMenu(openMenu === 'budgetItem' ? null : 'budgetItem')} invalid={budgetInvalid} truncate isHovered={triggerHovered === 'budgetItem'} onMouseEnter={() => setTriggerHovered('budgetItem')} onMouseLeave={() => setTriggerHovered(null)} />
+          <SelectTrigger width={264} value={budgetItem} isOpen={openMenu === 'budgetItem'} onToggle={() => userEditable && setOpenMenu(openMenu === 'budgetItem' ? null : 'budgetItem')} invalid={budgetInvalid} conflicted={conflictedFields.has('budgetItem')} truncate isHovered={triggerHovered === 'budgetItem'} onMouseEnter={() => setTriggerHovered('budgetItem')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'budgetItem' && userEditable && (
             <MenuSingle width={264} value={budgetItem} options={budgetOptions} selected={budgetItem} onPick={(v) => { setBudgetItem(v); setOpenMenu(null) }} />
           )}
         </Cube>
 
         <Cube label="本月完成" required isEmpty={false} width={120} disabled={isComplete} value={canClose ? '是' : '否'}>
-          <SelectTrigger width={104} value={canClose ? '是' : '否'} isOpen={openMenu === 'canClose'} onToggle={() => userEditable && setOpenMenu(openMenu === 'canClose' ? null : 'canClose')} isHovered={triggerHovered === 'canClose'} onMouseEnter={() => setTriggerHovered('canClose')} onMouseLeave={() => setTriggerHovered(null)} />
+          <SelectTrigger width={104} value={canClose ? '是' : '否'} isOpen={openMenu === 'canClose'} onToggle={() => userEditable && setOpenMenu(openMenu === 'canClose' ? null : 'canClose')} conflicted={conflictedFields.has('canClose')} isHovered={triggerHovered === 'canClose'} onMouseEnter={() => setTriggerHovered('canClose')} onMouseLeave={() => setTriggerHovered(null)} />
           {openMenu === 'canClose' && userEditable && (
             <MenuSingle width={104} value={canClose ? '是' : '否'} options={['是', '否']} selected={canClose ? '是' : '否'} onPick={(v) => { setCanClose(v === '是'); setOpenMenu(null) }} />
           )}
@@ -371,6 +543,7 @@ export default function RequirementCardExpanded({
               placeholder="请输入"
               disabled={!userEditable}
               invalid={funcPointsInvalid}
+              conflicted={conflictedFields.has('funcPoints')}
             />
           </Cube>
           {!isComplete && computedTotalManDays > 0 && funcPoints !== computedFuncPointsRecommended && (
@@ -393,6 +566,7 @@ export default function RequirementCardExpanded({
               placeholder="请输入"
               disabled={!userEditable}
               invalid={pageCountInvalid}
+              conflicted={conflictedFields.has('pageCount')}
             />
           </Cube>
           {!isComplete && computedTotalManDays > 0 && pageCount !== Math.round(computedTotalManDays * 1.75) && (
@@ -451,12 +625,13 @@ export default function RequirementCardExpanded({
             onChange={(v) => setManDays(v)}
             disabled={!userEditable}
             isComplete={isComplete}
+            conflicted={conflictedFields.has('manDays')}
           />
 
           <ActionIconButton type="upload" disabled={!userEditable} onClick={() => {}} />
         </div>
 
-        <div className="flex items-end gap-[12px]">
+        <div className="flex items-end gap-[12px] relative">
           <div className="flex h-[60px] items-center gap-0">
             {isAdmin && data.status !== 'COMPLETE' && (
               <ActionIconButton type="complete" disabled={!userEditable} onClick={() => onCompleteRequest?.(data.id)} />
@@ -472,11 +647,11 @@ export default function RequirementCardExpanded({
 
           <ActionButton
             variant="submit"
-            disabled={(!userEditable && !isComplete) || !isDirty}
+            disabled={(!userEditable && !isComplete) || (!has409Conflict && !isDirty)}
             lastSubmittedAt={data.lastSubmittedAt}
-            onClick={isComplete ? () => onReopenRequest?.(data.id) : handleSubmit}
-            completeText={isComplete ? '重启' : undefined}
-            hideIcon={isComplete}
+            onClick={has409Conflict ? handleRefreshConflict : (isComplete ? () => onReopenRequest?.(data.id) : handleSubmit)}
+            completeText={has409Conflict ? '刷新' : (isComplete ? '重启' : undefined)}
+            hideIcon={isComplete || has409Conflict}
           />
         </div>
       </div>
@@ -509,8 +684,8 @@ function fitDropdownTextSize(text: string, width: number) {
   return Math.max(10, Math.min(16, size))
 }
 
-function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onToggle, invalid, truncate, isHovered, onMouseEnter, onMouseLeave }: { width: number; value: string; placeholder?: string; isOpen: boolean; onToggle: () => void; invalid?: boolean; truncate?: boolean; isHovered?: boolean; onMouseEnter?: () => void; onMouseLeave?: () => void }) {
-  const borderColor = invalid ? '#FF7D7D' : isOpen ? 'transparent' : isHovered ? GREEN : '#EEEEEE'
+function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onToggle, invalid, conflicted, truncate, isHovered, onMouseEnter, onMouseLeave }: { width: number; value: string; placeholder?: string; isOpen: boolean; onToggle: () => void; invalid?: boolean; conflicted?: boolean; truncate?: boolean; isHovered?: boolean; onMouseEnter?: () => void; onMouseLeave?: () => void }) {
+  const borderColor = invalid ? '#FF7D7D' : conflicted ? '#F5A623' : isOpen ? 'transparent' : isHovered ? GREEN : '#EEEEEE'
   const boxShadow = invalid ? '0 0 3px rgba(0,0,0,0.06)' : 'none'
   const displayText = value || placeholder
   const fontSize = fitDropdownTextSize(displayText, width)
@@ -522,7 +697,7 @@ function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onTogg
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={`relative z-10 h-[36px] rounded-[8px] border bg-white px-[10px] ${truncate ? 'overflow-hidden' : ''}`}
-      style={{ width, borderColor, boxShadow, backgroundColor: invalid ? 'rgba(255,0,0,0.08)' : '#FFFFFF', fontWeight: 800, transition: 'border-color 0.15s' }}
+      style={{ width, borderColor, boxShadow, backgroundColor: conflicted ? 'rgba(245,166,35,0.2)' : invalid ? 'rgba(255,0,0,0.08)' : '#FFFFFF', fontWeight: 800, transition: 'border-color 0.15s, background-color 0.15s' }}
     >
       <span
         className="pointer-events-none absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center leading-[22px]"
@@ -593,10 +768,10 @@ function MenuMulti({ width, value, options, selected, onToggle }: { width: numbe
   )
 }
 
-function CubeInput({ width, value, onChange, placeholder = '请输入', disabled, invalid }: { width: number; value: string | number; onChange: (v: string) => void; placeholder?: string; disabled?: boolean; invalid?: boolean }) {
+function CubeInput({ width, value, onChange, placeholder = '请输入', disabled, invalid, conflicted }: { width: number; value: string | number; onChange: (v: string) => void; placeholder?: string; disabled?: boolean; invalid?: boolean; conflicted?: boolean }) {
   const [focused, setFocused] = useState(false)
-  const borderColor = invalid ? '#FF7D7D' : focused ? GREEN : '#EEEEEE'
-  const bgColor = invalid && !focused ? 'rgba(255,0,0,0.08)' : '#FFFFFF'
+  const borderColor = invalid ? '#FF7D7D' : conflicted ? '#F5A623' : focused ? GREEN : '#EEEEEE'
+  const bgColor = conflicted ? 'rgba(245,166,35,0.2)' : invalid && !focused ? 'rgba(255,0,0,0.08)' : '#FFFFFF'
   return (
     <input
       type="text"

@@ -78,31 +78,35 @@ export default function RequirementPanel({
     if (stored) setLastSubmittedId(parseInt(stored))
   }, [session?.user?.id])
 
+  // Build user-scoped draft key to prevent cross-user sessionStorage collision
+  const draftKey = session?.user?.id ? `draft_${session.user.id}_${cycleId}` : null
+
   // Persist activeDraftId in sessionStorage
   useEffect(() => {
-    if (activeDraftId !== null && cycleId) {
+    if (activeDraftId !== null && cycleId && draftKey) {
       // Normal case: set the draft id
-      sessionStorage.setItem(`draft_${cycleId}`, String(activeDraftId))
+      sessionStorage.setItem(draftKey, String(activeDraftId))
       draftToDeleteRef.current = null // Clear any pending deletion
-    } else if (cycleId && draftToDeleteRef.current === null) {
+    } else if (cycleId && draftToDeleteRef.current === null && draftKey) {
       // activeDraftId is null - check if this is a page refresh (sessionStorage has a draft)
       // or a deliberate clear
-      const saved = sessionStorage.getItem(`draft_${cycleId}`)
+      const saved = sessionStorage.getItem(draftKey)
       if (saved) {
         // There's a saved draft but activeDraftId is null - this looks like a page refresh
         // Mark it for deletion instead of just clearing
         draftToDeleteRef.current = parseInt(saved)
         // Don't clear sessionStorage yet - let loadRequirements handle the deletion
       } else {
-        sessionStorage.removeItem(`draft_${cycleId}`)
+        sessionStorage.removeItem(draftKey)
       }
     }
     activeDraftIdRef.current = activeDraftId
-  }, [activeDraftId, cycleId])
+  }, [activeDraftId, cycleId, draftKey])
 
   // Restore activeDraftId from sessionStorage on mount
   useEffect(() => {
-    const saved = sessionStorage.getItem(`draft_${cycleId}`)
+    if (!draftKey) return
+    const saved = sessionStorage.getItem(draftKey)
     if (!saved) return
 
     const draftId = parseInt(saved)
@@ -116,14 +120,14 @@ export default function RequirementPanel({
             // If the draft was never submitted (lastSubmittedAt is null), delete it and remove from list
             if (draft.lastSubmittedAt === null) {
               fetch(`/api/requirements/${draftId}`, { method: 'DELETE' })
-              sessionStorage.removeItem(`draft_${cycleId}`)
+              if (draftKey) sessionStorage.removeItem(draftKey)
               // Remove from local state immediately
               return prevReqs.filter((r) => r.id !== draftId)
             } else {
               setActiveDraftId(draftId)
             }
           } else {
-            sessionStorage.removeItem(`draft_${cycleId}`)
+            if (draftKey) sessionStorage.removeItem(draftKey)
           }
         }
         return prevReqs
@@ -146,7 +150,8 @@ export default function RequirementPanel({
       const draftIdToDelete = activeDraftIdRef.current
       if (draftIdToDelete !== null) {
         fetch(`/api/requirements/${draftIdToDelete}`, { method: 'DELETE' }).then(() => onRefresh())
-        sessionStorage.removeItem(`draft_${previousCycleIdRef.current}`)
+        // Remove with the old user's key
+        if (session?.user?.id) sessionStorage.removeItem(`draft_${session.user.id}_${previousCycleIdRef.current}`)
       }
       setActiveDraftId(null)
       setExpandedId(null)
@@ -165,7 +170,7 @@ export default function RequirementPanel({
         // Check if there's an unsubmitted draft in sessionStorage
         // If activeDraftIdRef.current is not null, it means a draft was just created (handleCreateRequirement was called)
         // In that case, don't delete it - just restore activeDraftId from sessionStorage
-        const saved = sessionStorage.getItem(`draft_${cycleId}`)
+        const saved = draftKey ? sessionStorage.getItem(draftKey) : null
         if (saved && activeDraftIdRef.current === null) {
           const draftId = parseInt(saved)
           const draft = data.find((r: RequirementData) => r.id === draftId)
@@ -180,7 +185,7 @@ export default function RequirementPanel({
             fetch(`/api/requirements/${draftId}`, { method: 'DELETE' })
               .then(() => {
                 draftToDeleteRef.current = null
-                sessionStorage.removeItem(`draft_${cycleId}`)
+                if (draftKey) sessionStorage.removeItem(draftKey)
               })
             return
           }
@@ -196,13 +201,13 @@ export default function RequirementPanel({
         setRequirements(data)
         // Restore activeDraftId from sessionStorage if exists
         if (activeDraftId === null) {
-          const saved = sessionStorage.getItem(`draft_${cycleId}`)
+          const saved = draftKey ? sessionStorage.getItem(draftKey) : null
           if (saved) {
             const draftId = parseInt(saved)
             if (data.some((r: RequirementData) => r.id === draftId)) {
               setActiveDraftId(draftId)
-            } else {
-              sessionStorage.removeItem(`draft_${cycleId}`)
+            } else if (draftKey) {
+              sessionStorage.removeItem(draftKey)
             }
           }
         } else {
@@ -333,7 +338,7 @@ export default function RequirementPanel({
     }
     // If clicking on a collapsed card while a draft exists (different from the one being clicked), show confirmation
     if (activeDraftId && id !== activeDraftId) {
-      const savedDraft = sessionStorage.getItem(`draft_${cycleId}`)
+      const savedDraft = draftKey ? sessionStorage.getItem(draftKey) : null
       if (savedDraft === String(activeDraftId)) {
         setPendingExpandId(id)
         setShowDiscardConfirm(true)
@@ -372,7 +377,7 @@ export default function RequirementPanel({
     }
 
     // If there's an unsubmitted draft (in sessionStorage), show confirmation instead of deleting
-    const savedDraft = sessionStorage.getItem(`draft_${cycleId}`)
+    const savedDraft = draftKey ? sessionStorage.getItem(draftKey) : null
     if (activeDraftId && savedDraft === String(activeDraftId)) {
       setShowDraftExistsConfirm(true)
       return
@@ -423,7 +428,7 @@ export default function RequirementPanel({
   function handleDraftResolved(id: number) {
     if (activeDraftId === id) {
       setActiveDraftId(null)
-      sessionStorage.removeItem(`draft_${cycleId}`)
+      if (draftKey) sessionStorage.removeItem(draftKey)
     }
   }
 
@@ -510,11 +515,11 @@ export default function RequirementPanel({
 
   async function handleViewDuplicate() {
     // Delete the draft before viewing the duplicate
-    const savedDraft = sessionStorage.getItem(`draft_${cycleId}`)
+    const savedDraft = draftKey ? sessionStorage.getItem(draftKey) : null
     if (activeDraftId !== null && savedDraft === String(activeDraftId)) {
       await fetch(`/api/requirements/${activeDraftId}`, { method: 'DELETE' })
       setActiveDraftId(null)
-      sessionStorage.removeItem(`draft_${cycleId}`)
+      if (draftKey) sessionStorage.removeItem(draftKey)
     }
     if (pendingDuplicateId !== null) {
       setHasUnsaved(false)
@@ -527,11 +532,11 @@ export default function RequirementPanel({
 
   async function handleCancelDuplicate() {
     // Delete the draft when canceling
-    const savedDraft = sessionStorage.getItem(`draft_${cycleId}`)
+    const savedDraft = draftKey ? sessionStorage.getItem(draftKey) : null
     if (activeDraftId !== null && savedDraft === String(activeDraftId)) {
       await fetch(`/api/requirements/${activeDraftId}`, { method: 'DELETE' })
       setActiveDraftId(null)
-      sessionStorage.removeItem(`draft_${cycleId}`)
+      if (draftKey) sessionStorage.removeItem(draftKey)
       onRefresh()
     }
     setPendingDuplicateId(null)
@@ -580,7 +585,7 @@ export default function RequirementPanel({
               onMouseUp={(e) => { if (!cycleId || cycle?.status === 'CLOSED') return; e.currentTarget.style.transform = 'scale(1.03)' }}
             >
               <span className="inline-flex items-center gap-[10px]">
-                新建
+                新需求组
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <g stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="8" y="2" width="8" height="4" rx="1" />
@@ -610,6 +615,7 @@ export default function RequirementPanel({
               >
               {expandedId === rg.id ? (
                 <RequirementCardExpanded
+                  key={`expanded-${rg.id}`}
                   data={rg}
                   cycleId={cycleId}
                   cycleStatus={cycle?.status || 'OPEN'}

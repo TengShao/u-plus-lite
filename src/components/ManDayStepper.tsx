@@ -11,9 +11,10 @@ interface ManDayStepperProps {
   onDirty?: () => void
   disabled?: boolean
   isComplete?: boolean
+  conflicted?: boolean
 }
 
-export default function ManDayStepper({ value, onChange, onDirty, disabled, isComplete }: ManDayStepperProps) {
+export default function ManDayStepper({ value, onChange, onDirty, disabled, isComplete, conflicted }: ManDayStepperProps) {
   const [focused, setFocused] = useState(false)
   const [localValue, setLocalValue] = useState(value)
   const [decreaseAnim, setDecreaseAnim] = useState<number | null>(null)
@@ -47,7 +48,9 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
   }
 
   return (
-    <div className={`relative flex h-[60px] items-center justify-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] ${isComplete ? 'w-[64px] justify-center bg-transparent' : 'w-[200px]'}`}>
+    <div className={`relative flex h-[60px] items-center justify-center rounded-[12px] border ${isComplete ? 'w-[64px] justify-center bg-transparent' : 'w-[200px]'}`}
+      style={{ borderColor: conflicted ? '#F5A623' : '#EEEEEE', backgroundColor: conflicted ? 'rgba(245,166,35,0.2)' : '#FDFDFD', transition: 'border-color 0.15s, background-color 0.15s' }}
+    >
       {/* Decrease button with animation — hidden when COMPLETE */}
       {!isComplete && (
         <div className="absolute left-[8px] top-1/2 -translate-y-1/2">
