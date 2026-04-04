@@ -24,24 +24,19 @@ export interface ParseResult {
   groups: ParsedGroup[]
 }
 
-// MiniMax API compatible with OpenAI format
+// Ollama API (local)
 async function callLLM(content: string, systemPrompt: string): Promise<string> {
-  const apiKey = process.env.MINIMAX_API_KEY
-  if (!apiKey) throw new Error('MINIMAX_API_KEY not set')
-
-  const res = await fetch('https://api.minimax.chat/v1/text/chatcompletion_v2', {
+  const res = await fetch('http://localhost:11434/api/chat', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'MiniMax-M2.7-highspeed',
+      model: 'qwen3:4b',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content },
       ],
-      temperature: 0.3,
+      stream: false,
+      reasoning_effort: 'none',  // disable thinking to avoid polluting JSON output
     }),
   })
 
@@ -51,7 +46,7 @@ async function callLLM(content: string, systemPrompt: string): Promise<string> {
   }
 
   const data = await res.json()
-  return data.choices?.[0]?.message?.content ?? ''
+  return data.message?.content ?? ''
 }
 
 export function buildParsePrompt(
@@ -117,8 +112,10 @@ export async function parseWorkload(
 ): Promise<ParseResult> {
   const prompt = buildParsePrompt(rawContent, existingGroups, systemUsers)
   const response = await callLLM(rawContent, prompt)
-  // Strip any markdown code blocks and non-JSON leading/trailing text
+  // Strip <think>...</think> blocks (qwen3 thinking output)
   let jsonStr = response
+    .replace(/[\s\S]*?<\/think>/, '')  // strip everything up to and including </think>
+    .replace(/```(?:json)?\n?/gi, '')  // strip ```json or ``` wrappers
     .replace(/```(?:json)?\n?/gi, '')  // strip ```json or ``` wrappers
     .replace(/^#.*$/gm, '')             // strip markdown headings like "# 结果"
     .trim()
