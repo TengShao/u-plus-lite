@@ -21,6 +21,7 @@ export async function POST(req: Request) {
       pageCount: data.pageCount,
       createdInCycleId: data.cycleId,
       createdBy: parseInt(session.user.id),
+      isDraft: true,
     },
   })
   return NextResponse.json(rg)
