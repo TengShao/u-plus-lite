@@ -457,6 +457,10 @@ export default function RequirementPanel({
       activeDraftIdRef.current = rg.id
       setExpandedIds([rg.id])
       setActiveDraftId(rg.id)
+      // Synchronously persist to sessionStorage before onRefresh (like handleDraftsImported does)
+      if (draftExpansionKey) {
+        sessionStorage.setItem(draftExpansionKey, JSON.stringify([rg.id]))
+      }
       // Now call onRefresh - loadRequirements will see activeDraftIdRef.current is non-null and won't delete
       onRefresh()
       // Scroll to top to show the new requirement
