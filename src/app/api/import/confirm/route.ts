@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'cycleId and decisions are required' }, { status: 400 })
   }
 
-  const results: { groupId: number; importedCount: number; isDraft: boolean }[] = []
+  const results: { groupId: number; importedCount: number; isDraft: boolean; error?: string }[] = []
 
   try {
     for (const decision of decisions) {

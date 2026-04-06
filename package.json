@@ -1,6 +1,6 @@
 {
   "name": "u-plus-lite",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "scripts": {
     "dev": "PORT=3001 next dev",
