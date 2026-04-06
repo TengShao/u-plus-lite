@@ -1,4 +1,97 @@
 # Changelog
+## [1.1.0](https://github.com/TengShao/u-plus-lite/compare/v1.0.0...v1.1.0) (2026-04-06)
+
+
+### Features
+
+* add ImportModal component with input and preview states ([452d94a](https://github.com/TengShao/u-plus-lite/commit/452d94a0e81ba02b131881d292c3ccf4189897de))
+* add LLM provider settings UI with Ollama/MiniMax switching ([b7b53e5](https://github.com/TengShao/u-plus-lite/commit/b7b53e5545a4c6b6aab54f40bad4e0e77bbba34b))
+* add LLM service with MiniMax provider ([6a546ab](https://github.com/TengShao/u-plus-lite/commit/6a546ab958b2bda629d38bab68efd62367902e71))
+* add option to reset admin password during update deployment ([32acaaf](https://github.com/TengShao/u-plus-lite/commit/32acaaf6a8a5fcbc99caaed6e503e95a0caa34fd))
+* add POST /api/import/confirm batch import endpoint ([51c758b](https://github.com/TengShao/u-plus-lite/commit/51c758bba9ad429df5977d8311914ae7a3d09128))
+* add POST /api/import/parse LLM parse endpoint ([0d1a973](https://github.com/TengShao/u-plus-lite/commit/0d1a9737fec1a5573cfc1bc0e01c932862dd7b38))
+* add q to quit at all interactive prompts ([a799457](https://github.com/TengShao/u-plus-lite/commit/a799457ac94fbb22b4cb02aae4df13fc31456364))
+* add RequirementTags component ([1b48612](https://github.com/TengShao/u-plus-lite/commit/1b486129b18587b768b80e010c002f34f63e5ad2))
+* LLM导入需求组草稿机制 ([191738f](https://github.com/TengShao/u-plus-lite/commit/191738f8bd72377fc63b5e25c419fbe9b221f147))
+* show current version before deployment starts ([1e18ac6](https://github.com/TengShao/u-plus-lite/commit/1e18ac64b5b209ff4865c3b0700fb521c0266708))
+* wire upload button to ImportModal in RequirementPanel ([229f5d5](https://github.com/TengShao/u-plus-lite/commit/229f5d54653a170390c8272035be3046ce2d979d))
+* 提交按钮显示最后提交时间和提交人名称 ([32bd499](https://github.com/TengShao/u-plus-lite/commit/32bd499852e8ac0ef17ae17c7713988553eb39a3))
+* 改造 LLM 内容解析弹窗交互 ([4beba98](https://github.com/TengShao/u-plus-lite/commit/4beba98a73e0a6949bb77fff57fe9bef6b0baa4c))
+* 暂存按钮功能 - 必填项未填完时显示暂存 ([09d7bb3](https://github.com/TengShao/u-plus-lite/commit/09d7bb3cf336f9c57d7670f6d2954cd63feac172))
+* 用户软删除功能 ([a706c83](https://github.com/TengShao/u-plus-lite/commit/a706c8325672000ddcf7ec2388b218bb240efd8a))
+* 草稿取消时支持暂存或放弃草稿 ([194f33a](https://github.com/TengShao/u-plus-lite/commit/194f33a921217d0a720c2191a8425c0bec068331))
+
+
+### Bug Fixes
+
+* 409后自动刷新合并，无冲突时直接重试提交 ([4ce6e5d](https://github.com/TengShao/u-plus-lite/commit/4ce6e5d4e2bc4f01c329656c82ca128c59284cf3))
+* 409后自动刷新合并，无冲突时直接重试提交 ([66bce2d](https://github.com/TengShao/u-plus-lite/commit/66bce2d2bb09a112b28b78c6323e78614ebbf5b6))
+* accept both YES and yes for uninstall confirmation ([c89bcd8](https://github.com/TengShao/u-plus-lite/commit/c89bcd8d6828a1c645872be48db85ea679669b41))
+* accept null values in RequirementTags props ([a76c3df](https://github.com/TengShao/u-plus-lite/commit/a76c3df4e05908c15e89bdf34195feca8e660d67))
+* add || true after curl to prevent set -e exit on network error ([2ead3ff](https://github.com/TengShao/u-plus-lite/commit/2ead3ff9ee30e5814847deeb6bdd4dc61364a7e7))
+* add cascade delete for Workload.user relation ([8dc9aba](https://github.com/TengShao/u-plus-lite/commit/8dc9abacc51f6e72e009979edbbf161e94c6f177))
+* allow retry when invalid path entered for existing deployment ([da20920](https://github.com/TengShao/u-plus-lite/commit/da209206b558c41da1b15a511721e88b06242fd3))
+* always create u-plus-lite subdirectory when user specifies custom path ([cdf8416](https://github.com/TengShao/u-plus-lite/commit/cdf8416b41f7f1d75aeac8235f8a44a45c7c2f94))
+* change version prompt to '当前最新版本' ([775133d](https://github.com/TengShao/u-plus-lite/commit/775133da09cbb22899e9380087b0a0efa01df0b3))
+* clarify default path prompt in deployment scripts ([a2472a4](https://github.com/TengShao/u-plus-lite/commit/a2472a4c377d568dcfc947d01047552f5dc55fe6))
+* ensure LATEST_VERSION has fallback value ([2edbf6d](https://github.com/TengShao/u-plus-lite/commit/2edbf6dd199f72f6d759edb4c144eff000ec3c5f))
+* fallback to git ls-remote when GitHub API is rate limited ([80a41e5](https://github.com/TengShao/u-plus-lite/commit/80a41e579530245328cf8ce3439709eec33f0a39))
+* for existing deployment, search for u-plus-lite subfolder in specified path ([e0d1d09](https://github.com/TengShao/u-plus-lite/commit/e0d1d09788f0976368a157a51e7ce7c3f4eda300))
+* handleCreateRequirement同步写入draftExpansionKey sessionStorage防止刷新后草稿消失 ([987f4a1](https://github.com/TengShao/u-plus-lite/commit/987f4a198dbf0e5c8161d804a5442a3c2ce2cbac))
+* only show pipeline tag in RequirementTags ([4cc46bc](https://github.com/TengShao/u-plus-lite/commit/4cc46bc0fee708d4efd4ab730e17f151ddc05a16))
+* prompt for deployment path in new deployment mode ([a5855aa](https://github.com/TengShao/u-plus-lite/commit/a5855aa63c8b24858bb1f045f2d21987314d624e))
+* remove git tag dereference suffix ^{} ([a5218c1](https://github.com/TengShao/u-plus-lite/commit/a5218c110c6ff4c5055f60cc94f38847ca5cb70f))
+* remove premature cd before git clone ([e666dac](https://github.com/TengShao/u-plus-lite/commit/e666dacec74f3be8695d2bddcd4b1ab76e27bf29))
+* sessionStorage跨账号泄露导致需求组被误删 + LLM导入功能完善 ([6e9d424](https://github.com/TengShao/u-plus-lite/commit/6e9d4241e5bb446ca8b7fb45625157edf5715922))
+* set DATABASE_URL before running import.ts in both scripts ([74577c5](https://github.com/TengShao/u-plus-lite/commit/74577c52abf1c7f08b4d6aacccc443ac3a5921cd))
+* set DATABASE_URL env before prisma commands in new deployment ([d06e964](https://github.com/TengShao/u-plus-lite/commit/d06e964df03950e7031cb830282a9e93df21ce30))
+* set DATABASE_URL env before running seed.ts in new deployment ([0a3e973](https://github.com/TengShao/u-plus-lite/commit/0a3e973dff061bce57bdf1ecdf8f50f7cfa81966))
+* show both current and latest version for existing deployments ([a8d1315](https://github.com/TengShao/u-plus-lite/commit/a8d1315db3eab2ecfff5d266f9e0260d96187155))
+* show current version right after version check ([e1bc80b](https://github.com/TengShao/u-plus-lite/commit/e1bc80b2a432df883b43312de8d7fc6e180549ee))
+* show default path in no deployment found message ([40e4d20](https://github.com/TengShao/u-plus-lite/commit/40e4d2076a50c395164d8407789693fdf47cf744))
+* show simple message when already up to date during update ([fb5ad32](https://github.com/TengShao/u-plus-lite/commit/fb5ad3215f0ce95429ec68287a81bd616dfdd1c8))
+* show version number instead of text for new deployment ([41bf981](https://github.com/TengShao/u-plus-lite/commit/41bf98154413e64a41542f56bc88a59c4b65ec5c))
+* simplify deployment mode menu text ([e2fd30b](https://github.com/TengShao/u-plus-lite/commit/e2fd30bd92c7881a4760dc365a57e295f1b04d22))
+* unify default value prompt style ([8f74c0c](https://github.com/TengShao/u-plus-lite/commit/8f74c0ccb43320740f19a00780bd3c829c3a5232))
+* update menu text to '指定已部署路径' ([1156e5f](https://github.com/TengShao/u-plus-lite/commit/1156e5fe8fc1784fc71e3e4d5fa635cbf083a765))
+* use POSIX read -s for cross-platform password input ([a7a9954](https://github.com/TengShao/u-plus-lite/commit/a7a9954335688096a897490e90217f7deed4da9e))
+* use prod.db instead of dev.db in deploy.ps1 for production database isolation ([2433a7c](https://github.com/TengShao/u-plus-lite/commit/2433a7c5de31049af380ced4482c2e9c83492b98))
+* use reasoning_effort=none to disable thinking in Ollama ([3636d8f](https://github.com/TengShao/u-plus-lite/commit/3636d8f0fcd852d8f5310e56cb39eb052a7b814d))
+* 修复提交需求组后其他需求组被误标为待完成的问题 ([e03b169](https://github.com/TengShao/u-plus-lite/commit/e03b169371cb49a98969872e32f81efc1ca1e754))
+* 修复暂存后刷新需求组被删除的问题 - 用isDraft判断而非lastSubmittedAt ([d1f674e](https://github.com/TengShao/u-plus-lite/commit/d1f674e8a05701c2e88329800cea091c557b13a1))
+* 修复更新模式重置管理员密码的 bug ([38fabd9](https://github.com/TengShao/u-plus-lite/commit/38fabd993ba4e3995ac0620d4f759d7eebd02390))
+* 修复草稿刷新后不出现的问题 - loadRequirements里同步保存sessionStorage ([b6e1af0](https://github.com/TengShao/u-plus-lite/commit/b6e1af09d7e1e2a88fdc06a8d40e1bbe1cb367cc))
+* 删除过时的LLM导入设计文档 + 修正刷新提示文案 ([cbab90a](https://github.com/TengShao/u-plus-lite/commit/cbab90ae475e50f1ddc3ca8a162646a0c87d9392))
+* 完善部署脚本的项目路径自动检测逻辑 ([aa2969b](https://github.com/TengShao/u-plus-lite/commit/aa2969b415af3d7ce223942310d435db13d89e4d))
+* 展开时自动刷新+智能合并冲突检测+橙色高亮反馈 ([15358a8](https://github.com/TengShao/u-plus-lite/commit/15358a8fe435c7d66e065d03ad504ee8e30e120d))
+* 新建需求组时设置isDraft=true防止刷新后被删除 ([a54462b](https://github.com/TengShao/u-plus-lite/commit/a54462b01342bcbe820fce334f26903a6246f15f))
+* 暂存后versionRef未更新导致第二次暂存409 ([96bf70c](https://github.com/TengShao/u-plus-lite/commit/96bf70c980f747ca8f8da017e0b68b184f7d7315))
+* 移除未检测到部署时显示最新版本号的冗余信息 ([4366ede](https://github.com/TengShao/u-plus-lite/commit/4366ede136828b8066cc45be0d22d0c1ea515839))
+* 筛选器'完成'改为'能否完成' ([24ff6d7](https://github.com/TengShao/u-plus-lite/commit/24ff6d7b95612951027235b7befa57032cb1b281))
+* 筛选器'完成'改为'能否完成' ([4d101cb](https://github.com/TengShao/u-plus-lite/commit/4d101cba0a65035e131484ca0addcf0dd4e8e39a))
+* 筛选器状态多选、空名称草稿自动删除 ([fa0d246](https://github.com/TengShao/u-plus-lite/commit/fa0d2466b631652ad6f1e5cadf6cb3e6c5fdf351))
+* 脚本自动检测项目目录，无需用户输入路径 ([b07279e](https://github.com/TengShao/u-plus-lite/commit/b07279eca7710a53a4fa524e44fb6520a027adae))
+* 草稿刷新消失的问题及草稿交互体验优化 ([28a339e](https://github.com/TengShao/u-plus-lite/commit/28a339e741440fb7e5dbe817c7b52d3aa03dc8a9))
+* 需求组名称为空时不允许存为草稿 ([fd50c39](https://github.com/TengShao/u-plus-lite/commit/fd50c3985b36932f87bda65586b373e9ef97bc64))
+
+
+### Documentation
+
+* add import requirements via LLM design spec ([731cf74](https://github.com/TengShao/u-plus-lite/commit/731cf747615ed4b60e28ebf81c75d562a3d536cc))
+* add import requirements via LLM design spec ([2f22c26](https://github.com/TengShao/u-plus-lite/commit/2f22c2671669fe60a855e5ff7da66c98cd49d32e))
+* add import requirements via LLM implementation plan ([9778bdd](https://github.com/TengShao/u-plus-lite/commit/9778bddaf0490e1d6c643cf6a75dd43f490a83e3))
+* add RequirementTags component design spec ([8811e2e](https://github.com/TengShao/u-plus-lite/commit/8811e2e29916732ed904db91ab9836621526cb78))
+* fix deploy command to use -o flag for interactive input support ([13bbaa3](https://github.com/TengShao/u-plus-lite/commit/13bbaa375ae50fdd28d814ab987cc7f3dd6c6664))
+* move deploy-guide.md to deploy/ folder ([48d8f08](https://github.com/TengShao/u-plus-lite/commit/48d8f0830378a642b84d36888bbf5bc2156a0f39))
+* revert to download-then-run method with explanation ([f27d25b](https://github.com/TengShao/u-plus-lite/commit/f27d25b7b28e69786959e60a4a20a4975f21f10c))
+* 同步测试指南与部署脚本 ([22e4d36](https://github.com/TengShao/u-plus-lite/commit/22e4d36df014dafa964b32331d824ee4b29e8705))
+* 同步部署指南与脚本步骤 ([20fa51c](https://github.com/TengShao/u-plus-lite/commit/20fa51c0ab03632c0c3d830d6c5a77596699b067))
+
+
+### Refactoring
+
+* extract RequirementTags from RequirementCardCollapsed ([21ff1bc](https://github.com/TengShao/u-plus-lite/commit/21ff1bc1621e18f289cc0ed725f9d013e22bcfeb))
+
 ## [1.1.0](https://github.com/TengShao/u-plus-lite/compare/v1.0.5...v1.1.0) (2026-04-06)
 
 
