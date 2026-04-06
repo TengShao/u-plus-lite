@@ -1,9 +1,9 @@
 'use client'
 
 interface RequirementTagsProps {
-  pipeline?: string
-  module?: string
-  types?: string[]
+  pipeline?: string | null
+  module?: string | null
+  types?: string[] | null
   isLastSubmitted?: boolean
 }
 
