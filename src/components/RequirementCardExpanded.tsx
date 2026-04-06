@@ -218,6 +218,8 @@ export default function RequirementCardExpanded({
   const funcPointsInvalid = triedSubmit && !funcPoints
   const pageCountInvalid = triedSubmit && !pageCount
 
+  const allRequiredFilled = !!name.trim() && !!rating && !!module && !!pipeline && !!budgetItem && !!funcPoints && !!pageCount
+
   function collapseWithAnimation(after?: () => void) {
     if (isCollapsing) return
     setIsCollapsing(true)
@@ -274,6 +276,43 @@ export default function RequirementCardExpanded({
     onDraftResolved(data.id)
     onLastSubmitRequest?.(data.id)
     collapseWithAnimation()
+  }
+
+  async function handleStagingSave() {
+    // 暂存：不验证必填项，只保存当前数据，保持 isDraft=true
+    const res = await fetch(`/api/requirements/${data.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name.trim(),
+        rating,
+        module,
+        pipeline,
+        types: JSON.stringify(types),
+        budgetItem,
+        canClose,
+        funcPoints,
+        pageCount,
+        isDraft: true,
+        lastSubmittedAt: null,
+        version: versionRef.current,
+        cycleId,
+      }),
+    })
+
+    if (!res.ok) {
+      if (res.status === 409) {
+        const err = await res.json().catch(() => ({ error: '数据已被其他人修改' }))
+        showTips('negative', err.error || '数据已被其他人修改')
+        await handleRefreshConflictAndRetry()
+        return
+      }
+      showTips('negative', '暂存失败')
+      return
+    }
+
+    showTips('positive', '已暂存')
+    onRefresh()
   }
 
   async function handleRefreshConflict() {
@@ -739,11 +778,11 @@ export default function RequirementCardExpanded({
 
           <ActionButton
             variant="submit"
-            disabled={(!userEditable && !isComplete) || (!has409Conflict && !isDirty)}
+            disabled={(!userEditable && !isComplete) || (!has409Conflict && !allRequiredFilled && !isDirty) || (!has409Conflict && allRequiredFilled && !isDirty)}
             lastSubmittedAt={data.lastSubmittedAt}
             lastSubmitterName={data.lastSubmitterName}
-            onClick={has409Conflict ? handleRefreshConflict : (isComplete ? () => onReopenRequest?.(data.id) : handleSubmit)}
-            completeText={has409Conflict ? '刷新' : (isComplete ? '重启' : undefined)}
+            onClick={has409Conflict ? handleRefreshConflict : (isComplete ? () => onReopenRequest?.(data.id) : (allRequiredFilled ? handleSubmit : handleStagingSave))}
+            completeText={has409Conflict ? '刷新' : (isComplete ? '重启' : (!allRequiredFilled ? '暂存' : undefined))}
             hideIcon={isComplete || has409Conflict}
           />
         </div>

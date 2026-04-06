@@ -73,6 +73,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
   }
 
+  const isStagingSave = data.isDraft === true
+
   const updated = await prisma.requirementGroup.update({
     where: { id },
     data: {
@@ -87,9 +89,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       funcPoints: data.funcPoints,
       pageCount: data.pageCount,
       version: { increment: 1 },
-      lastSubmittedAt: new Date(),
-      lastSubmittedBy: parseInt(session.user.id),
-      isDraft: false,
+      // 暂存：保持 isDraft=true，不设置 lastSubmittedAt
+      // 提交：isDraft=false，设置 lastSubmittedAt
+      lastSubmittedAt: isStagingSave ? null : new Date(),
+      lastSubmittedBy: isStagingSave ? null : parseInt(session.user.id),
+      isDraft: isStagingSave ? true : false,
     },
   })
   // Upsert cycle-specific pipeline memory
