@@ -7,6 +7,7 @@ interface RequirementTagsProps {
   isLastSubmitted?: boolean
   isDraft?: boolean
   status?: string
+  lastSubmittedAt?: string | null
 }
 
 function Divider() {
@@ -20,12 +21,13 @@ export default function RequirementTags({
   isLastSubmitted,
   isDraft,
   status,
+  lastSubmittedAt,
 }: RequirementTagsProps) {
   const tags: string[] = []
   if (pipeline) tags.push(pipeline)
   // module 和 types 暂不显示，后续按需启用
 
-  const showPending = isDraft || (status === 'INCOMPLETE' && !isLastSubmitted)
+  const showPending = isDraft || (status === 'INCOMPLETE' && lastSubmittedAt === null)
 
   return (
     <div className="flex items-center gap-[12px]">

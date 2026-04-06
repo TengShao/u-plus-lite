@@ -64,6 +64,7 @@ export default function RequirementCardCollapsed({
           isLastSubmitted={isLastSubmitted}
           isDraft={data.isDraft}
           status={data.status}
+          lastSubmittedAt={data.lastSubmittedAt}
         />
       </div>
 
