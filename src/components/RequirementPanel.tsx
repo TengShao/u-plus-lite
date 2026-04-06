@@ -221,7 +221,7 @@ export default function RequirementPanel({
           }
         }
         // Restore draft expansion IDs from sessionStorage
-        if (draftExpansionKey && expandedIds.length === 0) {
+        if (draftExpansionKey) {
           const savedExpanded = sessionStorage.getItem(draftExpansionKey)
           if (savedExpanded) {
             try {
@@ -232,6 +232,8 @@ export default function RequirementPanel({
               )
               if (validDraftExpanded.length > 0) {
                 setExpandedIds(validDraftExpanded)
+                // Sync save to sessionStorage (effect won't trigger because expandedIds is still [] in this cycle)
+                sessionStorage.setItem(draftExpansionKey, JSON.stringify(validDraftExpanded))
               } else {
                 sessionStorage.removeItem(draftExpansionKey)
               }
