@@ -3,6 +3,8 @@ import { useState, useRef, useEffect } from 'react'
 import { RATINGS } from '@/lib/constants'
 
 const HEALTH_OPTIONS = ['适合', '欠饱和', '过饱和']
+const STATUS_OPTIONS = ['INCOMPLETE', 'COMPLETE', 'UNSUBMITTED']
+const STATUS_LABELS = ['未完成', '已完成', '未提交']
 
 
 
@@ -111,7 +113,7 @@ export default function FilterBar({
         counts={counts?.designer}
       />
       <SingleDropdown label="能否完成" options={['true', 'false']} optionLabels={['是', '否']} selected={filters.canClose?.[0] || ''} onSelect={(v) => selectSingle('canClose', v)} counts={counts?.canClose} />
-      <SingleDropdown label="状态" options={['INCOMPLETE', 'COMPLETE']} optionLabels={['未完成', '已完成']} selected={filters.status?.[0] || ''} onSelect={(v) => selectSingle('status', v)} counts={counts?.status} />
+      <MultiDropdown label="状态" options={STATUS_OPTIONS} optionLabels={STATUS_LABELS} selected={filters.status || []} onToggle={(v) => toggle('status', v, STATUS_OPTIONS)} onSelectAll={() => selectAll('status', STATUS_OPTIONS)} onExclusive={(v) => exclusive('status', v)} counts={counts?.status} />
     </div>
   )
 }

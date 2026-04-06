@@ -168,8 +168,8 @@ export default function RequirementCardExpanded({
   const hasAnyTip = hasRatingTip || hasFuncPointsTip || hasPageCountTip
 
   // 新建的需求组（isDraft=true 且从未正式提交，且名称为空）视为 dirty
-  // 同时检查本地 name 状态，因为暂存成功后 data 可能还未更新
-  const isNewUnsubmittedDraft = !!isDraft && data.lastSubmittedAt === null && !name.trim()
+  // 使用 !!data.isDraft 确保是布尔值，防止 API 未返回 isDraft 时出现 undefined
+  const isNewUnsubmittedDraft = !!data.isDraft && data.lastSubmittedAt === null && !name.trim()
 
   const isDirty = useMemo(() => {
     const myWorkload = data.cycleWorkloads.find((w) => w.userId === userId)
@@ -808,7 +808,7 @@ export default function RequirementCardExpanded({
             onClick={() => {
               if (isDirty) {
                 onDiscardRequest(data.id)
-              } else if (isDraft && !name.trim()) {
+              } else if (!!data.isDraft && !name.trim()) {
                 // 草稿名称为空时，触发必填提醒
                 setTriedStagingSubmit(true)
               } else {

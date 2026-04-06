@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useSession } from 'next-auth/react'
+import { RATINGS } from '@/lib/constants'
 import FilterBar from './FilterBar'
 import RequirementCardCollapsed from './RequirementCardCollapsed'
 import RequirementCardExpanded from './RequirementCardExpanded'
@@ -178,8 +179,8 @@ export default function RequirementPanel({
         if (saved && activeDraftIdRef.current === null) {
           const draftId = parseInt(saved)
           const draft = data.find((r: RequirementData) => r.id === draftId)
-          if (draft && draft.isDraft !== true && draft.lastSubmittedAt === null && draft.rating === null) {
-            // Found an unsubmitted draft from a previous session
+          if (draft && (draft.name === '' || (draft.isDraft !== true && draft.lastSubmittedAt === null && draft.rating === null))) {
+            // Found an unsubmitted draft from a previous session OR empty name draft
             // Mark it for deletion so persist effect knows not to clear sessionStorage prematurely
             draftToDeleteRef.current = draftId
             // Update local state to remove the draft immediately
@@ -386,9 +387,13 @@ export default function RequirementPanel({
       if (val === 'false') result = result.filter((r) => !r.canClose)
     }
     if (filters.status?.length) {
-      const val = filters.status[0]
-      if (val === 'INCOMPLETE') result = result.filter((r) => r.status === 'INCOMPLETE')
-      if (val === 'COMPLETE') result = result.filter((r) => r.status === 'COMPLETE')
+      result = result.filter((r) => {
+        const statusSet = new Set(filters.status)
+        if (statusSet.has('UNSUBMITTED') && (r.isDraft || r.lastSubmittedAt === null)) return true
+        if (statusSet.has('INCOMPLETE') && r.status === 'INCOMPLETE') return true
+        if (statusSet.has('COMPLETE') && r.status === 'COMPLETE') return true
+        return false
+      })
     }
     // Sort: INCOMPLETE first, COMPLETE last
     result = [...result].sort((a, b) => {
@@ -554,12 +559,12 @@ export default function RequirementPanel({
 
   // Filter counts
   const filterCounts = useMemo(() => {
-    const pipeline: Record<string, number> = {}
-    const rating: Record<string, number> = {}
-    const health: Record<string, number> = {}
+    const pipeline: Record<string, number> = Object.fromEntries(pipelineSettings.map((p) => [p.name, 0]))
+    const rating: Record<string, number> = Object.fromEntries(RATINGS.map((r) => [r, 0]))
+    const health: Record<string, number> = { '适合': 0, '欠饱和': 0, '过饱和': 0 }
     const designer: Record<string, number> = {}
-    const canClose: Record<string, number> = {}
-    const status: Record<string, number> = {}
+    const canClose: Record<string, number> = { true: 0, false: 0 }
+    const status: Record<string, number> = { INCOMPLETE: 0, COMPLETE: 0, UNSUBMITTED: 0 }
 
     requirements.forEach((r) => {
       if (r.pipeline) pipeline[r.pipeline] = (pipeline[r.pipeline] || 0) + 1
@@ -569,12 +574,15 @@ export default function RequirementPanel({
         const key = String(w.userId)
         designer[key] = (designer[key] || 0) + 1
       })
-      canClose[r.canClose ? 'true' : 'false'] = (canClose[r.canClose ? 'true' : 'false'] || 0) + 1
-      status[r.status] = (status[r.status] || 0) + 1
+      canClose[r.canClose ? 'true' : 'false']++
+      status[r.status]++
+      if (r.isDraft || r.lastSubmittedAt === null) {
+        status['UNSUBMITTED']++
+      }
     })
 
     return { pipeline, rating, health, designer, canClose, status }
-  }, [requirements])
+  }, [requirements, pipelineSettings])
 
   async function handleDeleteRequest(id: number) {
     await fetch(`/api/requirements/${id}`, { method: 'DELETE' })
