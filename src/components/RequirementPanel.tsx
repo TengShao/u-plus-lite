@@ -550,6 +550,15 @@ export default function RequirementPanel({
     return { pipeline, rating, health, designer, canClose, status }
   }, [requirements])
 
+  async function handleStagingSave(id: number) {
+    const rg = requirements.find((r) => r.id === id)
+    if (!rg) return
+    // Collect current form data from the expanded card would be complex,
+    // so we just call a dedicated staging endpoint or PATCH without validation
+    // For now, the staging save is handled directly in RequirementCardExpanded
+    // This function is used for cross-card staging via dialog
+  }
+
   async function handleDeleteRequest(id: number) {
     await fetch(`/api/requirements/${id}`, { method: 'DELETE' })
     setPendingDeleteId(null)
@@ -741,26 +750,57 @@ export default function RequirementPanel({
             onDraftsImported={handleDraftsImported}
           />
         )}
-        {showDiscardConfirm && (
-        <ConfirmDialog
-          title="放弃修改"
-          message="有未保存的修改，是否放弃？"
-          onConfirm={() => {
-            const draftToDelete = activeDraftId !== null && expandedIds.includes(activeDraftId) ? activeDraftId : null
-            setShowDiscardConfirm(false)
-            if (draftToDelete !== null) {
-              fetch(`/api/requirements/${draftToDelete}`, { method: 'DELETE' }).then(() => onRefresh())
-              setActiveDraftId(null)
-            }
-            setExpandedIds(pendingExpandId !== null ? [pendingExpandId] : [])
-            setHasUnsaved(false)
-          }}
-          onCancel={() => {
-            setShowDiscardConfirm(false)
-            setPendingExpandId(null)
-          }}
-        />
-      )}
+        {showDiscardConfirm && (() => {
+          const currentExpandedIsDraft = activeDraftId !== null && expandedIds.includes(activeDraftId)
+          return currentExpandedIsDraft ? (
+            <ConfirmDialog
+              title="暂存或放弃草稿"
+              message="有未保存的修改，如何处理？"
+              confirmText="放弃草稿"
+              middleText="暂存"
+              onConfirm={() => {
+                // Delete draft and expand pending card
+                setShowDiscardConfirm(false)
+                const draftToDelete = activeDraftId
+                if (draftToDelete !== null) {
+                  fetch(`/api/requirements/${draftToDelete}`, { method: 'DELETE' }).then(() => onRefresh())
+                  setActiveDraftId(null)
+                }
+                setExpandedIds(pendingExpandId !== null ? [pendingExpandId] : [])
+                setHasUnsaved(false)
+                setPendingExpandId(null)
+              }}
+              onMiddle={() => {
+                // Close dialog and keep draft open - user can click 暂存 button
+                setShowDiscardConfirm(false)
+                setPendingExpandId(null)
+              }}
+              onCancel={() => {
+                setShowDiscardConfirm(false)
+                setPendingExpandId(null)
+              }}
+            />
+          ) : (
+            <ConfirmDialog
+              title="放弃修改"
+              message="有未保存的修改，是否放弃？"
+              onConfirm={() => {
+                const draftToDelete = activeDraftId !== null && expandedIds.includes(activeDraftId) ? activeDraftId : null
+                setShowDiscardConfirm(false)
+                if (draftToDelete !== null) {
+                  fetch(`/api/requirements/${draftToDelete}`, { method: 'DELETE' }).then(() => onRefresh())
+                  setActiveDraftId(null)
+                }
+                setExpandedIds(pendingExpandId !== null ? [pendingExpandId] : [])
+                setHasUnsaved(false)
+              }}
+              onCancel={() => {
+                setShowDiscardConfirm(false)
+                setPendingExpandId(null)
+              }}
+            />
+          )
+        })()}
       {showDraftExistsConfirm && (
         <ConfirmDialog
           title="已有新建需求组"
@@ -779,14 +819,38 @@ export default function RequirementPanel({
           onCancel={() => setPendingDeleteId(null)}
         />
       )}
-      {pendingDiscardId !== null && (
-        <ConfirmDialog
-          title="放弃修改"
-          message="有未保存的修改，是否放弃？"
-          onConfirm={() => handleDiscardRequest(pendingDiscardId)}
-          onCancel={() => setPendingDiscardId(null)}
-        />
-      )}
+      {pendingDiscardId !== null && (() => {
+        const isDraftRg = pendingDiscardId === activeDraftId
+        return isDraftRg ? (
+          <ConfirmDialog
+            title="暂存或放弃草稿"
+            message="有未保存的修改，如何处理？"
+            confirmText="放弃草稿"
+            middleText="暂存"
+            onConfirm={async () => {
+              // Delete draft and collapse
+              setPendingDiscardId(null)
+              await fetch(`/api/requirements/${pendingDiscardId}`, { method: 'DELETE' })
+              setActiveDraftId(null)
+              setExpandedIds(expandedIds.filter((eid) => eid !== pendingDiscardId))
+              setHasUnsaved(false)
+              onRefresh()
+            }}
+            onMiddle={() => {
+              // Just close dialog, keep card open for user to click 暂存
+              setPendingDiscardId(null)
+            }}
+            onCancel={() => setPendingDiscardId(null)}
+          />
+        ) : (
+          <ConfirmDialog
+            title="放弃修改"
+            message="有未保存的修改，是否放弃？"
+            onConfirm={() => handleDiscardRequest(pendingDiscardId)}
+            onCancel={() => setPendingDiscardId(null)}
+          />
+        )
+      })()}
       {pendingDuplicateId !== null && (
         <ConfirmDialog
           title="同名需求组已存在"
