@@ -32,6 +32,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete }: Prop
   const [error, setError] = useState<string | null>(null)
   const [editingGroupName, setEditingGroupName] = useState<number | null>(null)
   const [editedName, setEditedName] = useState('')
+  const [primaryAction, setPrimaryAction] = useState<'import' | 'merge'>('import')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 处理 CSV 文件上传
@@ -121,27 +122,46 @@ export default function ImportModal({ cycleId, onClose, onImportComplete }: Prop
     })
   }
 
-  // 合并选中组
-  function handleMergeSelected() {
+  // 合并选中组（调用 API）
+  async function handleMergeSelected() {
     if (selectedIds.size < 2) return
     const selectedGroups = groups.filter((_, i) => selectedIds.has(i))
-    const mergedItems = selectedGroups.flatMap(g => g.items)
-    const newGroup: ParsedGroup = {
-      name: '新合并需求组',
-      action: 'CREATE_NEW',
-      matchedGroup: null,
-      matchReason: '',
-      items: mergedItems,
+    setIsLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/import/merge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groups: selectedGroups }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? '合并失败')
+      const mergedGroup = data.group as ParsedGroup
+      const remaining = groups.filter((_, i) => !selectedIds.has(i))
+      setGroups([...remaining, mergedGroup])
+      setSelectedIds(new Set())
+      setPrimaryAction('import')
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
     }
-    const remaining = groups.filter((_, i) => !selectedIds.has(i))
-    setGroups([...remaining, newGroup])
-    setSelectedIds(new Set())
+  }
+
+  // 点击合并按钮
+  function handleStartMerge() {
+    setPrimaryAction('merge')
+  }
+
+  // 取消合并
+  function handleCancelMerge() {
+    setPrimaryAction('import')
   }
 
   // 确认导入
   async function handleConfirm() {
     if (groups.length === 0) return
-    const decisions = groups.map(g => ({
+    const decisions = groups.filter((_, i) => selectedIds.has(i)).map(g => ({
       name: g.name,
       action: g.action === 'MATCH' ? 'MERGE' : 'CREATE',
       targetGroupId: g.matchedGroup?.id ?? null,
@@ -220,14 +240,24 @@ export default function ImportModal({ cycleId, onClose, onImportComplete }: Prop
                     <span className="text-[13px] text-[#666]">
                       {selectedIds.size > 0 ? `已选 ${selectedIds.size} 项` : '全选'}
                     </span>
-                    {selectedIds.size >= 2 && (
+                    <div className="ml-auto flex items-center gap-2">
+                      {primaryAction === 'import' && groups.length < 2 && (
+                        <span className="text-[12px] text-[#999]">至少需要2个需求组</span>
+                      )}
                       <button
-                        onClick={handleMergeSelected}
-                        className="ml-auto px-3 py-1 rounded-[6px] border border-[#8ECA2E] text-[13px] text-[#8ECA2E] hover:bg-[rgba(142,202,46,0.1)]"
+                        onClick={primaryAction === 'merge' ? handleCancelMerge : handleStartMerge}
+                        disabled={primaryAction === 'import' && groups.length < 2}
+                        className={`px-3 py-1 rounded-[6px] border text-[13px] transition-colors ${
+                          primaryAction === 'merge'
+                            ? 'border-[#8ECA2E] bg-[#8ECA2E] text-white'
+                            : groups.length >= 2
+                              ? 'border-[#8ECA2E] text-[#8ECA2E] hover:bg-[rgba(142,202,46,0.1)]'
+                              : 'border-[#CCCCCC] text-[#CCCCCC] cursor-not-allowed'
+                        }`}
                       >
-                        合并选中的 {selectedIds.size} 个组
+                        {primaryAction === 'merge' ? '取消合并' : '合并'}
                       </button>
-                    )}
+                    </div>
                   </div>
 
                   {/* 分组卡片列表 */}
@@ -282,28 +312,47 @@ export default function ImportModal({ cycleId, onClose, onImportComplete }: Prop
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-black/10">
-          <button
-            onClick={step === 'input' ? onClose : () => { setStep('input'); setGroups([]); setError(null) }}
-            className="h-10 w-28 rounded-[8px] bg-[#F2F2F2] text-[16px] font-bold text-black"
-          >
-            {step === 'input' ? '取消' : '上一步'}
-          </button>
           {step === 'input' ? (
-            <button
-              onClick={handleParse}
-              disabled={!rawContent.trim() || isLoading}
-              className="h-10 w-28 rounded-[8px] bg-black text-[16px] font-bold text-white disabled:bg-[#B6B6B6]"
-            >
-              {isLoading ? '解析中...' : '解析'}
-            </button>
+            <>
+              <button
+                onClick={onClose}
+                className="h-10 w-28 rounded-[8px] bg-[#F2F2F2] text-[16px] font-bold text-black"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleParse}
+                disabled={!rawContent.trim() || isLoading}
+                className="h-10 w-28 rounded-[8px] bg-black text-[16px] font-bold text-white disabled:bg-[#B6B6B6]"
+              >
+                {isLoading ? '解析中...' : '解析'}
+              </button>
+            </>
           ) : (
-            <button
-              onClick={handleConfirm}
-              disabled={groups.length === 0 || isLoading}
-              className="h-10 w-32 rounded-[8px] bg-[#8ECA2E] text-[16px] font-bold text-white disabled:bg-[#B6B6B6]"
-            >
-              {isLoading ? '导入中...' : '确认导入'}
-            </button>
+            <>
+              {primaryAction !== 'merge' && (
+                <button
+                  onClick={() => { setStep('input'); setGroups([]); setError(null); setPrimaryAction('import') }}
+                  className="h-10 w-28 rounded-[8px] bg-[#F2F2F2] text-[16px] font-bold text-black"
+                >
+                  上一步
+                </button>
+              )}
+              <button
+                onClick={primaryAction === 'merge' ? handleMergeSelected : handleConfirm}
+                disabled={
+                  primaryAction === 'merge'
+                    ? selectedIds.size < 2 || isLoading
+                    : groups.length === 0 || selectedIds.size === 0 || isLoading
+                }
+                title={primaryAction === 'import' && groups.length < 2 ? '需求组数量不足以合并' : undefined}
+                className={`h-10 w-32 rounded-[8px] text-[16px] font-bold text-white disabled:bg-[#B6B6B6] ${
+                  primaryAction === 'merge' ? 'bg-black' : 'bg-[#8ECA2E]'
+                }`}
+              >
+                {isLoading ? '处理中...' : primaryAction === 'merge' ? '合并' : '确认导入'}
+              </button>
+            </>
           )}
         </div>
       </div>

@@ -148,6 +148,69 @@ ${groupsList || '(无已有需求组)'}
 - designers 填入实际的设计师名称字符串列表`
 }
 
+export function buildMergePrompt(groups: ParsedGroup[]): string {
+  const groupsJson = JSON.stringify(groups.map(g => ({
+    name: g.name,
+    items: g.items.map(item => ({
+      originalText: item.originalText,
+      manDays: item.manDays,
+      designers: item.designers,
+    })),
+  })), null, 2)
+
+  return `你是一个需求组合并助手。你的任务是将多个需求组合并成一个新需求组。
+
+## 输入
+以下是要合并的需求组列表（JSON格式）：
+${groupsJson}
+
+## 合并规则
+1. 汇总所有人天（manDays 累加）
+2. 合并设计师列表（去重）
+3. 合并所有原始文本条目
+4. 根据合并后的内容生成一个新的需求组名称
+
+## 输出要求
+**必须只输出 JSON**，不要有任何其他文字说明。JSON 格式如下：
+{"name":"新需求组名称","items":[{"originalText":"原始文本1","manDays":总人天数,"designers":["设计师1","设计师2"]}]}
+`
+}
+
+export async function mergeWorkload(groups: ParsedGroup[]): Promise<ParsedGroup> {
+  const prompt = buildMergePrompt(groups)
+  const response = await callLLM('', prompt)
+
+  let jsonStr = response
+    .replace(/[\s\S]*?<\/think>/, '')
+    .replace(/```(?:json)?\n?/gi, '')
+    .replace(/```(?:json)?\n?/gi, '')
+    .replace(/^#.*$/gm, '')
+    .trim()
+
+  const firstBrace = jsonStr.indexOf('{')
+  const lastBrace = jsonStr.lastIndexOf('}')
+  if (firstBrace !== -1 && lastBrace !== -1) {
+    jsonStr = jsonStr.substring(firstBrace, lastBrace + 1)
+  }
+
+  try {
+    const result = JSON.parse(jsonStr)
+    return {
+      name: result.name,
+      action: 'CREATE_NEW',
+      matchedGroup: null,
+      matchReason: '由合并生成',
+      items: result.items.map((item: any) => ({
+        originalText: item.originalText,
+        manDays: item.manDays,
+        designers: item.designers,
+      })),
+    }
+  } catch {
+    throw new Error('LLM返回格式解析失败，请重试')
+  }
+}
+
 export async function parseWorkload(
   rawContent: string,
   existingGroups: { id: number; name: string }[],
