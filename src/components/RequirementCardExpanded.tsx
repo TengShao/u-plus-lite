@@ -312,6 +312,7 @@ export default function RequirementCardExpanded({
     }
 
     showTips('positive', '已暂存')
+    versionRef.current += 1
     onRefresh()
   }
 
