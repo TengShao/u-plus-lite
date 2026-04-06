@@ -62,6 +62,8 @@ export default function RequirementCardCollapsed({
           module={data.module}
           types={data.types}
           isLastSubmitted={isLastSubmitted}
+          isDraft={data.isDraft}
+          status={data.status}
         />
       </div>
 

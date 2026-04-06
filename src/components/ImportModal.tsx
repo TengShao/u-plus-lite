@@ -21,9 +21,10 @@ interface Props {
   cycleId: number
   onClose: () => void
   onImportComplete: () => void
+  onDraftsImported?: (draftIds: number[]) => void
 }
 
-export default function ImportModal({ cycleId, onClose, onImportComplete }: Props) {
+export default function ImportModal({ cycleId, onClose, onImportComplete, onDraftsImported }: Props) {
   const [step, setStep] = useState<'input' | 'preview'>('input')
   const [rawContent, setRawContent] = useState('')
   const [groups, setGroups] = useState<ParsedGroup[]>([])
@@ -177,6 +178,13 @@ export default function ImportModal({ cycleId, onClose, onImportComplete }: Prop
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? '导入失败')
+      // Extract draft IDs from results
+      const draftIds = (data.results as { groupId: number; importedCount: number; isDraft: boolean }[])
+        .filter((r) => r.isDraft)
+        .map((r) => r.groupId)
+      if (draftIds.length > 0) {
+        onDraftsImported?.(draftIds)
+      }
       onImportComplete()
       onClose()
     } catch (err: any) {

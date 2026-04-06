@@ -26,6 +26,7 @@ export type RequirementData = {
   inputRatio: number; healthStatus: string | null; recommendedRating: string
   funcPointsRecommended: number; cycleWorkloads: WorkloadEntry[]
   creator: { id: number; name: string }
+  isDraft: boolean
 }
 
 export default function RequirementPanel({
@@ -44,7 +45,7 @@ export default function RequirementPanel({
   const { data: session } = useSession()
   const { showTips } = useTips()
   const [requirements, setRequirements] = useState<RequirementData[]>([])
-  const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [expandedIds, setExpandedIds] = useState<number[]>([])
   const [hasUnsaved, setHasUnsaved] = useState(false)
   const [pendingExpandId, setPendingExpandId] = useState<number | null>(null)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
@@ -81,6 +82,8 @@ export default function RequirementPanel({
 
   // Build user-scoped draft key to prevent cross-user sessionStorage collision
   const draftKey = session?.user?.id ? `draft_${session.user.id}_${cycleId}` : null
+  // Key for persisting expanded draft IDs
+  const draftExpansionKey = session?.user?.id ? `draftExpanded_${session.user.id}_${cycleId}` : null
 
   // Persist activeDraftId in sessionStorage
   useEffect(() => {
@@ -155,7 +158,7 @@ export default function RequirementPanel({
         if (session?.user?.id) sessionStorage.removeItem(`draft_${session.user.id}_${previousCycleIdRef.current}`)
       }
       setActiveDraftId(null)
-      setExpandedId(null)
+      setExpandedIds([])
     }
     previousCycleIdRef.current = cycleId
   }, [cycleId]) // only fire on actual cycle switch (not refresh)
@@ -217,6 +220,26 @@ export default function RequirementPanel({
             setActiveDraftId(null)
           }
         }
+        // Restore draft expansion IDs from sessionStorage
+        if (draftExpansionKey && expandedIds.length === 0) {
+          const savedExpanded = sessionStorage.getItem(draftExpansionKey)
+          if (savedExpanded) {
+            try {
+              const draftExpandedIds: number[] = JSON.parse(savedExpanded)
+              // Only restore IDs that are actually drafts and still exist
+              const validDraftExpanded = draftExpandedIds.filter((id) =>
+                data.some((r: RequirementData) => r.id === id && r.isDraft)
+              )
+              if (validDraftExpanded.length > 0) {
+                setExpandedIds(validDraftExpanded)
+              } else {
+                sessionStorage.removeItem(draftExpansionKey)
+              }
+            } catch {
+              sessionStorage.removeItem(draftExpansionKey)
+            }
+          }
+        }
       } catch (err) {
         console.error('Failed to load requirements:', err)
       }
@@ -246,6 +269,20 @@ export default function RequirementPanel({
     onDraftChange?.(activeDraftId !== null)
     activeDraftIdRef.current = activeDraftId
   }, [activeDraftId, onDraftChange])
+
+  // Persist expanded draft IDs to sessionStorage
+  useEffect(() => {
+    if (!draftExpansionKey) return
+    const draftExpanded = expandedIds.filter((id) => {
+      const rg = requirements.find((r) => r.id === id)
+      return rg?.isDraft
+    })
+    if (draftExpanded.length > 0) {
+      sessionStorage.setItem(draftExpansionKey, JSON.stringify(draftExpanded))
+    } else {
+      sessionStorage.removeItem(draftExpansionKey)
+    }
+  }, [expandedIds, requirements, draftExpansionKey])
 
   // Reset scroll position when cycleId changes
   useEffect(() => {
@@ -331,12 +368,31 @@ export default function RequirementPanel({
   }, [requirements, searchQuery, filters])
 
   function handleExpand(id: number) {
-    // If clicking on a different card that has an unsubmitted draft, show confirmation
-    if (expandedId && id !== expandedId && (hasUnsaved || expandedId === activeDraftId)) {
+    const rg = requirements.find((r) => r.id === id)
+    if (!rg) return
+    const isDraftRg = rg.isDraft
+
+    // If expanding a draft, just add to expandedIds (drafts can have multiple expanded)
+    if (isDraftRg) {
+      if (!expandedIds.includes(id)) {
+        setExpandedIds([...expandedIds, id])
+      }
+      setHasUnsaved(false)
+      scrollToCard(id)
+      return
+    }
+
+    // For non-drafts: check if there's an expanded non-draft with unsaved changes
+    const expandedNonDraft = expandedIds.find((eid) => {
+      const r = requirements.find((req) => req.id === eid)
+      return r && !r.isDraft && r.id !== id
+    })
+    if (expandedNonDraft && hasUnsaved) {
       setPendingExpandId(id)
       setShowDiscardConfirm(true)
       return
     }
+
     // If clicking on a collapsed card while a draft exists (different from the one being clicked), show confirmation
     if (activeDraftId && id !== activeDraftId) {
       const savedDraft = draftKey ? sessionStorage.getItem(draftKey) : null
@@ -346,9 +402,18 @@ export default function RequirementPanel({
         return
       }
     }
-    setExpandedId(id)
+    // For non-drafts, replace expandedIds with just this one
+    setExpandedIds([id])
     setHasUnsaved(false)
-    // Only scroll if expanded card won't be fully visible
+    scrollToCard(id)
+  }
+
+  function handleCollapse(id: number) {
+    setExpandedIds(expandedIds.filter((eid) => eid !== id))
+    setHasUnsaved(false)
+  }
+
+  function scrollToCard(id: number) {
     setTimeout(() => {
       const container = scrollContainerRef.current
       if (!container) return
@@ -363,11 +428,6 @@ export default function RequirementPanel({
         container.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' })
       }
     }, 0)
-  }
-
-  function handleCollapse() {
-    setExpandedId(null)
-    setHasUnsaved(false)
   }
 
   async function handleCreateRequirement() {
@@ -393,7 +453,7 @@ export default function RequirementPanel({
       const rg = await res.json()
       // Update activeDraftIdRef BEFORE calling onRefresh to prevent loadRequirements from deleting the draft
       activeDraftIdRef.current = rg.id
-      setExpandedId(rg.id)
+      setExpandedIds([rg.id])
       setActiveDraftId(rg.id)
       // Now call onRefresh - loadRequirements will see activeDraftIdRef.current is non-null and won't delete
       onRefresh()
@@ -410,7 +470,7 @@ export default function RequirementPanel({
       setShowDraftExistsConfirm(false)
       return
     }
-    setExpandedId(activeDraftId)
+    setExpandedIds([activeDraftId])
     setHasUnsaved(false)
     setTimeout(() => {
       const container = scrollContainerRef.current
@@ -437,6 +497,24 @@ export default function RequirementPanel({
     if (!session?.user?.id) return
     setLastSubmittedId(id)
     localStorage.setItem(`lastSubmittedRequirement_${session.user.id}`, String(id))
+  }
+
+  function handleDraftsImported(draftIds: number[]) {
+    // Persist to sessionStorage so they survive the onRefresh() reload
+    if (draftExpansionKey && draftIds.length > 0) {
+      sessionStorage.setItem(draftExpansionKey, JSON.stringify(draftIds))
+    }
+    // Expand all imported drafts and set the first one as activeDraftId
+    if (draftIds.length > 0) {
+      setActiveDraftId(draftIds[0])
+      activeDraftIdRef.current = draftIds[0]
+      // Add all drafts to expandedIds
+      setExpandedIds([...expandedIds, ...draftIds])
+      // Scroll to first draft
+      setTimeout(() => {
+        scrollToCard(draftIds[0])
+      }, 100)
+    }
   }
 
   // All designers in current cycle for filter
@@ -476,12 +554,12 @@ export default function RequirementPanel({
     await fetch(`/api/requirements/${id}`, { method: 'DELETE' })
     setPendingDeleteId(null)
     onRefresh()
-    setExpandedId(null)
+    setExpandedIds(expandedIds.filter((eid) => eid !== id))
   }
 
   async function handleDiscardRequest(id: number) {
     setPendingDiscardId(null)
-    setExpandedId(null)
+    setExpandedIds(expandedIds.filter((eid) => eid !== id))
     setHasUnsaved(false)
     if (activeDraftId === id) {
       await fetch(`/api/requirements/${id}`, { method: 'DELETE' })
@@ -496,10 +574,11 @@ export default function RequirementPanel({
 
   async function doCompleteRequest() {
     if (pendingCompleteId === null) return
-    await fetch(`/api/requirements/${pendingCompleteId}/complete`, { method: 'PATCH' })
+    const idToCollapse = pendingCompleteId
+    await fetch(`/api/requirements/${idToCollapse}/complete`, { method: 'PATCH' })
     setPendingCompleteId(null)
     onRefresh()
-    setExpandedId(null)
+    setExpandedIds(expandedIds.filter((eid) => eid !== idToCollapse))
   }
 
   async function handleReopenRequest(id: number) {
@@ -508,10 +587,11 @@ export default function RequirementPanel({
 
   async function doReopenRequest() {
     if (pendingReopenId === null) return
-    await fetch(`/api/requirements/${pendingReopenId}/reopen`, { method: 'PATCH' })
+    const idToCollapse = pendingReopenId
+    await fetch(`/api/requirements/${idToCollapse}/reopen`, { method: 'PATCH' })
     setPendingReopenId(null)
     onRefresh()
-    setExpandedId(null)
+    setExpandedIds(expandedIds.filter((eid) => eid !== idToCollapse))
   }
 
   async function handleViewDuplicate() {
@@ -524,7 +604,7 @@ export default function RequirementPanel({
     }
     if (pendingDuplicateId !== null) {
       setHasUnsaved(false)
-      setExpandedId(pendingDuplicateId)
+      setExpandedIds([pendingDuplicateId])
     }
     setPendingDuplicateId(null)
     setPendingDuplicateName('')
@@ -614,17 +694,17 @@ export default function RequirementPanel({
                   opacity: 0,
                 }}
               >
-              {expandedId === rg.id ? (
+              {expandedIds.includes(rg.id) ? (
                 <RequirementCardExpanded
                   key={`expanded-${rg.id}`}
                   data={rg}
                   cycleId={cycleId}
                   cycleStatus={cycle?.status || 'OPEN'}
-                  onCollapse={handleCollapse}
+                  onCollapse={() => handleCollapse(rg.id)}
                   onRefresh={onRefresh}
                   onDirtyChange={setHasUnsaved}
                   allRequirements={requirements}
-                  onExpandById={(id) => { setHasUnsaved(false); setExpandedId(id) }}
+                  onExpandById={(id) => { setHasUnsaved(false); setExpandedIds([id]) }}
                   onDraftResolved={handleDraftResolved}
                   pipelineSettings={pipelineSettings}
                   onDeleteRequest={(id) => setPendingDeleteId(id)}
@@ -658,6 +738,7 @@ export default function RequirementPanel({
             cycleId={cycleId}
             onClose={() => setShowImportModal(false)}
             onImportComplete={onRefresh}
+            onDraftsImported={handleDraftsImported}
           />
         )}
         {showDiscardConfirm && (
@@ -665,13 +746,13 @@ export default function RequirementPanel({
           title="放弃修改"
           message="有未保存的修改，是否放弃？"
           onConfirm={() => {
-            const draftToDelete = expandedId === activeDraftId ? expandedId : null
+            const draftToDelete = activeDraftId !== null && expandedIds.includes(activeDraftId) ? activeDraftId : null
             setShowDiscardConfirm(false)
             if (draftToDelete !== null) {
               fetch(`/api/requirements/${draftToDelete}`, { method: 'DELETE' }).then(() => onRefresh())
               setActiveDraftId(null)
             }
-            setExpandedId(pendingExpandId ?? null)
+            setExpandedIds(pendingExpandId !== null ? [pendingExpandId] : [])
             setHasUnsaved(false)
           }}
           onCancel={() => {

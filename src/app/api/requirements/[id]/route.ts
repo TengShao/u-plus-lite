@@ -89,6 +89,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       version: { increment: 1 },
       lastSubmittedAt: new Date(),
       lastSubmittedBy: parseInt(session.user.id),
+      isDraft: false,
     },
   })
   // Upsert cycle-specific pipeline memory

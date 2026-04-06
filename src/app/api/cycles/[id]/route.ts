@@ -12,8 +12,20 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: '无效状态' }, { status: 400 })
   }
 
+  const cycleId = parseInt(params.id)
+
+  // Delete all drafts when closing the cycle
+  if (status === 'CLOSED') {
+    await prisma.requirementGroup.deleteMany({
+      where: {
+        createdInCycleId: cycleId,
+        isDraft: true,
+      },
+    })
+  }
+
   const cycle = await prisma.billingCycle.update({
-    where: { id: parseInt(params.id) },
+    where: { id: cycleId },
     data: { status },
   })
   return NextResponse.json(cycle)

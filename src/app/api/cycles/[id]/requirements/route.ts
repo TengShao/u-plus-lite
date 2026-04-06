@@ -13,22 +13,18 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const cycle = await prisma.billingCycle.findUnique({ where: { id: cycleId } })
   if (!cycle) return NextResponse.json({ error: '周期不存在' }, { status: 404 })
 
-  // Delete unsubmitted drafts older than 1 minute (to avoid deleting just-created requirements)
-  const oneMinuteAgo = new Date(Date.now() - 60 * 1000)
-  await prisma.requirementGroup.deleteMany({
-    where: {
-      lastSubmittedAt: null,
-      rating: null,
-      createdAt: { lt: oneMinuteAgo },
-    },
-  })
-
-  // Visible in this cycle: have workload in cycle OR (INCOMPLETE and created by current user)
+  // Visible in this cycle:
+  // - isDraft=false: have workload in cycle OR (INCOMPLETE and created by current user)
+  // - isDraft=true: only visible to creator
   const requirements = await prisma.requirementGroup.findMany({
     where: {
       OR: [
-        { workloads: { some: { billingCycleId: cycleId } } },
-        { status: 'INCOMPLETE', createdInCycleId: { lte: cycleId }, createdBy: parseInt(session.user.id) },
+        // Non-drafts: visible to all with workload in this cycle
+        { isDraft: false, workloads: { some: { billingCycleId: cycleId } } },
+        // Non-drafts: visible if INCOMPLETE and created by current user in this or earlier cycle
+        { isDraft: false, status: 'INCOMPLETE', createdInCycleId: { lte: cycleId }, createdBy: parseInt(session.user.id) },
+        // Drafts: only visible to creator in this cycle
+        { isDraft: true, createdBy: parseInt(session.user.id), createdInCycleId: cycleId },
       ],
     },
     include: {

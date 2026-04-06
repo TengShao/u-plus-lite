@@ -58,6 +58,7 @@ model RequirementGroup {
   updatedAt        DateTime  @updatedAt
   lastSubmittedAt  DateTime?
   lastSubmittedBy Int?
+  isDraft         Boolean   @default(false)
 
   cycle     BillingCycle @relation("RequirementCycle", fields: [createdInCycleId], references: [id])
   creator   User         @relation("RequirementCreator", fields: [createdBy], references: [id])

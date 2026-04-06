@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'cycleId and decisions are required' }, { status: 400 })
   }
 
-  const results: { groupId: number; importedCount: number }[] = []
+  const results: { groupId: number; importedCount: number; isDraft: boolean }[] = []
 
   try {
     for (const decision of decisions) {
@@ -58,13 +58,14 @@ export async function POST(req: Request) {
             if (err?.code !== 'P2002') throw err
           }
         }
-        results.push({ groupId: decision.targetGroupId, importedCount: byDesigner.size })
+        results.push({ groupId: decision.targetGroupId, importedCount: byDesigner.size, isDraft: false })
       } else if (decision.action === 'CREATE') {
         const newGroup = await prisma.requirementGroup.create({
           data: {
             name: decision.name,
             createdInCycleId: cycleId,
             createdBy: parseInt(session.user.id),
+            isDraft: true,
           },
         })
         const byDesigner = new Map<number, number>()
@@ -85,7 +86,7 @@ export async function POST(req: Request) {
             if (err?.code !== 'P2002') throw err
           }
         }
-        results.push({ groupId: newGroup.id, importedCount: byDesigner.size })
+        results.push({ groupId: newGroup.id, importedCount: byDesigner.size, isDraft: true })
       }
     }
     return NextResponse.json({ results })

@@ -5,6 +5,8 @@ interface RequirementTagsProps {
   module?: string | null
   types?: string[] | null
   isLastSubmitted?: boolean
+  isDraft?: boolean
+  status?: string
 }
 
 function Divider() {
@@ -16,10 +18,14 @@ export default function RequirementTags({
   module,
   types,
   isLastSubmitted,
+  isDraft,
+  status,
 }: RequirementTagsProps) {
   const tags: string[] = []
   if (pipeline) tags.push(pipeline)
   // module 和 types 暂不显示，后续按需启用
+
+  const showPending = isDraft || (status === 'INCOMPLETE' && !isLastSubmitted)
 
   return (
     <div className="flex items-center gap-[12px]">
@@ -31,7 +37,12 @@ export default function RequirementTags({
           </span>
         </span>
       ))}
-      {isLastSubmitted && (
+      {showPending && (
+        <span className="ml-[6px] flex items-center rounded-[4px] bg-[#f22f4627] px-[3px]" style={{ height: 18 }}>
+          <span className="text-[12px] text-[#f22f46]">待完成</span>
+        </span>
+      )}
+      {!showPending && isLastSubmitted && (
         <span className="ml-[6px] flex items-center rounded-[4px] bg-[#8eca2e27] px-[3px]" style={{ height: 18 }}>
           <span className="text-[12px] text-[#8eca2e]">上次提交</span>
         </span>
