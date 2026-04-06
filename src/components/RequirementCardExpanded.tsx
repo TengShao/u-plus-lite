@@ -54,6 +54,7 @@ export default function RequirementCardExpanded({
   defaultPipeline,
   isDraft,
   onLastSubmitRequest,
+  draftExpansionKey,
 }: {
   data: RequirementData
   cycleId: number
@@ -73,6 +74,7 @@ export default function RequirementCardExpanded({
   defaultPipeline?: string | null
   onReopenRequest?: (id: number) => void
   onLastSubmitRequest?: (id: number) => void
+  draftExpansionKey?: string | null
 }) {
   const { data: session } = useSession()
   const { showTips } = useTips()
@@ -84,7 +86,7 @@ export default function RequirementCardExpanded({
   const [rating, setRating] = useState(data.rating || '')
   const [module, setModule] = useState(data.module || '')
   const [pipeline, setPipeline] = useState(data.pipeline || defaultPipeline || '')
-  const [types, setTypes] = useState<string[]>(data.types || [])
+  const [types, setTypes] = useState<string[]>(Array.isArray(data.types) ? data.types : [])
   const [budgetItem, setBudgetItem] = useState(data.budgetItem || '')
   const [canClose, setCanClose] = useState(data.canClose)
   const [funcPoints, setFuncPoints] = useState(data.funcPoints ?? data.funcPointsRecommended)
@@ -167,12 +169,13 @@ export default function RequirementCardExpanded({
 
   const isDirty = useMemo(() => {
     const myWorkload = data.cycleWorkloads.find((w) => w.userId === userId)
+    const dataTypes = Array.isArray(data.types) ? data.types : (data.types ? JSON.parse(data.types) : [])
     return (
       name !== data.name ||
       rating !== (data.rating || '') ||
       module !== (data.module || '') ||
       pipeline !== (data.pipeline || defaultPipeline || '') ||
-      JSON.stringify(types) !== JSON.stringify(data.types || []) ||
+      JSON.stringify(types) !== JSON.stringify(dataTypes) ||
       budgetItem !== (data.budgetItem || '') ||
       canClose !== data.canClose ||
       funcPoints !== (data.funcPoints ?? data.funcPointsRecommended) ||
@@ -313,6 +316,25 @@ export default function RequirementCardExpanded({
 
     showTips('positive', '已暂存')
     versionRef.current += 1
+
+    // Also save manDays if modified
+    const myWorkload = data.cycleWorkloads.find((w) => w.userId === userId)
+    if (manDays !== (myWorkload?.manDays ?? 0)) {
+      await fetch(`/api/requirements/${data.id}/workload`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ billingCycleId: cycleId, manDays }),
+      })
+    }
+
+    // Sync draftExpansionKey to sessionStorage so first refresh shows the draft expanded
+    if (draftExpansionKey) {
+      const currentExpanded = JSON.parse(sessionStorage.getItem(draftExpansionKey) || '[]')
+      if (!currentExpanded.includes(data.id)) {
+        currentExpanded.push(data.id)
+        sessionStorage.setItem(draftExpansionKey, JSON.stringify(currentExpanded))
+      }
+    }
     onRefresh()
   }
 
@@ -773,8 +795,8 @@ export default function RequirementCardExpanded({
 
           <ActionButton
             variant="cancel"
-            onClick={() => (isDirty || isDraft ? onDiscardRequest(data.id) : collapseWithAnimation(() => onDraftResolved(data.id)))}
-            completeText={isDirty || isDraft ? '取消' : '收起'}
+            onClick={() => (isDirty ? onDiscardRequest(data.id) : collapseWithAnimation(() => onDraftResolved(data.id)))}
+            completeText={isDirty ? '取消' : '收起'}
           />
 
           <ActionButton

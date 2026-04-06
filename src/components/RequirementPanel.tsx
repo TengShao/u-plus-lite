@@ -196,9 +196,38 @@ export default function RequirementPanel({
         }
 
         // If draftToDeleteRef is set, we're deleting a draft - skip it from the list
+        // BUT first check if it's actually a valid draft that should be restored
         if (draftToDeleteRef.current !== null) {
+          const draftId = draftToDeleteRef.current
+          const draft = data.find((r: RequirementData) => r.id === draftId)
+          if (draft && draft.isDraft === true) {
+            // This is a valid draft - clear the delete flag and restore it
+            draftToDeleteRef.current = null
+            setActiveDraftId(draftId)
+            setRequirements(data)
+            // Restore expanded IDs
+            if (draftExpansionKey) {
+              const savedExpanded = sessionStorage.getItem(draftExpansionKey)
+              if (savedExpanded) {
+                try {
+                  const draftExpandedIds: number[] = JSON.parse(savedExpanded)
+                  const validDraftExpanded = draftExpandedIds.filter((id) =>
+                    data.some((r: RequirementData) => r.id === id && r.isDraft)
+                  )
+                  if (validDraftExpanded.length > 0) {
+                    setExpandedIds(validDraftExpanded)
+                  }
+                } catch {
+                  sessionStorage.removeItem(draftExpansionKey)
+                }
+              }
+            }
+            return
+          }
+          // Not a valid draft (was deleted or something) - filter it out
           const filteredData = data.filter((r: RequirementData) => r.id !== draftToDeleteRef.current)
           setRequirements(filteredData)
+          draftToDeleteRef.current = null
           return
         }
 
@@ -395,15 +424,6 @@ export default function RequirementPanel({
       return
     }
 
-    // If clicking on a collapsed card while a draft exists (different from the one being clicked), show confirmation
-    if (activeDraftId && id !== activeDraftId) {
-      const savedDraft = draftKey ? sessionStorage.getItem(draftKey) : null
-      if (savedDraft === String(activeDraftId)) {
-        setPendingExpandId(id)
-        setShowDiscardConfirm(true)
-        return
-      }
-    }
     // For non-drafts, replace expandedIds with just this one
     setExpandedIds([id])
     setHasUnsaved(false)
@@ -457,6 +477,10 @@ export default function RequirementPanel({
       activeDraftIdRef.current = rg.id
       setExpandedIds([rg.id])
       setActiveDraftId(rg.id)
+      // Immediately persist draftExpansionKey to sessionStorage so first refresh shows the draft expanded
+      if (draftExpansionKey) {
+        sessionStorage.setItem(draftExpansionKey, JSON.stringify([rg.id]))
+      }
       // Now call onRefresh - loadRequirements will see activeDraftIdRef.current is non-null and won't delete
       onRefresh()
       // Scroll to top to show the new requirement
@@ -717,6 +741,7 @@ export default function RequirementPanel({
                   isDraft={rg.id === activeDraftId}
                   defaultPipeline={rg.id === activeDraftId ? (cyclePipelineMemory || undefined) : undefined}
                   onLastSubmitRequest={handleLastSubmitChange}
+                  draftExpansionKey={draftExpansionKey}
                 />
               ) : (
                 <RequirementCardCollapsed
