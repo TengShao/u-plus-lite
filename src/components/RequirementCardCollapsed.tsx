@@ -4,15 +4,12 @@ import { type RequirementData } from './RequirementPanel'
 import { ActionIconButton } from './icons'
 import { Cube } from './Cube'
 import { DesignerCube } from './DesignerCube'
+import RequirementTags from './RequirementTags'
 
 const HEALTH_COLORS: Record<string, string> = {
   '适合': '#8ECA2E',
   '欠饱和': '#F8CF33',
   '过饱和': '#E96631',
-}
-
-function Divider() {
-  return <span className="mx-0 inline-block h-[10px] w-px shrink-0 bg-[#00000013]" style={{ marginTop: 4 }} />
 }
 
 export default function RequirementCardCollapsed({
@@ -44,12 +41,6 @@ export default function RequirementCardCollapsed({
 
   const healthColor = data.healthStatus ? HEALTH_COLORS[data.healthStatus] : null
 
-  // Info tags: pipeline, module, types
-  const tags: string[] = []
-  if (data.pipeline) tags.push(data.pipeline)
-  if (data.module) tags.push(data.module)
-  const typesStr = data.types?.length ? data.types.join(' / ') : null
-
   return (
     <div
       data-req-id={String(data.id)}
@@ -66,28 +57,12 @@ export default function RequirementCardCollapsed({
         <span className="shrink-0 text-[16px] leading-[22px] text-black" style={{ fontWeight: 900 }}>
           {data.name || '未命名需求组'}
         </span>
-        {tags.length > 0 && (
-          <>
-            <Divider />
-            {tags.map((t, i) => (
-              <span key={t} className="flex items-center gap-[12px]">
-                {i > 0 && <Divider />}
-                <span className="shrink-0 text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>{t}</span>
-              </span>
-            ))}
-          </>
-        )}
-        {typesStr && (
-          <>
-            <Divider />
-            <span className="truncate text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>{typesStr}</span>
-          </>
-        )}
-        {isLastSubmitted && (
-          <span className="ml-[6px] flex items-center rounded-[4px] bg-[#8eca2e27] px-[3px]" style={{ height: 18 }}>
-            <span className="text-[12px] text-[#8eca2e]">上次提交</span>
-          </span>
-        )}
+        <RequirementTags
+          pipeline={data.pipeline}
+          module={data.module}
+          types={data.types}
+          isLastSubmitted={isLastSubmitted}
+        />
       </div>
 
       {/* Health badge — top-right */}
