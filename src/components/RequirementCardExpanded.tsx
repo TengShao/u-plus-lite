@@ -167,10 +167,14 @@ export default function RequirementCardExpanded({
   const hasPageCountTip = !isComplete && computedTotalManDays > 0 && pageCount !== Math.round(computedTotalManDays * 1.75)
   const hasAnyTip = hasRatingTip || hasFuncPointsTip || hasPageCountTip
 
+  // 新建的需求组（isDraft=true 且从未正式提交，且名称为空）视为 dirty
+  // 同时检查本地 name 状态，因为暂存成功后 data 可能还未更新
+  const isNewUnsubmittedDraft = !!isDraft && data.lastSubmittedAt === null && !name.trim()
+
   const isDirty = useMemo(() => {
     const myWorkload = data.cycleWorkloads.find((w) => w.userId === userId)
     const dataTypes = Array.isArray(data.types) ? data.types : (data.types ? JSON.parse(data.types) : [])
-    return (
+    const hasChanges = (
       name !== data.name ||
       rating !== (data.rating || '') ||
       module !== (data.module || '') ||
@@ -182,9 +186,11 @@ export default function RequirementCardExpanded({
       pageCount !== (data.pageCount ?? 0) ||
       manDays !== (myWorkload?.manDays ?? 0)
     )
-  }, [name, rating, module, pipeline, types, budgetItem, canClose, funcPoints, pageCount, manDays, data, defaultPipeline])
+    return hasChanges || isNewUnsubmittedDraft
+  }, [name, rating, module, pipeline, types, budgetItem, canClose, funcPoints, pageCount, manDays, data, defaultPipeline, isNewUnsubmittedDraft])
 
   const [triedSubmit, setTriedSubmit] = useState(false)
+  const [triedStagingSubmit, setTriedStagingSubmit] = useState(false)
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null)
   const [nameFocused, setNameFocused] = useState(false)
   const [nameHovered, setNameHovered] = useState(false)
@@ -213,7 +219,8 @@ export default function RequirementCardExpanded({
   const userEditable = !readOnly
   const deleteDisabled = cycleStatus === 'CLOSED' && !isAdmin
 
-  const nameInvalid = triedSubmit && !name.trim()
+  // 暂存时只验证 name，提交时验证所有必填项
+  const nameInvalid = (triedSubmit || triedStagingSubmit) && !name.trim()
   const ratingInvalid = triedSubmit && !rating
   const moduleInvalid = triedSubmit && !module
   const pipelineInvalid = triedSubmit && !pipeline
@@ -282,7 +289,8 @@ export default function RequirementCardExpanded({
   }
 
   async function handleStagingSave() {
-    // 暂存：不验证必填项，只保存当前数据，保持 isDraft=true
+    // 暂存：只触发需求名称的必填验证
+    setTriedStagingSubmit(true)
     const res = await fetch(`/api/requirements/${data.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -310,11 +318,13 @@ export default function RequirementCardExpanded({
         await handleRefreshConflictAndRetry()
         return
       }
-      showTips('negative', '暂存失败')
+      const err = await res.json().catch(() => ({ error: '暂存失败' }))
+      showTips('negative', err.error || '暂存失败')
       return
     }
 
     showTips('positive', '已暂存')
+    setTriedStagingSubmit(false)
     versionRef.current += 1
 
     // Also save manDays if modified
@@ -795,7 +805,16 @@ export default function RequirementCardExpanded({
 
           <ActionButton
             variant="cancel"
-            onClick={() => (isDirty ? onDiscardRequest(data.id) : collapseWithAnimation(() => onDraftResolved(data.id)))}
+            onClick={() => {
+              if (isDirty) {
+                onDiscardRequest(data.id)
+              } else if (isDraft && !name.trim()) {
+                // 草稿名称为空时，触发必填提醒
+                setTriedStagingSubmit(true)
+              } else {
+                collapseWithAnimation(() => onDraftResolved(data.id))
+              }
+            }}
             completeText={isDirty ? '取消' : '收起'}
           />
 
@@ -806,7 +825,7 @@ export default function RequirementCardExpanded({
             lastSubmitterName={data.lastSubmitterName}
             onClick={has409Conflict ? handleRefreshConflict : (isComplete ? () => onReopenRequest?.(data.id) : (allRequiredFilled ? handleSubmit : handleStagingSave))}
             completeText={has409Conflict ? '刷新' : (isComplete ? '重启' : (!allRequiredFilled ? '暂存' : undefined))}
-            hideIcon={isComplete || has409Conflict}
+            hideIcon={isComplete || has409Conflict || !allRequiredFilled}
           />
         </div>
       </div>

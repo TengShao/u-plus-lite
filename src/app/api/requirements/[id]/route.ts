@@ -75,6 +75,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const isStagingSave = data.isDraft === true
 
+  // 草稿保存时验证名称不能为空
+  if (isStagingSave && (!data.name || data.name.trim() === '')) {
+    return NextResponse.json({ error: '名称不能为空' }, { status: 400 })
+  }
+
   const updated = await prisma.requirementGroup.update({
     where: { id },
     data: {

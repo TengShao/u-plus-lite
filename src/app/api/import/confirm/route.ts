@@ -60,6 +60,10 @@ export async function POST(req: Request) {
         }
         results.push({ groupId: decision.targetGroupId, importedCount: byDesigner.size, isDraft: false })
       } else if (decision.action === 'CREATE') {
+        if (!decision.name || decision.name.trim() === '') {
+          results.push({ groupId: 0, importedCount: 0, isDraft: true, error: '名称不能为空' })
+          continue
+        }
         const newGroup = await prisma.requirementGroup.create({
           data: {
             name: decision.name,
