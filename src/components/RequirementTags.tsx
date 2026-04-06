@@ -19,8 +19,7 @@ export default function RequirementTags({
 }: RequirementTagsProps) {
   const tags: string[] = []
   if (pipeline) tags.push(pipeline)
-  if (module) tags.push(module)
-  if (types?.length) tags.push(types.join(' / '))
+  // module 和 types 暂不显示，后续按需启用
 
   return (
     <div className="flex items-center gap-[12px]">

@@ -33,10 +33,12 @@ export default function CycleSidebar({
   useEffect(() => {
     fetch('/api/cycles')
       .then((r) => r.json())
-      .then((data: Cycle[]) => {
-        setCycles(data)
-        if (data.length > 0 && !selectedCycleId) {
-          onSelectCycle(data[0].id)
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCycles(data)
+          if (data.length > 0 && !selectedCycleId) {
+            onSelectCycle(data[0].id)
+          }
         }
       })
   }, [refreshKey])
