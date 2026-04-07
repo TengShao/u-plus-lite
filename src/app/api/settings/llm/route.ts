@@ -28,7 +28,7 @@ function readEnv(): Record<string, string> {
 function writeEnv(env: Record<string, string>) {
   const lines: string[] = []
   for (const [key, value] of Object.entries(env)) {
-    lines.push(`${key}=${value}`)
+    lines.push(`${key}="${value}"`)
   }
   fs.writeFileSync(ENV_PATH, lines.join('\n') + '\n', 'utf-8')
 }

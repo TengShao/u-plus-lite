@@ -838,13 +838,15 @@ deploy_new() {
     local nextauth_secret
     nextauth_secret=$(generate_secret)
 
-    cat > .env << EOF
+    cat > .env.local << EOF
 DATABASE_URL="file:$DEPLOY_DIR/prisma/prod.db"
 NEXTAUTH_SECRET="$nextauth_secret"
 NEXTAUTH_URL="http://$local_ip:$PORT"
+NEXT_PUBLIC_LLM_PROVIDER=ollama
+NEXT_PUBLIC_OLLAMA_MODEL=qwen3:4b
 EOF
 
-    echo ".env 文件已创建"
+    echo ".env.local 文件已创建"
 
     # [6/9] Build
     echo ""
@@ -941,6 +943,15 @@ deploy_update() {
 do_update() {
     echo ""
     echo "正在更新..."
+
+    # 迁移 .env → .env.local（兼容旧部署）
+    if [ -f ".env" ] && [ ! -f ".env.local" ]; then
+        mv .env .env.local
+        echo "已将 .env 迁移为 .env.local"
+    elif [ -f ".env" ] && [ -f ".env.local" ]; then
+        rm -f .env
+        echo "已删除 .env（使用 .env.local）"
+    fi
 
     # 保存旧版本信息用于对比
     local old_package_lock=""

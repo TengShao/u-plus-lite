@@ -828,11 +828,13 @@ function Deploy-New {
 
     $envContent = "DATABASE_URL=`"$dbUrl`"" + [Environment]::NewLine
     $envContent += "NEXTAUTH_SECRET=`"$nextAuthSecret`"" + [Environment]::NewLine
-    $envContent += "NEXTAUTH_URL=`"http://$localIP`:$script:PORT`""
+    $envContent += "NEXTAUTH_URL=`"http://$localIP`:$script:PORT`"" + [Environment]::NewLine
+    $envContent += "NEXT_PUBLIC_LLM_PROVIDER=ollama" + [Environment]::NewLine
+    $envContent += "NEXT_PUBLIC_OLLAMA_MODEL=qwen3:4b"
 
-    $envPath = Join-Path $script:DEPLOY_DIR ".env"
+    $envPath = Join-Path $script:DEPLOY_DIR ".env.local"
     [System.IO.File]::WriteAllText($envPath, $envContent, [System.Text.Encoding]::UTF8)
-    Write-Host ".env 文件已创建"
+    Write-Host ".env.local 文件已创建"
 
     # [6/9] Build
     Write-Host ""
@@ -931,6 +933,17 @@ function Deploy-Update {
 function Invoke-Update {
     Write-Host ""
     Write-Host "正在更新..."
+
+    # 迁移 .env → .env.local（兼容旧部署）
+    $envFile = Join-Path $script:PROJECT_ROOT ".env"
+    $envLocalFile = Join-Path $script:PROJECT_ROOT ".env.local"
+    if ((Test-Path $envFile) -and -not (Test-Path $envLocalFile)) {
+        Move-Item $envFile $envLocalFile
+        Write-Host "已将 .env 迁移为 .env.local"
+    } elseif ((Test-Path $envFile) -and (Test-Path $envLocalFile)) {
+        Remove-Item $envFile -Force
+        Write-Host "已删除 .env（使用 .env.local）"
+    }
 
     # 保存旧版本信息用于对比
     $oldPackageLock = ""
