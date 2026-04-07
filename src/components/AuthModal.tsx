@@ -60,6 +60,7 @@ function PipelineMultiMenu({ width, value, options, selected, onToggle }: { widt
           const checked = selected.includes(opt)
           return (
             <button
+              type="button"
               key={opt}
               onClick={() => onToggle(opt)}
               className={`flex h-[30px] w-full items-center px-[8px] text-[14px] ${checked ? 'bg-[rgba(142,202,46,0.15)]' : 'hover:bg-[rgba(142,202,46,0.15)]'}`}
@@ -380,6 +381,7 @@ export default function AuthModal({
                         <div className="h-px bg-[#0000000B] mx-px" />
                         {['P5', 'P4', 'P3', 'INTERN', 'OUTSOURCE'].map((l) => (
                           <button
+                            type="button"
                             key={l}
                             onClick={() => { setLevel(l); setLevelOpen(false) }}
                             className={`flex h-[30px] w-full items-center justify-center text-[14px] ${level === l ? 'bg-[rgba(142,202,46,0.15)]' : 'hover:bg-[rgba(142,202,46,0.15)]'}`}
