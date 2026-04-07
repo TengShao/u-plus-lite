@@ -183,14 +183,13 @@ check_dependencies() {
         echo -e "${YELLOW}检测到 Node.js 未安装，正在尝试自动安装...${NC}"
         echo ""
 
+        local install_ok=true
         if command_exists brew; then
-            brew install node
+            brew install node || install_ok=false
         elif command_exists apt-get; then
-            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-            sudo apt-get install -y nodejs
+            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash - && sudo apt-get install -y nodejs || install_ok=false
         elif command_exists yum; then
-            curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
-            sudo yum install -y nodejs
+            curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash - && sudo yum install -y nodejs || install_ok=false
         else
             echo ""
             echo -e "${RED}无法自动安装 Node.js，请手动安装后重试${NC}"
@@ -198,7 +197,7 @@ check_dependencies() {
             exit 1
         fi
 
-        if command_exists node; then
+        if [ "$install_ok" = "true" ] && command_exists node; then
             print_status "ok" "Node.js 安装成功: $(node -v)"
         else
             echo -e "${RED}Node.js 安装失败，请手动安装后重试${NC}"
@@ -210,12 +209,17 @@ check_dependencies() {
     if [[ " ${need_install[*]} " =~ " pm2 " ]]; then
         echo ""
         echo "正在安装 PM2..."
-        npm install -g pm2 --silent
-        if command_exists pm2; then
+        if npm install -g pm2 --silent 2>&1; then
             print_status "ok" "PM2 安装成功"
         else
-            print_status "fail" "PM2 安装失败"
-            exit 1
+            # macOS 可能需要 sudo
+            echo -e "${YELLOW}尝试使用 sudo 安装 PM2...${NC}"
+            if sudo npm install -g pm2 --silent 2>&1; then
+                print_status "ok" "PM2 安装成功"
+            else
+                print_status "fail" "PM2 安装失败，请手动安装: sudo npm install -g pm2"
+                exit 1
+            fi
         fi
     fi
 
@@ -705,6 +709,10 @@ deploy_new() {
     # [2/9] npm install
     echo ""
     echo "[2/9] 正在安装依赖..."
+    # 修复 npm cache 权限（之前 sudo npm 可能留下 root 所属文件）
+    if [ -d "$HOME/.npm/_cacache" ]; then
+        sudo chown -R "$(whoami)" "$HOME/.npm/_cacache" 2>/dev/null || true
+    fi
     if ! npm install; then
         print_status "fail" "npm install 失败"
         exit 1
@@ -851,7 +859,7 @@ EOF
     echo "[7/9] 配置 PM2 服务..."
 
     pm2 delete u-plus-lite 2>/dev/null || true
-    PORT=$PORT pm2 start npm --name u-plus-lite -- start
+    PORT=$PORT pm2 start npm --name u-plus-lite -- start -- -H 0.0.0.0
     pm2 save
 
     # [8/9] 写入版本文件
@@ -986,6 +994,9 @@ do_update() {
     echo ""
     if [ "$need_npm_install" = true ]; then
         echo "检测到依赖变化，正在安装依赖..."
+        if [ -d "$HOME/.npm/_cacache" ]; then
+            sudo chown -R "$(whoami)" "$HOME/.npm/_cacache" 2>/dev/null || true
+        fi
         npm install
     else
         echo "依赖无变化，跳过 npm install"
