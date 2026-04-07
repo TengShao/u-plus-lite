@@ -927,6 +927,7 @@ deploy_update() {
         do_uninstall
     elif [ "$update_choice" = "3" ]; then
         do_uninstall
+        cd /tmp
         DEPLOY_MODE="new"
         DEPLOY_DIR="$DEFAULT_DIR"
         PROJECT_ROOT="$DEPLOY_DIR"

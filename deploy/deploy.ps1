@@ -917,6 +917,7 @@ function Deploy-Update {
         Invoke-Uninstall
     } elseif ($updateChoice -eq "3") {
         Invoke-Uninstall
+        Set-Location $env:TEMP
         $script:DEPLOY_MODE = "new"
         $script:DEPLOY_DIR = $DEFAULT_DIR
         $script:PROJECT_ROOT = $DEFAULT_DIR
