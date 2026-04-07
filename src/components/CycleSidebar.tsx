@@ -5,7 +5,7 @@ import ConfirmDialog from './ConfirmDialog'
 import CycleCard from './CycleCard'
 
 type Cycle = {
-  id: number; label: string; startDate: string; endDate: string; status: string
+  id: number; label: string; startDate: string; endDate: string; status: string; currentUserTotalManDays: number
 }
 
 export default function CycleSidebar({

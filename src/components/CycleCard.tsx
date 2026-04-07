@@ -6,6 +6,7 @@ type Cycle = {
   startDate: string
   endDate: string
   status: string
+  currentUserTotalManDays: number
 }
 
 function formatDate(d: string) {
@@ -59,6 +60,14 @@ export default function CycleCard({
           >
             {formatDate(cycle.startDate)} ~ {formatDate(cycle.endDate)}
           </span>
+          {isSelected && (
+            <span className="ml-[6px] flex items-center gap-[12px]">
+              <span className="mx-0 inline-block h-[10px] w-px shrink-0 bg-[#00000013]" style={{ marginTop: 4 }} />
+              <span className="shrink-0 text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>
+                总人天:{cycle.currentUserTotalManDays}
+              </span>
+            </span>
+          )}
         </div>
       </button>
       {isSelected && onToggle && (

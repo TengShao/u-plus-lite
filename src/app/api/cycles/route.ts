@@ -6,10 +6,25 @@ export async function GET() {
   const session = await getSession()
   if (!session) return unauthorized()
 
+  const userId = parseInt(session.user.id)
   const cycles = await prisma.billingCycle.findMany({
     orderBy: { startDate: 'desc' },
   })
-  return NextResponse.json(cycles)
+
+  const workloads = await prisma.workload.groupBy({
+    by: ['billingCycleId'],
+    where: { userId },
+    _sum: { manDays: true },
+  })
+
+  const manDaysMap = new Map(workloads.map(w => [w.billingCycleId, w._sum.manDays ?? 0]))
+
+  const result = cycles.map(c => ({
+    ...c,
+    currentUserTotalManDays: manDaysMap.get(c.id) ?? 0,
+  }))
+
+  return NextResponse.json(result)
 }
 
 export async function POST(req: Request) {
