@@ -210,7 +210,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
           {step === 'input' ? (
             <div className="flex flex-col gap-4">
               <textarea
-                className="w-full h-48 p-3 rounded-lg border border-[#EEEEEE] text-[14px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E] resize-none"
+                className="w-full h-48 p-3 rounded-lg border border-[#EEEEEE] text-[14px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand resize-none"
                 style={{ fontFamily: 'inherit' }}
                 placeholder="粘贴纯文本或 CSV 内容..."
                 value={rawContent}
@@ -220,12 +220,12 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
                 <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 h-10 px-4 rounded-[8px] border border-[#EEEEEE] bg-white text-[14px] text-black hover:border-[#8ECA2E]"
+                  className="flex items-center gap-2 h-10 px-4 rounded-[8px] border border-[#EEEEEE] bg-white text-[14px] text-black hover:border-brand"
                 >
                   📎 上传 CSV
                 </button>
                 {fileInputRef.current?.files?.[0] && (
-                  <span className="text-[14px] text-[#8ECA2E]">{fileInputRef.current.files[0].name}</span>
+                  <span className="text-[14px] text-brand">{fileInputRef.current.files[0].name}</span>
                 )}
               </div>
               {error && <div className="text-[14px] text-red-500">{error}</div>}
@@ -257,9 +257,9 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
                         disabled={primaryAction === 'import' && groups.length < 2}
                         className={`px-3 py-1 rounded-[6px] border text-[13px] transition-colors ${
                           primaryAction === 'merge'
-                            ? 'border-[#8ECA2E] bg-[#8ECA2E] text-white'
+                            ? 'border-brand bg-brand text-white'
                             : groups.length >= 2
-                              ? 'border-[#8ECA2E] text-[#8ECA2E] hover:bg-[rgba(142,202,46,0.1)]'
+                              ? 'border-brand text-brand hover:bg-brand-hover'
                               : 'border-[#CCCCCC] text-[#CCCCCC] cursor-not-allowed'
                         }`}
                       >
@@ -280,7 +280,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
                         />
                         {editingGroupName === gi ? (
                           <input
-                            className="flex-1 h-8 px-2 rounded border border-[#8ECA2E] text-[14px] text-black outline-none"
+                            className="flex-1 h-8 px-2 rounded border border-brand text-[14px] text-black outline-none"
                             value={editedName}
                             onChange={e => setEditedName(e.target.value)}
                             onBlur={() => handleSaveEditName(gi)}
@@ -289,13 +289,13 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
                           />
                         ) : (
                           <span
-                            className="flex-1 text-[16px] font-bold text-black cursor-pointer hover:text-[#8ECA2E]"
+                            className="flex-1 text-[16px] font-bold text-black cursor-pointer hover:text-brand"
                             onClick={() => handleStartEditName(gi, group.name)}
                           >
                             {group.name}
                           </span>
                         )}
-                        <span className={`text-[12px] px-2 py-0.5 rounded-full ${group.action === 'MATCH' ? 'bg-[rgba(142,202,46,0.15)] text-[#8ECA2E]' : 'bg-[rgba(0,0,0,0.05)] text-[#999]'}`}>
+                        <span className={`text-[12px] px-2 py-0.5 rounded-full ${group.action === 'MATCH' ? 'bg-brand-hover text-brand' : 'bg-[rgba(0,0,0,0.05)] text-[#999]'}`}>
                           {group.action === 'MATCH' ? `已有「${group.matchedGroup?.name}」` : '新建'}
                         </span>
                         <button onClick={() => handleDeleteGroup(gi)} className="text-[#E96631] text-[14px] hover:underline">删除</button>
@@ -355,7 +355,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
                 }
                 title={primaryAction === 'import' && groups.length < 2 ? '需求组数量不足以合并' : undefined}
                 className={`h-10 w-32 rounded-[8px] text-[16px] font-bold text-white disabled:bg-[#B6B6B6] ${
-                  primaryAction === 'merge' ? 'bg-black' : 'bg-[#8ECA2E]'
+                  primaryAction === 'merge' ? 'bg-black' : 'bg-brand'
                 }`}
               >
                 {isLoading ? '处理中...' : primaryAction === 'merge' ? '合并' : '确认导入'}

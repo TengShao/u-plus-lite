@@ -5,9 +5,8 @@ import { ActionIconButton } from './icons'
 import { Cube } from './Cube'
 import { DesignerCube } from './DesignerCube'
 import RequirementTags from './RequirementTags'
-
 const HEALTH_COLORS: Record<string, string> = {
-  '适合': '#8ECA2E',
+  '适合': 'var(--color-brand)',
   '欠饱和': '#F8CF33',
   '过饱和': '#E96631',
 }

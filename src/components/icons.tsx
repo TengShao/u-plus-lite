@@ -18,8 +18,8 @@ export function ConfirmIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <g stroke="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
-        <path d="M21.801,10 C22.7420871,14.6185198 20.3303452,19.2671577 16.0125145,21.1573186 C11.6946838,23.0474795 6.64318402,21.6659284 3.88827649,17.8414212 C1.13336896,14.0169141 1.42309317,8.78791867 4.58365122,5.29117117 C7.74420926,1.79442367 12.9174154,0.979395279 17,3.335" stroke="#8ECA2E" />
-        <polyline points="9 11 12 14 22 4" stroke="#8ECA2E" />
+        <path d="M21.801,10 C22.7420871,14.6185198 20.3303452,19.2671577 16.0125145,21.1573186 C11.6946838,23.0474795 6.64318402,21.6659284 3.88827649,17.8414212 C1.13336896,14.0169141 1.42309317,8.78791867 4.58365122,5.29117117 C7.74420926,1.79442367 12.9174154,0.979395279 17,3.335" stroke="var(--color-brand)" />
+        <polyline points="9 11 12 14 22 4" stroke="var(--color-brand)" />
       </g>
     </svg>
   )
@@ -71,7 +71,7 @@ export function ActionIconButton({ type, disabled, onClick }: { type: 'complete'
   const isUpload = type === 'upload' || type === 'upload-dark'
   const isUploadDark = type === 'upload-dark'
   const showTint = !disabled && (hover || active)
-  const color = isDelete ? (hover || active ? '#E91B1B' : '#000000') : isUpload ? '#000000' : '#8ECA2E'
+  const color = isDelete ? (hover || active ? '#E91B1B' : '#000000') : isUpload ? '#000000' : 'var(--color-brand)'
   const iconOpacity = disabled
     ? 0.1
     : isDelete
@@ -88,7 +88,7 @@ export function ActionIconButton({ type, disabled, onClick }: { type: 'complete'
       onMouseDown={() => setActive(true)}
       onMouseUp={() => setActive(false)}
       className="flex h-[52px] w-[52px] items-center justify-center rounded-full"
-      style={{ background: isUpload ? (showTint ? (isUploadDark ? '#ECECEC' : '#F7F7F7') : 'transparent') : (showTint ? (isDelete ? '#FF000017' : '#8ECA2E2F') : 'transparent'), color }}
+      style={{ background: isUpload ? (showTint ? (isUploadDark ? '#ECECEC' : '#F7F7F7') : 'transparent') : (showTint ? (isDelete ? '#FF000017' : 'var(--color-brand-tint)') : 'transparent'), color }}
     >
       <span style={{ opacity: iconOpacity }}>
         {type === 'complete' ? <ConfirmIcon /> : type === 'delete' ? <DeleteIcon /> : <UploadIcon />}

@@ -123,7 +123,7 @@ export default function CycleSidebar({
               {gi > 0 && (
                 <div className="mx-[16px] my-[4px] flex h-[34px] w-[252px] items-center font-alibaba">
                   <span className="text-[14px] leading-[20px] text-[#C8C8C8]" style={{ fontWeight: 500, letterSpacing: '-0.91px' }}>{year}</span>
-                  <span className="ml-[9px] h-px flex-1 bg-[#E9E9E9]" />
+                  <span className="ml-[9px] h-px flex-1 bg-[#DDDDDD]" />
                 </div>
               )}
               <div className="flex flex-col gap-[4px]">

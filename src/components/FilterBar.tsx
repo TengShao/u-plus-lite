@@ -32,7 +32,7 @@ function CheckboxIcon({ checked }: { checked: boolean }) {
   }
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <rect width="12" height="12" rx="2" fill="#8ECA2E" />
+      <rect width="12" height="12" rx="2" fill="var(--color-brand)" />
       <path d="M3 6L5.5 8.5L9 3.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
@@ -134,7 +134,7 @@ function DropdownTrigger({
       onMouseLeave={onMouseLeave}
       className="flex h-[36px] min-w-[120px] items-center rounded-[8px] bg-white shadow-[0_0_3px_0_rgba(0,0,0,0.10)] font-alibaba"
       style={{
-        border: showBorder ? '1px solid #8ECA2E' : '1px solid transparent',
+        border: showBorder ? `1px solid var(--color-brand)` : '1px solid transparent',
         transition: 'border-color 0.15s',
       }}
     >
@@ -191,7 +191,7 @@ function MultiDropdown({
       {open && (
         <div
           className="absolute left-0 top-0 z-20 min-w-[120px] rounded-[8px] bg-white shadow-[0_0_3px_0_rgba(0,0,0,0.10)] font-alibaba"
-          style={{ border: '1px solid #8ECA2E' }}
+          style={{ border: `1px solid var(--color-brand)` }}
         >
           {/* header — same as trigger */}
           <div className="flex h-[36px] items-center">
@@ -268,7 +268,7 @@ function SingleDropdown({
       {open && (
         <div
           className="absolute left-0 top-0 z-20 min-w-[120px] rounded-[8px] bg-white shadow-[0_0_3px_0_rgba(0,0,0,0.10)] font-alibaba"
-          style={{ border: '1px solid #8ECA2E' }}
+          style={{ border: `1px solid var(--color-brand)` }}
         >
           <div className="flex h-[36px] items-center">
             <div className="flex items-center pl-[8px]">
@@ -311,7 +311,7 @@ function DropdownItem({
   label: string; count?: number; selected: boolean; checkbox?: boolean; onClick: () => void
 }) {
   const [hovered, setHovered] = useState(false)
-  const bg = selected || hovered ? '#8ECA2E27' : 'transparent'
+  const bg = selected || hovered ? 'var(--color-brand-light)' : 'transparent'
   return (
     <button
       className="relative flex h-[30px] w-full items-center"

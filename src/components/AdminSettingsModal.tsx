@@ -447,7 +447,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                         type="text"
                         value={llmOllamaModel}
                         onChange={(e) => setLlmOllamaModel(e.target.value)}
-                        className="w-64 rounded border border-gray-300 px-3 py-2 pr-8 text-sm hover:border-[#8ECA2E] focus:border-[#8ECA2E] focus:outline-none"
+                        className="w-64 rounded border border-gray-300 px-3 py-2 pr-8 text-sm hover:border-brand focus:border-brand focus:outline-none"
                         placeholder="qwen3:4b"
                       />
                       {llmOllamaModel && (
@@ -477,7 +477,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                           setLlmMinimaxKey(e.target.value)
                           setLlmMinimaxKeyCleared(false)
                         }}
-                        className="w-80 rounded border border-gray-300 px-3 py-2 pr-8 text-sm hover:border-[#8ECA2E] focus:border-[#8ECA2E] focus:outline-none font-mono tracking-widest"
+                        className="w-80 rounded border border-gray-300 px-3 py-2 pr-8 text-sm hover:border-brand focus:border-brand focus:outline-none font-mono tracking-widest"
                         placeholder="sk-cp-..."
                         autoComplete="new-password"
                         data-1p-ignore

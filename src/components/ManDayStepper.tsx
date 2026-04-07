@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 
+
 function round1(v: number) {
   return Math.round(v * 10) / 10
 }
@@ -58,7 +59,7 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
             type="button"
             disabled={disabled}
             onClick={handleDecrease}
-            className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-white text-[24px] leading-none text-black/80 shadow-[0_1px_3px_#0000001a] border border-[#EEEEEE] transition-transform duration-100 hover:scale-[1.1] hover:border-[#8ECA2E] active:scale-[0.95] active:border-[#8ECA2E] disabled:text-black/20"
+            className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-white text-[24px] leading-none text-black/80 shadow-[0_1px_3px_#0000001a] border border-[#EEEEEE] transition-transform duration-100 hover:scale-[1.1] hover:border-brand active:scale-[0.95] active:border-brand disabled:text-black/20"
             style={{ fontWeight: 300 }}
           >
             🦴
@@ -91,7 +92,7 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
         }}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        className={`absolute left-1/2 -translate-x-1/2 h-[48px] w-[80px] rounded-[8px] text-center text-[20px] leading-[48px] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E] ${isComplete ? 'border-transparent bg-transparent' : 'border border-[#EEEEEE]'}`}
+        className={`absolute left-1/2 -translate-x-1/2 h-[48px] w-[80px] rounded-[8px] text-center text-[20px] leading-[48px] outline-none hover:border-brand focus:border-brand ${isComplete ? 'border-transparent bg-transparent' : 'border border-[#EEEEEE]'}`}
         style={{ fontWeight: 800, appearance: 'textfield', WebkitAppearance: 'none', MozAppearance: 'textfield' }}
       />
       <style>{`input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{appearance:none;-webkit-appearance:none;margin:0}`}</style>
@@ -103,7 +104,7 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
             type="button"
             disabled={disabled}
             onClick={handleIncrease}
-            className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-white text-[24px] leading-none text-black/80 shadow-[0_1px_3px_#0000001a] border border-[#EEEEEE] transition-transform duration-100 hover:scale-[1.1] hover:border-[#8ECA2E] active:scale-[0.95] active:border-[#8ECA2E] disabled:text-black/20"
+            className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-white text-[24px] leading-none text-black/80 shadow-[0_1px_3px_#0000001a] border border-[#EEEEEE] transition-transform duration-100 hover:scale-[1.1] hover:border-brand active:scale-[0.95] active:border-brand disabled:text-black/20"
             style={{ fontWeight: 300 }}
           >
             <span className="inline-block scale-y-[-1]">🍗</span>
@@ -112,7 +113,7 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
             <span
               key={increaseAnim}
               className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-[4px] text-[16px] animate-fade-out"
-              style={{ fontWeight: 800, color: '#8ECA2E' }}
+              style={{ fontWeight: 800, color: 'var(--color-brand)' }}
             >
               <span className="inline-block scale-y-[-1]">🍗</span>
             </span>

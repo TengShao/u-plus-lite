@@ -10,6 +10,11 @@
 :root {
   --font-alibaba: 'Alibaba PuHuiTi 2.0', 'PingFang SC', 'Microsoft YaHei',
     'Helvetica Neue', sans-serif;
+  --color-brand: #79B714;
+  --color-brand-dark: #669618;
+  --color-brand-light: #8eca2e27;
+  --color-brand-hover: rgba(142, 202, 46, 0.15);
+  --color-brand-tint: #8ECA2E2F;
 }
 
 @font-face {

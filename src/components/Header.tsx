@@ -184,7 +184,7 @@ function AccountSettingsModal({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E]"
+                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand"
                 style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
                 placeholder="请输入姓名"
               />
@@ -196,7 +196,7 @@ function AccountSettingsModal({
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E]"
+                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand"
                 style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
                 placeholder="如需修改密码请填写"
               />
@@ -208,7 +208,7 @@ function AccountSettingsModal({
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E]"
+                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand"
                 style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
                 placeholder="不少于8位"
               />
@@ -219,7 +219,7 @@ function AccountSettingsModal({
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E]"
+                className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand"
                 style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
                 placeholder="再输入一次"
               />
@@ -231,7 +231,7 @@ function AccountSettingsModal({
                 <button
                   type="button"
                   onClick={() => setPipelineOpen(!pipelineOpen)}
-                  className="relative z-10 h-[42px] rounded-[8px] border border-[#EEEEEE] bg-white px-[10px] hover:border-[#8ECA2E]"
+                  className="relative z-10 h-[42px] rounded-[8px] border border-[#EEEEEE] bg-white px-[10px] hover:border-brand"
                   style={{ width: 144, boxShadow: 'none', marginLeft: 'auto' }}
                 >
                   <span
@@ -244,12 +244,12 @@ function AccountSettingsModal({
                 </button>
               </div>
               {pipelineOpen && (
-                <div className="absolute z-20 overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ width: 144, right: 0, border: '1px solid #8ECA2E', marginTop: 4 }}>
+                <div className="absolute z-20 overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ width: 144, right: 0, border: '1px solid var(--color-brand)', marginTop: 4 }}>
                   {pipelines.map((p) => (
                     <button
                       key={p}
                       onClick={() => { setSelectedPipeline(p); setPipelineOpen(false) }}
-                      className="flex h-[30px] w-full items-center justify-center text-[14px] hover:bg-[rgba(142,202,46,0.15)]"
+                      className="flex h-[30px] w-full items-center justify-center text-[14px] hover:bg-brand-hover"
                       style={{ fontWeight: 800 }}
                     >
                       {p}
@@ -344,7 +344,7 @@ export default function Header({
 
   const hasValue = searchQuery.length > 0
   // border color: focused/hasValue → green, hovered → green, default → #F3F3F3
-  const borderColor = isFocused || hasValue ? '#8ECA2E' : isHovered ? '#8ECA2E' : '#F3F3F3'
+  const borderColor = isFocused || hasValue ? 'var(--color-brand)' : isHovered ? 'var(--color-brand)' : '#F3F3F3'
   // icon/placeholder opacity: focused/hasValue → 1 : 0.2
   const iconOpacity = isFocused || hasValue ? 1 : 0.2
 
@@ -367,6 +367,13 @@ export default function Header({
           >
             <IconSetting />
           </button>
+        )}
+        {process.env.NODE_ENV === 'development' && (
+          <span className="ml-[12px] flex shrink-0 items-center rounded-[4px] bg-brand-light px-[3px]" style={{ height: 18 }}>
+            <span className="text-[12px] text-brand-dark" style={{ fontFamily: 'monospace' }}>
+              dev {process.env.NEXT_PUBLIC_APP_VERSION}-{process.env.NEXT_PUBLIC_GIT_COMMIT}
+            </span>
+          </span>
         )}
       </div>
 

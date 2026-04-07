@@ -41,7 +41,7 @@ export default function CycleCard({
       >
         <span
           className="h-2 w-2 shrink-0 rounded-full"
-          style={{ backgroundColor: isOpen ? '#8ECA2E' : '#B6B6B6' }}
+          style={{ backgroundColor: isOpen ? 'var(--color-brand)' : '#B6B6B6' }}
         />
         <div className="flex h-full items-center" style={{ gap: '6px' }}>
           <span

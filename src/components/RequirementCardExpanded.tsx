@@ -11,10 +11,8 @@ import { Cube, DesignerChip } from './Cube'
 import { RequiredDot } from './RequiredDot'
 import ManDayStepper from './ManDayStepper'
 
-const GREEN = '#8ECA2E'
-
 const HEALTH_COLORS: Record<string, string> = {
-  '适合': '#8ECA2E',
+  '适合': 'var(--color-brand)',
   '欠饱和': '#F8CF33',
   '过饱和': '#E96631',
 }
@@ -580,7 +578,7 @@ export default function RequirementCardExpanded({
             <div className="relative w-[600px]">
               <div
                 className={`relative h-[42px] rounded-[8px] border ${conflictedFields.has('name') ? 'bg-[rgba(245,166,35,0.2)]' : nameInvalid ? 'bg-[rgba(255,0,0,0.08)] shadow-[0_0_3px_rgba(0,0,0,0.06)]' : 'bg-white'}`}
-                style={{ borderColor: conflictedFields.has('name') ? '#F5A623' : nameInvalid ? '#FF7D7D' : isComplete ? 'transparent' : nameFocused ? GREEN : nameHovered ? GREEN : '#EEEEEE', transition: 'border-color 0.15s, background-color 0.15s' }}
+                style={{ borderColor: conflictedFields.has('name') ? '#F5A623' : nameInvalid ? '#FF7D7D' : isComplete ? 'transparent' : nameFocused ? 'var(--color-brand)' : nameHovered ? 'var(--color-brand)' : '#EEEEEE', transition: 'border-color 0.15s, background-color 0.15s' }}
                 onMouseEnter={() => setNameHovered(true)}
                 onMouseLeave={() => setNameHovered(false)}
               >
@@ -846,7 +844,7 @@ function SectionTitle({ icon, text, weight }: { icon: 'name' | 'info' | 'designe
       {icon === 'info' && <TitleInfoIcon />}
       {icon === 'designers' && <TitleDesignersIcon />}
       {icon === 'mine' && <TitleMineIcon />}
-      <span className="text-[12px] leading-[17px] text-[#8ECA2E]" style={{ fontWeight: weight }}>{text}</span>
+      <span className="text-[12px] leading-[17px] text-brand" style={{ fontWeight: weight }}>{text}</span>
     </div>
   )
 }
@@ -859,7 +857,7 @@ function fitDropdownTextSize(text: string, width: number) {
 }
 
 function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onToggle, invalid, conflicted, truncate, isHovered, onMouseEnter, onMouseLeave }: { width: number; value: string; placeholder?: string; isOpen: boolean; onToggle: () => void; invalid?: boolean; conflicted?: boolean; truncate?: boolean; isHovered?: boolean; onMouseEnter?: () => void; onMouseLeave?: () => void }) {
-  const borderColor = invalid ? '#FF7D7D' : conflicted ? '#F5A623' : isOpen ? 'transparent' : isHovered ? GREEN : '#EEEEEE'
+  const borderColor = invalid ? '#FF7D7D' : conflicted ? '#F5A623' : isOpen ? 'transparent' : isHovered ? 'var(--color-brand)' : '#EEEEEE'
   const boxShadow = invalid ? '0 0 3px rgba(0,0,0,0.06)' : 'none'
   const displayText = value || placeholder
   const fontSize = fitDropdownTextSize(displayText, width)
@@ -886,7 +884,7 @@ function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onTogg
 
 function MenuSingle({ width, value, options, selected, onPick }: { width: number; value: string; options: readonly string[]; selected: string; onPick: (v: string) => void }) {
   return (
-    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 min-w-[104px] overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid #8ECA2E', width }}>
+    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 min-w-[104px] overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: `1px solid var(--color-brand)`, width }}>
       {/* Trigger clone (arrow flipped) */}
       <div className="relative h-[36px] px-[10px]">
         <span
@@ -901,7 +899,7 @@ function MenuSingle({ width, value, options, selected, onPick }: { width: number
       {/* Options */}
       <div className="overflow-y-auto" style={{ maxHeight: 260, scrollbarWidth: 'thin', scrollbarColor: 'rgba(0,0,0,0.2) transparent' }}>
         {options.map((opt) => (
-          <button key={opt} onClick={() => onPick(opt)} className={`flex h-[30px] w-full items-center justify-center text-[14px] ${selected === opt ? 'bg-[rgba(142,202,46,0.15)]' : 'hover:bg-[rgba(142,202,46,0.15)]'}`} style={{ fontWeight: 800 }}>
+          <button key={opt} onClick={() => onPick(opt)} className={`flex h-[30px] w-full items-center justify-center text-[14px] ${selected === opt ? 'bg-brand-hover' : 'hover:bg-brand-hover'}`} style={{ fontWeight: 800 }}>
             {opt}
           </button>
         ))}
@@ -912,7 +910,7 @@ function MenuSingle({ width, value, options, selected, onPick }: { width: number
 
 function MenuMulti({ width, value, options, selected, onToggle }: { width: number; value: string; options: readonly string[]; selected: string[]; onToggle: (v: string) => void }) {
   return (
-    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid #8ECA2E', width }}>
+    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: `1px solid var(--color-brand)`, width }}>
       {/* Trigger clone (arrow flipped) */}
       <div className="relative h-[36px] px-[10px]">
         <span
@@ -929,9 +927,9 @@ function MenuMulti({ width, value, options, selected, onToggle }: { width: numbe
         {options.map((opt) => {
           const checked = selected.includes(opt)
           return (
-            <button key={opt} onClick={() => onToggle(opt)} className={`flex h-[30px] w-full items-center px-[8px] text-[14px] ${checked ? 'bg-[rgba(142,202,46,0.15)]' : 'hover:bg-[rgba(142,202,46,0.15)]'}`}>
+            <button key={opt} onClick={() => onToggle(opt)} className={`flex h-[30px] w-full items-center px-[8px] text-[14px] ${checked ? 'bg-brand-hover' : 'hover:bg-brand-hover'}`}>
               <span className="mr-[8px] flex h-[12px] w-[12px] items-center justify-center rounded-[4px] border border-[#EEEEEE] bg-[#FDFDFD]">
-                {checked && <span className="h-[6px] w-[6px] rounded-[1px] bg-[#8ECA2E]" />}
+                {checked && <span className="h-[6px] w-[6px] rounded-[1px] bg-brand" />}
               </span>
               <span className="mx-auto truncate" style={{ fontWeight: 800 }}>{opt}</span>
             </button>
@@ -944,7 +942,8 @@ function MenuMulti({ width, value, options, selected, onToggle }: { width: numbe
 
 function CubeInput({ width, value, onChange, placeholder = '请输入', disabled, invalid, conflicted }: { width: number; value: string | number; onChange: (v: string) => void; placeholder?: string; disabled?: boolean; invalid?: boolean; conflicted?: boolean }) {
   const [focused, setFocused] = useState(false)
-  const borderColor = invalid ? '#FF7D7D' : conflicted ? '#F5A623' : focused ? GREEN : '#EEEEEE'
+  const [hovered, setHovered] = useState(false)
+  const borderColor = invalid ? '#FF7D7D' : conflicted ? '#F5A623' : focused ? 'var(--color-brand)' : hovered ? 'var(--color-brand)' : '#EEEEEE'
   const bgColor = conflicted ? 'rgba(245,166,35,0.2)' : invalid && !focused ? 'rgba(255,0,0,0.08)' : '#FFFFFF'
   return (
     <input
@@ -953,6 +952,8 @@ function CubeInput({ width, value, onChange, placeholder = '请输入', disabled
       disabled={disabled}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className="h-[36px] rounded-[8px] border border-transparent bg-white px-[10px] text-center text-[16px] leading-[22px] text-black placeholder:text-[#C3C3C3] outline-none"
@@ -1012,14 +1013,14 @@ function ActionButton({ variant, disabled, lastSubmittedAt, lastSubmitterName, o
   )
 }
 
-function TitleNameIcon() { return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="4" y="1" width="4" height="2" rx="0.5" stroke={GREEN} /><path d="M8 2h1a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h1" stroke={GREEN} /><path d="M4.5 7 5.5 8 7.5 6" stroke={GREEN} /></svg> }
-function TitleInfoIcon() { return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke={GREEN} /><path d="M6 8V6" stroke={GREEN} /><path d="M6 4h.005" stroke={GREEN} /></svg> }
-function TitleDesignersIcon() { return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 10.5C9 8.29 7.21 6.5 5 6.5S1 8.29 1 10.5" stroke={GREEN} /><circle cx="5" cy="4" r="2.5" stroke={GREEN} /><path d="M11 10c0-1.685-1-3.25-2-4" stroke={GREEN} /></svg> }
-function TitleMineIcon() { return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6.2 6.5C6.67 5.42 7.84 4.81 9 5.05 10.17 5.29 11 6.31 11 7.5 11 9.43 9 11 6.5 11 4.46 11 2.42 10.59 1.31 9.77c-.21-.16-.31-.42-.31-.68C1.06 6.36 1.31 1 5 1a1.5 1.5 0 1 1 0 3c-.55 0-.82-.22-1-0.5" stroke={GREEN} /><path d="M7.5 7c-.61-.46-1.4-.61-2.14-.42-.74.2-1.35.72-1.65 1.42" stroke={GREEN} /><path d="M4.98 3.41C4.01 3.99 4.75 6.5 4 7.5" stroke={GREEN} /></svg> }
+function TitleNameIcon() { return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="4" y="1" width="4" height="2" rx="0.5" stroke="var(--color-brand)" /><path d="M8 2h1a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h1" stroke="var(--color-brand)" /><path d="M4.5 7 5.5 8 7.5 6" stroke="var(--color-brand)" /></svg> }
+function TitleInfoIcon() { return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="var(--color-brand)" /><path d="M6 8V6" stroke="var(--color-brand)" /><path d="M6 4h.005" stroke="var(--color-brand)" /></svg> }
+function TitleDesignersIcon() { return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 10.5C9 8.29 7.21 6.5 5 6.5S1 8.29 1 10.5" stroke="var(--color-brand)" /><circle cx="5" cy="4" r="2.5" stroke="var(--color-brand)" /><path d="M11 10c0-1.685-1-3.25-2-4" stroke="var(--color-brand)" /></svg> }
+function TitleMineIcon() { return <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6.2 6.5C6.67 5.42 7.84 4.81 9 5.05 10.17 5.29 11 6.31 11 7.5 11 9.43 9 11 6.5 11 4.46 11 2.42 10.59 1.31 9.77c-.21-.16-.31-.42-.31-.68C1.06 6.36 1.31 1 5 1a1.5 1.5 0 1 1 0 3c-.55 0-.82-.22-1-0.5" stroke="var(--color-brand)" /><path d="M7.5 7c-.61-.46-1.4-.61-2.14-.42-.74.2-1.35.72-1.65 1.42" stroke="var(--color-brand)" /><path d="M4.98 3.41C4.01 3.99 4.75 6.5 4 7.5" stroke="var(--color-brand)" /></svg> }
 function TipsBadge({ label, value, onClick }: { label: string; value: string | number; onClick?: () => void }) {
   const [hovered, setHovered] = useState(false)
   const [active, setActive] = useState(false)
-  const color = (hovered || active) && onClick ? '#8ECA2E' : '#8C8C8C'
+  const color = (hovered || active) && onClick ? 'var(--color-brand)' : '#8C8C8C'
   return (
     <span
       className={`text-[12px] leading-[17px] underline ${onClick ? 'cursor-pointer' : ''}`}

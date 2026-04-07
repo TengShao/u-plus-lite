@@ -45,8 +45,8 @@ export default function RequirementTags({
         </span>
       )}
       {!showPending && isLastSubmitted && (
-        <span className="ml-[6px] flex items-center rounded-[4px] bg-[#8eca2e27] px-[3px]" style={{ height: 18 }}>
-          <span className="text-[12px] text-[#8eca2e]">上次提交</span>
+        <span className="ml-[6px] flex items-center rounded-[4px] bg-brand-light px-[3px]" style={{ height: 18 }}>
+          <span className="text-[12px] text-brand-dark">上次提交</span>
         </span>
       )}
     </div>

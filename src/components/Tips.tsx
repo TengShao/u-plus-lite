@@ -1,6 +1,7 @@
 'use client'
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 
+
 type TipsType = 'positive' | 'negative'
 
 interface TipsContextValue {
@@ -80,11 +81,11 @@ export function TipsProvider({ children }: { children: React.ReactNode }) {
               backgroundColor: '#FFFFFF',
               borderWidth: 1,
               borderStyle: 'solid',
-              borderColor: type === 'positive' ? '#8ECA2E' : '#FF7D7D',
+              borderColor: type === 'positive' ? 'var(--color-brand)' : '#FF7D7D',
               borderRadius: 8,
               fontSize: 14,
               fontWeight: 500,
-              color: type === 'positive' ? '#8ECA2E' : '#FF7D7D',
+              color: type === 'positive' ? 'var(--color-brand)' : '#FF7D7D',
               whiteSpace: 'nowrap',
             }}
           >

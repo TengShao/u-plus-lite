@@ -2,8 +2,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { signIn } from 'next-auth/react'
 
-const GREEN = '#8ECA2E'
-
 function fitDropdownTextSize(text: string, width: number) {
   const available = Math.max(width - 48, 40)
   const units = text.split('').reduce((sum, ch) => sum + (/^[\x20-\x7E]$/.test(ch) ? 0.55 : 1), 0)
@@ -14,7 +12,7 @@ function fitDropdownTextSize(text: string, width: number) {
 function ArrowIcon({ flipped }: { flipped?: boolean }) {
   return (
     <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ transform: flipped ? 'rotate(180deg)' : undefined }}>
-      <path d="M1 1L5 5L9 1" stroke={GREEN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M1 1L5 5L9 1" stroke="var(--color-brand)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )
 }
@@ -45,7 +43,7 @@ function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onTogg
 
 function PipelineMultiMenu({ width, value, options, selected, onToggle }: { width: number; value: string; options: readonly string[]; selected: string[]; onToggle: (v: string) => void }) {
   return (
-    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid #8ECA2E', width }}>
+    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid var(--color-brand)', width }}>
       {/* Trigger clone (arrow flipped) */}
       <div className="relative flex h-[36px] items-center justify-center px-[10px]">
         <span className="flex-1 overflow-hidden whitespace-nowrap text-center text-[16px] leading-[22px]" style={{ fontWeight: 800 }}>
@@ -63,10 +61,10 @@ function PipelineMultiMenu({ width, value, options, selected, onToggle }: { widt
               type="button"
               key={opt}
               onClick={() => onToggle(opt)}
-              className={`flex h-[30px] w-full items-center px-[8px] text-[14px] ${checked ? 'bg-[rgba(142,202,46,0.15)]' : 'hover:bg-[rgba(142,202,46,0.15)]'}`}
+              className={`flex h-[30px] w-full items-center px-[8px] text-[14px] ${checked ? 'bg-brand-hover' : 'hover:bg-brand-hover'}`}
             >
               <span className="mr-[8px] flex h-[12px] w-[12px] items-center justify-center rounded-[4px] border border-[#EEEEEE] bg-[#FDFDFD]">
-                {checked && <span className="h-[6px] w-[6px] rounded-[1px] bg-[#8ECA2E]" />}
+                {checked && <span className="h-[6px] w-[6px] rounded-[1px] bg-brand" />}
               </span>
               <span className="mx-auto truncate" style={{ fontWeight: 800 }}>{opt}</span>
             </button>
@@ -246,7 +244,7 @@ export default function AuthModal({
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="请输入姓名"
-                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E]"
+                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand"
                   style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
                 />
               </div>
@@ -259,7 +257,7 @@ export default function AuthModal({
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="请输入密码"
-                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E]"
+                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand"
                   style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
                 />
               </div>
@@ -297,7 +295,7 @@ export default function AuthModal({
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="请输入真实姓名"
-                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E]"
+                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand"
                   style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
                 />
               </div>
@@ -310,7 +308,7 @@ export default function AuthModal({
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="请输入密码（至少8位）"
-                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E]"
+                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand"
                   style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
                 />
               </div>
@@ -322,7 +320,7 @@ export default function AuthModal({
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="再输入一次"
-                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-[#8ECA2E] focus:border-[#8ECA2E]"
+                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand"
                   style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
                 />
               </div>
@@ -358,7 +356,7 @@ export default function AuthModal({
                     <button
                       type="button"
                       onClick={() => setLevelOpen(!levelOpen)}
-                      className="relative z-10 h-[36px] w-full rounded-[8px] border border-[#EEEEEE] bg-white px-[10px] hover:border-[#8ECA2E]"
+                      className="relative z-10 h-[36px] w-full rounded-[8px] border border-[#EEEEEE] bg-white px-[10px] hover:border-brand"
                       style={{ boxShadow: 'none', transition: 'border-color 0.15s' }}
                     >
                       <span
@@ -370,7 +368,7 @@ export default function AuthModal({
                       <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon flipped={levelOpen} /></span>
                     </button>
                     {levelOpen && (
-                      <div className="absolute left-0 top-0 z-20 w-full overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid #8ECA2E' }}>
+                      <div className="absolute left-0 top-0 z-20 w-full overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid var(--color-brand)' }}>
                         {/* Trigger clone */}
                         <div className="relative h-[36px] px-[10px]">
                           <span className="absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center text-[16px] leading-[22px]" style={{ fontWeight: 800 }}>
@@ -384,7 +382,7 @@ export default function AuthModal({
                             type="button"
                             key={l}
                             onClick={() => { setLevel(l); setLevelOpen(false) }}
-                            className={`flex h-[30px] w-full items-center justify-center text-[14px] ${level === l ? 'bg-[rgba(142,202,46,0.15)]' : 'hover:bg-[rgba(142,202,46,0.15)]'}`}
+                            className={`flex h-[30px] w-full items-center justify-center text-[14px] ${level === l ? 'bg-brand-hover' : 'hover:bg-brand-hover'}`}
                             style={{ fontWeight: 800 }}
                           >
                             {l}
