@@ -247,7 +247,7 @@ function Get-LatestVersion {
             } catch {}
             finally { Pop-Location }
         }
-        Write-Host "当前版本: v$script:LOCAL_VERSION"
+        Write-Host "当前版本: $script:LOCAL_VERSION"
     }
 }
 

@@ -259,7 +259,7 @@ fetch_latest_version() {
         else
             CURRENT_VERSION=$(git -C "$DEFAULT_DIR" describe --tags --abbrev=0 2>/dev/null | sed 's/\^{}//' | tr -d ' \n') || CURRENT_VERSION="unknown"
         fi
-        echo "当前版本: v$CURRENT_VERSION"
+        echo "当前版本: $CURRENT_VERSION"
     fi
 }
 
