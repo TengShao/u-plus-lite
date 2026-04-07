@@ -1086,7 +1086,7 @@ function Invoke-Uninstall {
     Write-Host -NoNewline "确认卸载？（输入 YES 确认）: "
     $confirm = Read-Host
 
-    if ($confirm -ne "YES") {
+    if ($confirm.ToUpper() -ne "YES") {
         Write-Host "取消卸载操作"
         exit 0
     }
@@ -1095,8 +1095,24 @@ function Invoke-Uninstall {
     Write-Host "正在卸载..."
     pm2 stop u-plus-lite 2>$null
     pm2 delete u-plus-lite 2>$null
+    # 等待进程完全退出释放文件句柄（Windows 上文件被占用会导致 Remove-Item 失败）
+    Start-Sleep -Seconds 2
     if (Test-Path $script:DEPLOY_DIR) {
-        Remove-Item -Recurse -Force $script:DEPLOY_DIR
+        $retry = 0
+        while ($retry -lt 3) {
+            try {
+                Remove-Item -Recurse -Force $script:DEPLOY_DIR -ErrorAction Stop
+                break
+            } catch {
+                $retry++
+                if ($retry -ge 3) {
+                    Write-Fail "无法删除目录: $script:DEPLOY_DIR（可能仍有进程占用）"
+                    Write-Host "请手动关闭相关进程后删除该目录"
+                    exit 1
+                }
+                Start-Sleep -Seconds 2
+            }
+        }
     }
     Write-Success "卸载完成"
 }
