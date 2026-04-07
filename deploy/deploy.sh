@@ -257,7 +257,7 @@ fetch_latest_version() {
         if [ -f "$DEFAULT_DIR/version.txt" ]; then
             CURRENT_VERSION=$(cat "$DEFAULT_DIR/version.txt" | tr -d ' \n')
         else
-            CURRENT_VERSION=$(git -C "$DEFAULT_DIR" describe --tags --abbrev=0 2>/dev/null | sed 's/\^{}//' | tr -d ' \n') || CURRENT_VERSION="unknown"
+            CURRENT_VERSION=$(git -C "$DEFAULT_DIR" describe --tags 2>/dev/null | sed 's/\^{}//' | tr -d ' \n') || CURRENT_VERSION="unknown"
         fi
         echo "当前版本: $CURRENT_VERSION"
     fi
@@ -979,6 +979,9 @@ do_update() {
         echo "$pull_output"
     fi
 
+    # git pull 成功后立即更新版本号
+    echo "v$LATEST_VERSION" > version.txt
+
     # 检查 package-lock.json 变化
     local need_npm_install=false
     if [ -f "package-lock.json" ]; then
@@ -1072,9 +1075,6 @@ do_update() {
     echo "正在重启服务..."
     pm2 restart u-plus-lite
 
-    # 更新版本文件
-    echo "v$LATEST_VERSION" > version.txt
-
     echo ""
     print_status "ok" "更新完成"
     show_complete ""
@@ -1101,6 +1101,7 @@ do_uninstall() {
 
     echo ""
     echo "正在卸载..."
+    pm2 stop u-plus-lite 2>/dev/null || true
     pm2 delete u-plus-lite 2>/dev/null || true
     rm -rf "$DEPLOY_DIR"
     print_status "ok" "卸载完成"

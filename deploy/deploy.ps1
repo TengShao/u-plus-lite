@@ -242,7 +242,7 @@ function Get-LatestVersion {
         } else {
             try {
                 Push-Location $DEFAULT_DIR
-                $tag = git describe --tags --abbrev=0 2>$null
+                $tag = git describe --tags 2>$null
                 if ($tag) { $script:LOCAL_VERSION = $tag -replace "\^\{\}", "" -replace "^v", "" }
             } catch {}
             finally { Pop-Location }
@@ -972,6 +972,9 @@ function Invoke-Update {
         Write-Host $pullOutput
     }
 
+    # git pull 成功后立即更新版本号
+    "v$script:LATEST_VERSION" | Set-Content -Path (Join-Path $script:PROJECT_ROOT "version.txt") -Encoding UTF8
+
     # 检查 package-lock.json 变化
     $needNpmInstall = $false
     if (Test-Path $pkgFile) {
@@ -1064,9 +1067,6 @@ function Invoke-Update {
     Write-Host "正在重启服务..."
     pm2 restart u-plus-lite
 
-    # 更新版本文件
-    "v$script:LATEST_VERSION" | Set-Content -Path (Join-Path $script:PROJECT_ROOT "version.txt") -Encoding UTF8
-
     Write-Host ""
     Write-Success "更新完成"
     Show-Complete ""
@@ -1093,6 +1093,7 @@ function Invoke-Uninstall {
 
     Write-Host ""
     Write-Host "正在卸载..."
+    pm2 stop u-plus-lite 2>$null
     pm2 delete u-plus-lite 2>$null
     if (Test-Path $script:DEPLOY_DIR) {
         Remove-Item -Recurse -Force $script:DEPLOY_DIR
