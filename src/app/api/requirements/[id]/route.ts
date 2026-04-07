@@ -130,10 +130,16 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
   if (session.user.role !== 'ADMIN') {
     const rg = await prisma.requirementGroup.findUnique({
       where: { id },
-      include: { cycle: true },
+      include: { cycle: true, creator: true },
     })
     if (!rg) return NextResponse.json({ error: '需求组不存在' }, { status: 404 })
     if (rg.cycle.status === 'CLOSED') return forbidden()
+    if (rg.createdBy !== parseInt(session.user.id)) {
+      return NextResponse.json(
+        { error: '仅创建者可删除此需求组', creatorName: rg.creator?.name ?? null },
+        { status: 403 }
+      )
+    }
   }
 
   await prisma.requirementGroup.delete({ where: { id } })

@@ -584,8 +584,32 @@ export default function RequirementPanel({
     return { pipeline, rating, health, designer, canClose, status }
   }, [requirements, pipelineSettings])
 
+  async function handleDeleteClick(id: number) {
+    // 非管理员且非创建者：直接弹tips，不走确认流程
+    if (!isAdmin) {
+      const rg = requirements.find((r) => r.id === id)
+      if (rg && rg.createdBy !== parseInt(session!.user.id)) {
+        showTips('negative', `仅创建者可删除此需求组，联系:${rg.creator.name}或管理员`)
+        return
+      }
+    }
+    setPendingDeleteId(id)
+  }
+
   async function handleDeleteRequest(id: number) {
-    await fetch(`/api/requirements/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/requirements/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      if (data?.creatorName) {
+        showTips('negative', `仅创建者可删除此需求组，联系:${data.creatorName}或管理员`)
+      } else if (data?.error) {
+        showTips('negative', data.error)
+      } else {
+        showTips('negative', '删除失败')
+      }
+      setPendingDeleteId(null)
+      return
+    }
     setPendingDeleteId(null)
     onRefresh()
     setExpandedIds(expandedIds.filter((eid) => eid !== id))
@@ -741,7 +765,7 @@ export default function RequirementPanel({
                   onExpandById={(id) => { setHasUnsaved(false); setExpandedIds([id]) }}
                   onDraftResolved={handleDraftResolved}
                   pipelineSettings={pipelineSettings}
-                  onDeleteRequest={(id) => setPendingDeleteId(id)}
+                  onDeleteRequest={handleDeleteClick}
                   onDiscardRequest={(id) => setPendingDiscardId(id)}
                   onDuplicateRequest={(id, name) => { setPendingDuplicateId(id); setPendingDuplicateName(name) }}
                   onCompleteRequest={handleCompleteRequest}
@@ -757,7 +781,7 @@ export default function RequirementPanel({
                   cycleStatus={cycle?.status || 'OPEN'}
                   onExpand={() => handleExpand(rg.id)}
                   onRefresh={onRefresh}
-                  onDeleteRequest={(id) => setPendingDeleteId(id)}
+                  onDeleteRequest={handleDeleteClick}
                   onCompleteRequest={handleCompleteRequest}
                   onReopenRequest={handleReopenRequest}
                   isLastSubmitted={lastSubmittedId === rg.id}
