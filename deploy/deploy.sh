@@ -711,6 +711,7 @@ deploy_new() {
     echo "[2/9] 正在安装依赖..."
     # 修复 npm cache 权限（之前 sudo npm 可能留下 root 所属文件）
     if [ -d "$HOME/.npm/_cacache" ]; then
+        echo -e "${YELLOW}（如需输入密码，是系统登录密码）${NC}"
         sudo chown -R "$(whoami)" "$HOME/.npm/_cacache" 2>/dev/null || true
     fi
     if ! npm install; then
