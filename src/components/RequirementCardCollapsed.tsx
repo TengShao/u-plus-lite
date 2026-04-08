@@ -7,8 +7,8 @@ import { DesignerCube } from './DesignerCube'
 import RequirementTags from './RequirementTags'
 const HEALTH_COLORS: Record<string, string> = {
   '适合': 'var(--color-brand)',
-  '欠饱和': '#F8CF33',
-  '过饱和': '#E96631',
+  '欠饱和': 'var(--u-warning)',
+  '过饱和': 'var(--u-danger)',
 }
 
 export default function RequirementCardCollapsed({
@@ -44,7 +44,7 @@ export default function RequirementCardCollapsed({
     <div
       data-req-id={String(data.id)}
       onClick={onExpand}
-      className="animate-card-collapse mx-auto min-w-[1080px] max-w-full relative cursor-pointer rounded-[24px] bg-white transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.15)] font-alibaba"
+      className="animate-card-collapse mx-auto min-w-[1080px] max-w-full relative cursor-pointer rounded-[24px] bg-bg-panel font-alibaba transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.15)]"
       style={{ height: 152 }}
     >
       {/* Disabled overlay */}
@@ -53,7 +53,7 @@ export default function RequirementCardCollapsed({
       )}
       {/* Name + info tags — top-left */}
       <div className="absolute left-[25px] top-[18px] flex items-center gap-[12px]" style={{ right: 200 }}>
-        <span className="shrink-0 text-[16px] leading-[22px] text-black" style={{ fontWeight: 900 }}>
+        <span className="shrink-0 text-[16px] leading-[22px] text-text-primary" style={{ fontWeight: 900 }}>
           {data.name || '未命名需求组'}
         </span>
         <RequirementTags

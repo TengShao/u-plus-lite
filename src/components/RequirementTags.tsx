@@ -11,7 +11,7 @@ interface RequirementTagsProps {
 }
 
 function Divider() {
-  return <span className="mx-0 inline-block h-[10px] w-px shrink-0 bg-[#00000013]" style={{ marginTop: 4 }} />
+  return <span className="mx-0 inline-block h-[10px] w-px shrink-0" style={{ marginTop: 4, backgroundColor: 'var(--u-border)', opacity: 0.4 }} />
 }
 
 export default function RequirementTags({
@@ -34,19 +34,19 @@ export default function RequirementTags({
       {tags.map((t) => (
         <span key={t} className="flex items-center gap-[12px]">
           <Divider />
-          <span className="shrink-0 text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>
+          <span className="shrink-0 text-[12px] leading-[17px] text-text-muted" style={{ fontWeight: 400 }}>
             {t}
           </span>
         </span>
       ))}
       {showPending && (
-        <span className="ml-[6px] flex items-center rounded-[4px] bg-[#f22f4627] px-[3px]" style={{ height: 18 }}>
-          <span className="text-[12px] text-[#f22f46]">待提交</span>
+        <span className="ml-[6px] flex items-center rounded-[4px] px-[3px]" style={{ height: 18, backgroundColor: 'var(--u-danger-light)' }}>
+          <span className="text-[12px]" style={{ color: 'var(--u-danger)' }}>待提交</span>
         </span>
       )}
       {!showPending && isLastSubmitted && (
-        <span className="ml-[6px] flex items-center rounded-[4px] bg-brand-light px-[3px]" style={{ height: 18 }}>
-          <span className="text-[12px] text-brand-dark">上次提交</span>
+        <span className="ml-[6px] flex items-center rounded-[4px] px-[3px]" style={{ height: 18, backgroundColor: 'var(--color-brand-light)' }}>
+          <span className="text-[12px]" style={{ color: 'var(--color-brand-dark)' }}>上次提交</span>
         </span>
       )}
     </div>

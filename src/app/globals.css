@@ -39,6 +39,7 @@
   /* Semantic colors */
   --u-success: #2D9F45;
   --u-warning: #F5A623;
+  --u-warning-light: rgba(245, 166, 35, 0.12);
   --u-danger: #E96631;
   --u-danger-light: rgba(233, 102, 49, 0.12);
   --u-info: #79B714;
@@ -209,6 +210,7 @@ input.no-spin[type='number'] {
 
   --u-success: #4ade80;
   --u-warning: #fbbf24;
+  --u-warning-light: rgba(251, 191, 36, 0.15);
   --u-danger: #f87171;
   --u-danger-light: rgba(248, 113, 113, 0.12);
   --u-info: #79B714;

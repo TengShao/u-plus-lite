@@ -6,7 +6,7 @@ import ConfirmDialog from './ConfirmDialog'
 function IconClear() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M3 3L11 11M3 11L11 3" stroke="#C8C8C8" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M3 3L11 11M3 11L11 3" stroke="var(--u-text-muted)" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   )
 }
@@ -381,36 +381,36 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="max-h-[80vh] w-[700px] overflow-hidden rounded-lg bg-white shadow-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[80vh] w-[700px] overflow-hidden rounded-lg bg-bg-panel" style={{ boxShadow: 'var(--u-shadow-lg)' }} onClick={(e) => e.stopPropagation()}>
         {/* Header with tabs */}
-        <div className="flex items-center justify-between border-b px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border-default px-6 py-4">
           <div className="flex gap-4">
             <button
               onClick={() => setActiveTab('members')}
-              className={`text-lg font-bold ${activeTab === 'members' ? 'text-black' : 'text-gray-400'}`}
+              className={`text-lg font-bold ${activeTab === 'members' ? 'text-text-primary' : 'text-text-muted'}`}
             >
               成员管理
             </button>
             <button
               onClick={() => setActiveTab('pipelines')}
-              className={`text-lg font-bold ${activeTab === 'pipelines' ? 'text-black' : 'text-gray-400'}`}
+              className={`text-lg font-bold ${activeTab === 'pipelines' ? 'text-text-primary' : 'text-text-muted'}`}
             >
               管线管理
             </button>
             <button
               onClick={() => setActiveTab('budget')}
-              className={`text-lg font-bold ${activeTab === 'budget' ? 'text-black' : 'text-gray-400'}`}
+              className={`text-lg font-bold ${activeTab === 'budget' ? 'text-text-primary' : 'text-text-muted'}`}
             >
               预算项管理
             </button>
             <button
               onClick={() => setActiveTab('llm')}
-              className={`text-lg font-bold ${activeTab === 'llm' ? 'text-black' : 'text-gray-400'}`}
+              className={`text-lg font-bold ${activeTab === 'llm' ? 'text-text-primary' : 'text-text-muted'}`}
             >
               LLM
             </button>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+          <button onClick={onClose} className="text-text-muted hover:text-text-primary text-xl">✕</button>
         </div>
 
         {/* Content */}
@@ -420,7 +420,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
               <div className="flex flex-col gap-6">
                 {/* Provider */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">供应商</label>
+                  <label className="block text-sm font-medium text-text-secondary mb-2">供应商</label>
                   <div className="flex gap-3">
                     {(['ollama', 'minimax'] as const).map((p) => (
                       <button
@@ -428,9 +428,10 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                         onClick={() => setLlmProvider(p)}
                         className={`px-4 py-2 rounded border text-sm font-medium transition-colors ${
                           llmProvider === p
-                            ? 'bg-black text-white border-black'
-                            : 'bg-white text-gray-600 border-gray-300 hover:border-black'
+                            ? 'border-text-primary text-bg-panel'
+                            : 'border-border-default text-text-muted hover:border-text-primary'
                         }`}
+                        style={llmProvider === p ? { backgroundColor: 'var(--u-text-primary)' } : {}}
                       >
                         {p === 'ollama' ? 'Ollama (本地)' : 'MiniMax (云端)'}
                       </button>
@@ -441,19 +442,19 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                 {/* Ollama fields */}
                 {llmProvider === 'ollama' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">模型名称</label>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">模型名称</label>
                     <div className="relative inline-flex items-center">
                       <input
                         type="text"
                         value={llmOllamaModel}
                         onChange={(e) => setLlmOllamaModel(e.target.value)}
-                        className="w-64 rounded border border-gray-300 px-3 py-2 pr-8 text-sm hover:border-brand focus:border-brand focus:outline-none"
+                        className="w-64 rounded border border-border-default bg-bg-panel px-3 py-2 pr-8 text-sm hover:border-color-brand focus:border-color-brand focus:outline-none text-text-primary"
                         placeholder="qwen3:4b"
                       />
                       {llmOllamaModel && (
                         <button
                           type="button"
-                          className="absolute right-2 flex items-center justify-center text-[#C8C8C8] hover:text-black"
+                          className="absolute right-2 flex items-center justify-center text-text-muted hover:text-text-primary"
                           onClick={() => setLlmOllamaModel('')}
                           aria-label="清空"
                         >
@@ -461,14 +462,14 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                         </button>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-gray-400">例如：qwen3:4b、llama3 等，需已在 Ollama 中下载</p>
+                    <p className="mt-1 text-xs text-text-muted">例如：qwen3:4b、llama3 等，需已在 Ollama 中下载</p>
                   </div>
                 )}
 
                 {/* MiniMax fields */}
                 {llmProvider === 'minimax' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">API Key</label>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">API Key</label>
                     <div className="relative inline-flex items-center">
                       <input
                         type="text"
@@ -477,7 +478,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                           setLlmMinimaxKey(e.target.value)
                           setLlmMinimaxKeyCleared(false)
                         }}
-                        className="w-80 rounded border border-gray-300 px-3 py-2 pr-8 text-sm hover:border-brand focus:border-brand focus:outline-none font-mono tracking-widest"
+                        className="w-80 rounded border border-border-default bg-bg-panel px-3 py-2 pr-8 text-sm hover:border-color-brand focus:border-color-brand focus:outline-none font-mono tracking-widest text-text-primary"
                         placeholder="sk-cp-..."
                         autoComplete="new-password"
                         data-1p-ignore
@@ -485,7 +486,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                       {(llmMinimaxKey || (llmMinimaxKeySaved && !llmMinimaxKey)) && (
                         <button
                           type="button"
-                          className="absolute right-2 flex items-center justify-center text-[#C8C8C8] hover:text-black"
+                          className="absolute right-2 flex items-center justify-center text-text-muted hover:text-text-primary"
                           onClick={() => {
                             setLlmMinimaxKey('')
                             setLlmMinimaxKeyCleared(true)
@@ -496,7 +497,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                         </button>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-gray-400">
+                    <p className="mt-1 text-xs text-text-muted">
                       {llmMinimaxKeySaved && !llmMinimaxKeyCleared ? 'API使用中' : '当前未配置API'}
                     </p>
                   </div>
@@ -507,12 +508,13 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                   <button
                     onClick={saveLLMSettings}
                     disabled={llmSaving}
-                    className="px-5 py-2 bg-black text-white rounded text-sm hover:bg-gray-800 disabled:bg-gray-400"
+                    className="px-5 py-2 rounded text-sm"
+                    style={{ backgroundColor: 'var(--u-text-primary)', color: 'var(--u-bg-panel)' }}
                   >
                     {llmSaving ? '保存中...' : '保存'}
                   </button>
                   {llmMsg && (
-                    <span className={`text-sm ${llmMsg.includes('成功') ? 'text-green-600' : 'text-red-500'}`}>
+                    <span className="text-sm" style={{ color: llmMsg.includes('成功') ? 'var(--u-success)' : 'var(--u-danger)' }}>
                       {llmMsg}
                     </span>
                   )}
@@ -526,7 +528,8 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                 <button
                   onClick={startAddMember}
                   disabled={isAdding}
-                  className="px-4 py-2 bg-black text-white rounded text-sm hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="px-4 py-2 rounded text-sm disabled:cursor-not-allowed"
+                  style={{ backgroundColor: 'var(--u-text-primary)', color: 'var(--u-bg-panel)' }}
                 >
                   新增成员
                 </button>
@@ -535,7 +538,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
               {/* Members table */}
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left text-gray-500">
+                  <tr className="border-b border-border-default text-left text-text-muted">
                     <th className="pb-2">姓名</th>
                     <th className="pb-2">职级</th>
                     <th className="pb-2">角色</th>
@@ -544,13 +547,13 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                 </thead>
                 <tbody>
                   {isAdding && (
-                    <tr className="border-b bg-gray-50">
+                    <tr className="border-b border-border-default">
                       <td className="py-2">
                         <input
                           type="text"
                           value={newMember.name}
                           onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
-                          className="w-24 rounded border px-2 py-1 text-sm"
+                          className="w-24 rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-text-primary"
                           placeholder="姓名"
                           autoFocus
                         />
@@ -559,7 +562,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                         <select
                           value={newMember.level}
                           onChange={(e) => setNewMember({ ...newMember, level: e.target.value })}
-                          className="rounded border px-2 py-1 text-sm"
+                          className="rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-text-primary"
                         >
                           <option value="">未设置</option>
                           {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
@@ -569,7 +572,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                         <select
                           value={newMember.role}
                           onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
-                          className="rounded border px-2 py-1 text-sm"
+                          className="rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-text-primary"
                         >
                           <option value="MEMBER">成员</option>
                           <option value="ADMIN">管理员</option>
@@ -577,14 +580,14 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                       </td>
                                             <td className="py-2">
                         <div className="flex gap-2">
-                          <button onClick={confirmAddMember} className="text-green-600 hover:text-green-700 text-sm">确认</button>
-                          <button onClick={cancelAddMember} className="text-gray-500 hover:text-gray-700 text-sm">取消</button>
+                          <button onClick={confirmAddMember} className="text-sm" style={{ color: 'var(--u-success)' }}>确认</button>
+                          <button onClick={cancelAddMember} className="text-sm text-text-muted">取消</button>
                         </div>
                       </td>
                     </tr>
                   )}
                   {users.map((u) => (
-                    <tr key={u.id} className={`border-b ${editingMember?.id === u.id ? 'bg-gray-50' : ''}`}>
+                    <tr key={u.id} className={`border-b border-border-default ${editingMember?.id === u.id ? '' : ''}`} style={editingMember?.id === u.id ? { backgroundColor: 'var(--u-bg-hover)' } : {}}>
                       {editingMember?.id === u.id ? (
                         <>
                           <td className="py-2">
@@ -592,7 +595,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                               type="text"
                               value={editingMember.name}
                               onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })}
-                              className="w-24 rounded border px-2 py-1 text-sm"
+                              className="w-24 rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-text-primary"
                               autoFocus
                             />
                           </td>
@@ -600,7 +603,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                             <select
                               value={editingMember.level}
                               onChange={(e) => setEditingMember({ ...editingMember, level: e.target.value })}
-                              className="rounded border px-2 py-1 text-sm"
+                              className="rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-text-primary"
                             >
                               <option value="">未设置</option>
                               {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
@@ -610,7 +613,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                             <select
                               value={editingMember.role}
                               onChange={(e) => setEditingMember({ ...editingMember, role: e.target.value })}
-                              className="rounded border px-2 py-1 text-sm"
+                              className="rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-text-primary"
                             >
                               <option value="MEMBER">成员</option>
                               <option value="ADMIN">管理员</option>
@@ -618,27 +621,29 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                           </td>
                                                     <td className="py-2">
                             <div className="flex gap-2">
-                              <button onClick={confirmEditMember} className="text-green-600 hover:text-green-700 text-sm">确认</button>
-                              <button onClick={cancelEditMember} className="text-gray-500 hover:text-gray-700 text-sm">取消</button>
+                              <button onClick={confirmEditMember} className="text-sm" style={{ color: 'var(--u-success)' }}>确认</button>
+                              <button onClick={cancelEditMember} className="text-sm text-text-muted">取消</button>
                             </div>
                           </td>
                         </>
                       ) : (
                         <>
-                          <td className="py-2">{u.name}</td>
-                          <td className="py-2">{u.level || '-'}</td>
-                          <td className="py-2">{u.role === 'ADMIN' ? '管理员' : '成员'}</td>
+                          <td className="py-2 text-text-primary">{u.name}</td>
+                          <td className="py-2 text-text-primary">{u.level || '-'}</td>
+                          <td className="py-2 text-text-primary">{u.role === 'ADMIN' ? '管理员' : '成员'}</td>
                                                     <td className="py-2">
                             <div className="flex gap-3">
                               <button
                                 onClick={() => startEditMember(u)}
-                                className="text-blue-500 hover:text-blue-700 text-xs"
+                                className="text-xs"
+                                style={{ color: 'var(--u-text-primary)' }}
                               >
                                 编辑
                               </button>
                               <button
                                 onClick={() => { if (confirm('确定删除该成员？')) deleteUser(u.id) }}
-                                className="text-red-500 hover:text-red-700 text-xs"
+                                className="text-xs"
+                                style={{ color: 'var(--u-danger)' }}
                               >
                                 删除
                               </button>
@@ -657,7 +662,8 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                 <button
                   onClick={startAddPipeline}
                   disabled={isAddingPipeline}
-                  className="px-4 py-2 bg-black text-white rounded text-sm hover:bg-gray-800 disabled:bg-gray-400"
+                  className="px-4 py-2 rounded text-sm"
+                  style={{ backgroundColor: 'var(--u-text-primary)', color: 'var(--u-bg-panel)' }}
                 >
                   新增管线
                 </button>
@@ -666,28 +672,28 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
               {/* 管线列表 */}
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left text-gray-500">
+                  <tr className="border-b border-border-default text-left text-text-muted">
                     <th className="pb-2">管线名称</th>
                     <th className="pb-2">操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isAddingPipeline && (
-                    <tr className="border-b bg-gray-50">
+                    <tr className="border-b border-border-default">
                       <td className="py-2">
                         <input
                           type="text"
                           value={newPipelineName}
                           onChange={(e) => setNewPipelineName(e.target.value)}
-                          className="w-48 rounded border px-2 py-1 text-sm"
+                          className="w-48 rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-text-primary"
                           placeholder="管线名称"
                           autoFocus
                         />
                       </td>
                       <td className="py-2">
                         <div className="flex gap-2">
-                          <button onClick={confirmAddPipeline} className="text-green-600 hover:text-green-700 text-sm">确认</button>
-                          <button onClick={cancelAddPipeline} className="text-gray-500 hover:text-gray-700 text-sm">取消</button>
+                          <button onClick={confirmAddPipeline} className="text-sm" style={{ color: 'var(--u-success)' }}>确认</button>
+                          <button onClick={cancelAddPipeline} className="text-sm text-text-muted">取消</button>
                         </div>
                       </td>
                     </tr>
@@ -700,7 +706,7 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                       return a.name.localeCompare(b.name, 'zh-CN')
                     })
                     .map((pl) => (
-                      <tr key={pl.id} className={`border-b ${editingPipeline?.id === pl.id ? 'bg-gray-50' : ''}`}>
+                      <tr key={pl.id} className={`border-b border-border-default ${editingPipeline?.id === pl.id ? '' : ''}`} style={editingPipeline?.id === pl.id ? { backgroundColor: 'var(--u-bg-hover)' } : {}}>
                         {editingPipeline?.id === pl.id ? (
                           <>
                             <td className="py-2">
@@ -708,32 +714,34 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                                 type="text"
                                 value={editingPipeline.name}
                                 onChange={(e) => setEditingPipeline({ ...editingPipeline, name: e.target.value })}
-                                className="w-48 rounded border px-2 py-1 text-sm"
+                                className="w-48 rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-text-primary"
                                 autoFocus
                               />
                             </td>
                             <td className="py-2">
                               <div className="flex gap-2">
-                                <button onClick={confirmEditPipeline} className="text-green-600 hover:text-green-700 text-sm">确认</button>
-                                <button onClick={cancelEditPipeline} className="text-gray-500 hover:text-gray-700 text-sm">取消</button>
+                                <button onClick={confirmEditPipeline} className="text-sm" style={{ color: 'var(--u-success)' }}>确认</button>
+                                <button onClick={cancelEditPipeline} className="text-sm text-text-muted">取消</button>
                               </div>
                             </td>
                           </>
                         ) : (
                           <>
-                            <td className="py-2 font-medium">{pl.name}</td>
+                            <td className="py-2 font-medium text-text-primary">{pl.name}</td>
                             <td className="py-2">
                               <div className="flex gap-3">
                                 <button
                                   onClick={() => startEditPipeline(pl)}
-                                  className="text-blue-500 hover:text-blue-700 text-xs"
+                                  className="text-xs"
+                                  style={{ color: pl.name === '其他' ? 'var(--u-text-muted)' : 'var(--u-text-primary)' }}
                                   disabled={pl.name === '其他'}
                                 >
                                   编辑
                                 </button>
                                 <button
                                   onClick={() => confirmDeletePipeline(pl)}
-                                  className="text-red-500 hover:text-red-700 text-xs"
+                                  className="text-xs"
+                                  style={{ color: pl.name === '其他' ? 'var(--u-text-muted)' : 'var(--u-danger)' }}
                                   disabled={pl.name === '其他'}
                                 >
                                   删除
@@ -755,13 +763,13 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                   value={budgetItemSearch}
                   onChange={(e) => setBudgetItemSearch(e.target.value)}
                   placeholder="搜索预算项"
-                  className="w-full rounded border px-3 py-2 text-sm"
+                  className="w-full rounded border border-border-default bg-bg-panel px-3 py-2 text-sm text-text-primary"
                 />
               </div>
 
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left text-gray-500">
+                  <tr className="border-b border-border-default text-left text-text-muted">
                     <th className="pb-2">名称</th>
                     <th className="pb-2">操作</th>
                   </tr>
@@ -779,21 +787,22 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
 
                       return (
                         <Fragment key={pl.id}>
-                          <tr className="border-b">
+                          <tr className="border-b border-border-default">
                             <td className="py-2 font-semibold">
                               <button
                                 type="button"
                                 onClick={() => togglePipeline(pl.id)}
                                 className="inline-flex items-center gap-2"
                               >
-                                <span className="text-xs text-gray-500">{expanded ? '▾' : '▸'}</span>
-                                <span>{pl.name}</span>
+                                <span className="text-xs text-text-muted">{expanded ? '▾' : '▸'}</span>
+                                <span className="text-text-primary">{pl.name}</span>
                               </button>
                             </td>
                             <td className="py-2">
                               <button
                                 onClick={() => startAddBudgetItem(pl.id)}
-                                className="rounded bg-black px-3 py-1 text-xs text-white hover:bg-[#3A3A3A]"
+                                className="rounded px-3 py-1 text-xs"
+                                style={{ backgroundColor: 'var(--u-text-primary)', color: 'var(--u-bg-panel)' }}
                               >
                                 新增预算项
                               </button>
@@ -801,12 +810,12 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                           </tr>
 
                           {expanded && isAddingBudgetItemPipelineId === pl.id && (
-                            <tr key={`add-item-${pl.id}`} className="border-b bg-gray-50">
+                            <tr key={`add-item-${pl.id}`} className="border-b border-border-default">
                               <td className="py-2 pl-6">
                                 <select
                                   value={newItemPipelineId ?? ''}
                                   onChange={(e) => setNewItemPipelineId(e.target.value ? Number(e.target.value) : null)}
-                                  className="border rounded px-1 py-1 text-xs mr-2"
+                                  className="border border-border-default rounded px-1 py-1 text-xs mr-2 bg-bg-panel text-text-primary"
                                 >
                                   <option value="">不关联管线</option>
                                   {pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -815,22 +824,22 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                                   type="text"
                                   value={newItemName}
                                   onChange={(e) => setNewItemName(e.target.value)}
-                                  className="w-48 rounded border px-2 py-1 text-sm"
+                                  className="w-48 rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-text-primary"
                                   placeholder="预算项名称"
                                   autoFocus
                                 />
                               </td>
                               <td className="py-2">
                                 <div className="flex gap-2">
-                                  <button onClick={confirmAddBudgetItem} className="text-green-600 hover:text-green-700 text-sm">确认</button>
-                                  <button onClick={cancelAddBudgetItem} className="text-gray-500 hover:text-gray-700 text-sm">取消</button>
+                                  <button onClick={confirmAddBudgetItem} className="text-sm" style={{ color: 'var(--u-success)' }}>确认</button>
+                                  <button onClick={cancelAddBudgetItem} className="text-sm text-text-muted">取消</button>
                                 </div>
                               </td>
                             </tr>
                           )}
 
                         {expanded && filteredBudgetItems.map((item) => (
-                          <tr key={`item-${item.id}`} className={`border-b ${editingBudgetItem?.id === item.id ? 'bg-gray-50' : ''}`}>
+                          <tr key={`item-${item.id}`} className={`border-b border-border-default ${editingBudgetItem?.id === item.id ? '' : ''}`} style={editingBudgetItem?.id === item.id ? { backgroundColor: 'var(--u-bg-hover)' } : {}}>
                             {editingBudgetItem?.id === item.id ? (
                               <>
                                 <td className="py-2 pl-6">
@@ -838,26 +847,27 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                                     type="text"
                                     value={editingBudgetItem.name}
                                     onChange={(e) => setEditingBudgetItem({ ...editingBudgetItem, name: e.target.value })}
-                                    className="w-48 rounded border px-2 py-1 text-sm"
+                                    className="w-48 rounded border border-border-default bg-bg-panel px-2 py-1 text-sm text-text-primary"
                                     autoFocus
                                   />
                                 </td>
                                 <td className="py-2">
                                   <div className="flex gap-2">
-                                    <button onClick={confirmEditBudgetItem} className="text-green-600 hover:text-green-700 text-sm">确认</button>
-                                    <button onClick={cancelEditBudgetItem} className="text-gray-500 hover:text-gray-700 text-sm">取消</button>
+                                    <button onClick={confirmEditBudgetItem} className="text-sm" style={{ color: 'var(--u-success)' }}>确认</button>
+                                    <button onClick={cancelEditBudgetItem} className="text-sm text-text-muted">取消</button>
                                   </div>
                                 </td>
                               </>
                             ) : (
                               <>
-                                <td className="py-2 pl-6">{item.name}</td>
+                                <td className="py-2 pl-6 text-text-primary">{item.name}</td>
                                 <td className="py-2">
                                   <div className="flex gap-3">
-                                    <button onClick={() => startEditBudgetItem(item, pl.id)} className="text-blue-500 hover:text-blue-700 text-xs">编辑</button>
+                                    <button onClick={() => startEditBudgetItem(item, pl.id)} className="text-xs" style={{ color: 'var(--u-text-primary)' }}>编辑</button>
                                     <button
                                       onClick={() => { if (confirm('确定删除该预算项？')) deleteBudgetItem(item.id) }}
-                                      className="text-red-500 hover:text-red-700 text-xs"
+                                      className="text-xs"
+                                      style={{ color: 'var(--u-danger)' }}
                                     >
                                       删除
                                     </button>
@@ -869,8 +879,8 @@ export default function AdminSettingsModal({ onClose }: { onClose: () => void })
                         ))}
 
                         {expanded && budgetItemSearch.trim() && filteredBudgetItems.length === 0 && isAddingBudgetItemPipelineId !== pl.id && (
-                          <tr className="border-b">
-                            <td className="py-2 pl-6 text-xs text-gray-400" colSpan={2}>无匹配预算项</td>
+                          <tr className="border-b border-border-default">
+                            <td className="py-2 pl-6 text-xs text-text-muted" colSpan={2}>无匹配预算项</td>
                           </tr>
                         )}
                       </Fragment>

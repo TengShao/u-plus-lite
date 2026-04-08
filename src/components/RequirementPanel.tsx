@@ -684,7 +684,7 @@ export default function RequirementPanel({
 
   if (!cycleId) {
     return (
-      <div className="flex flex-1 items-center justify-center" style={{ color: '#C3C3C3' }}>
+      <div className="flex flex-1 items-center justify-center" style={{ color: 'var(--u-text-muted)' }}>
         请选择或新建一个月结周期
       </div>
     )
@@ -712,12 +712,12 @@ export default function RequirementPanel({
             />
             <button
               onClick={handleCreateRequirement}
-              className={`flex h-[46px] w-[159px] items-center justify-center rounded-[12px] text-[18px] leading-[25px] text-white transition-transform ${
+              className={`flex h-[46px] w-[159px] items-center justify-center rounded-[12px] text-[18px] leading-[25px] transition-transform disabled:opacity-50 ${
                 !cycleId || cycle?.status === 'CLOSED'
-                  ? 'bg-[#B6B6B6] cursor-not-allowed'
-                  : 'bg-[#000000] active:bg-[#3A3A3A]'
+                  ? 'cursor-not-allowed'
+                  : ''
               }`}
-              style={{ fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s' }}
+              style={{ fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s', backgroundColor: !cycleId || cycle?.status === 'CLOSED' ? 'var(--u-text-muted)' : 'var(--u-text-primary)', color: 'var(--u-bg-panel)' }}
               onMouseEnter={(e) => { if (!cycleId || cycle?.status === 'CLOSED') return; e.currentTarget.style.transform = 'scale(1.03)' }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
               onMouseDown={(e) => { if (!cycleId || cycle?.status === 'CLOSED') return; e.currentTarget.style.transform = 'scale(1)' }}
@@ -740,7 +740,7 @@ export default function RequirementPanel({
       </div>
       <div ref={scrollContainerRef} className={`auto-hide-scrollbar min-h-0 flex-1 overflow-y-auto px-[20px] py-[16px] ${isScrollbarVisible ? 'scrollbar-visible' : 'scrollbar-hidden'}`}>
         {filtered.length === 0 ? (
-          <div className="mx-auto flex h-full w-full min-w-[1080px] max-w-[1100px] items-center justify-center" style={{ color: '#C3C3C3' }}>暂无需求组</div>
+          <div className="mx-auto flex h-full w-full min-w-[1080px] max-w-[1100px] items-center justify-center" style={{ color: 'var(--u-text-muted)' }}>暂无需求组</div>
         ) : (
           <div className="mx-auto flex w-full min-w-[1080px] max-w-[1100px] flex-col gap-[20px]">
             {filtered.map((rg, i) =>

@@ -557,10 +557,10 @@ export default function RequirementCardExpanded({
   }
 
   const readonlyCubes = useMemo(() => [
-    { label: '总人天', value: computedTotalManDays.toFixed(1), color: '#000000' },
-    { label: '参与人数', value: String(computedParticipantCount), color: '#000000' },
-    { label: '投入比', value: rating ? `${computedInputRatio}%` : '-', color: '#000000' },
-    { label: '健康度', value: computedHealthStatus || '-', color: computedHealthStatus ? HEALTH_COLORS[computedHealthStatus] : '#000000' },
+    { label: '总人天', value: computedTotalManDays.toFixed(1), color: 'var(--u-text-primary)' },
+    { label: '参与人数', value: String(computedParticipantCount), color: 'var(--u-text-primary)' },
+    { label: '投入比', value: rating ? `${computedInputRatio}%` : '-', color: 'var(--u-text-primary)' },
+    { label: '健康度', value: computedHealthStatus || '-', color: computedHealthStatus ? HEALTH_COLORS[computedHealthStatus] : 'var(--u-text-primary)' },
   ], [computedTotalManDays, computedParticipantCount, computedInputRatio, computedHealthStatus, rating])
 
   return (
@@ -571,14 +571,14 @@ export default function RequirementCardExpanded({
             <div className="flex items-center gap-2">
             <SectionTitle icon="name" text="需求名称" weight={600} />
             {isLoadingFresh && (
-              <span className="text-xs text-[#999]">加载最新数据中...</span>
+              <span className="text-xs text-text-muted">加载最新数据中...</span>
             )}
           </div>
           <div className="relative mt-[10px] flex items-center">
             <div className="relative w-[600px]">
               <div
                 className={`relative h-[42px] rounded-[8px] border ${conflictedFields.has('name') ? 'bg-[rgba(245,166,35,0.2)]' : nameInvalid ? 'bg-[rgba(255,0,0,0.08)] shadow-[0_0_3px_rgba(0,0,0,0.06)]' : 'bg-white'}`}
-                style={{ borderColor: conflictedFields.has('name') ? '#F5A623' : nameInvalid ? '#FF7D7D' : isComplete ? 'transparent' : nameFocused ? 'var(--color-brand)' : nameHovered ? 'var(--color-brand)' : '#EEEEEE', transition: 'border-color 0.15s, background-color 0.15s' }}
+                style={{ borderColor: conflictedFields.has('name') ? 'var(--u-warning)' : nameInvalid ? 'var(--u-danger)' : isComplete ? 'transparent' : nameFocused ? 'var(--color-brand)' : nameHovered ? 'var(--color-brand)' : 'var(--u-border)', transition: 'border-color 0.15s, background-color 0.15s' }}
                 onMouseEnter={() => setNameHovered(true)}
                 onMouseLeave={() => setNameHovered(false)}
               >
@@ -757,7 +757,7 @@ export default function RequirementCardExpanded({
       </div>
       <div className="mt-[10px] min-h-[33px]">
         {data.cycleWorkloads.length === 0 && manDays === 0 ? (
-          <div className="flex h-[33px] w-full items-center justify-center text-[14px] font-alibaba" style={{ fontWeight: 800, color: '#EEEEEE' }}>
+          <div className="flex h-[33px] w-full items-center justify-center text-[14px] font-alibaba" style={{ fontWeight: 800, color: 'var(--u-border)' }}>
             暂无设计师参与，怎么回事
           </div>
         ) : (
@@ -834,7 +834,7 @@ export default function RequirementCardExpanded({
 }
 
 function CardDivider({ mt = 20 }: { mt?: number }) {
-  return <div className={`mt-[${mt}px] h-px w-full bg-[#0000000A]`} />
+  return <div className={`mt-[${mt}px] h-px w-full`} style={{ backgroundColor: 'var(--u-border)', opacity: 0.4 }} />
 }
 
 function SectionTitle({ icon, text, weight }: { icon: 'name' | 'info' | 'designers' | 'mine'; text: string; weight: number }) {
@@ -857,7 +857,7 @@ function fitDropdownTextSize(text: string, width: number) {
 }
 
 function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onToggle, invalid, conflicted, truncate, isHovered, onMouseEnter, onMouseLeave }: { width: number; value: string; placeholder?: string; isOpen: boolean; onToggle: () => void; invalid?: boolean; conflicted?: boolean; truncate?: boolean; isHovered?: boolean; onMouseEnter?: () => void; onMouseLeave?: () => void }) {
-  const borderColor = invalid ? '#FF7D7D' : conflicted ? '#F5A623' : isOpen ? 'transparent' : isHovered ? 'var(--color-brand)' : '#EEEEEE'
+  const borderColor = invalid ? 'var(--u-danger)' : conflicted ? 'var(--u-warning)' : isOpen ? 'transparent' : isHovered ? 'var(--color-brand)' : 'var(--u-border)'
   const boxShadow = invalid ? '0 0 3px rgba(0,0,0,0.06)' : 'none'
   const displayText = value || placeholder
   const fontSize = fitDropdownTextSize(displayText, width)
@@ -869,11 +869,11 @@ function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onTogg
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={`relative z-10 h-[36px] rounded-[8px] border bg-white px-[10px] ${truncate ? 'overflow-hidden' : ''}`}
-      style={{ width, borderColor, boxShadow, backgroundColor: conflicted ? 'rgba(245,166,35,0.2)' : invalid ? 'rgba(255,0,0,0.08)' : '#FFFFFF', fontWeight: 800, transition: 'border-color 0.15s, background-color 0.15s' }}
+      style={{ width, borderColor, boxShadow, backgroundColor: conflicted ? 'var(--u-warning-light)' : invalid ? 'var(--u-danger-light)' : 'var(--u-bg-panel)', fontWeight: 800, transition: 'border-color 0.15s, background-color 0.15s' }}
     >
       <span
         className="pointer-events-none absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center leading-[22px]"
-        style={{ color: value ? undefined : '#C3C3C3', fontSize, fontWeight: value ? 800 : 600 }}
+        style={{ color: value ? undefined : 'var(--u-text-muted)', fontSize, fontWeight: value ? 800 : 600 }}
       >
         {displayText}
       </span>
@@ -895,7 +895,7 @@ function MenuSingle({ width, value, options, selected, onPick }: { width: number
         </span>
         <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon flipped /></span>
       </div>
-      <div className="h-px bg-[#0000000B] mx-px" />
+      <div className="h-px mx-px" style={{ backgroundColor: 'var(--u-border)', opacity: 0.4 }} />
       {/* Options */}
       <div className="overflow-y-auto" style={{ maxHeight: 260, scrollbarWidth: 'thin', scrollbarColor: 'rgba(0,0,0,0.2) transparent' }}>
         {options.map((opt) => (
@@ -921,14 +921,14 @@ function MenuMulti({ width, value, options, selected, onToggle }: { width: numbe
         </span>
         <span className="absolute right-[10px] top-1/2 -translate-y-1/2 shrink-0"><ArrowIcon flipped /></span>
       </div>
-      <div className="h-px bg-[#0000000B] mx-px" />
+      <div className="h-px mx-px" style={{ backgroundColor: 'var(--u-border)', opacity: 0.4 }} />
       {/* Options */}
       <div className="overflow-y-auto" style={{ maxHeight: 260, scrollbarWidth: 'thin', scrollbarColor: 'rgba(0,0,0,0.2) transparent' }}>
         {options.map((opt) => {
           const checked = selected.includes(opt)
           return (
             <button key={opt} onClick={() => onToggle(opt)} className={`flex h-[30px] w-full items-center px-[8px] text-[14px] ${checked ? 'bg-brand-hover' : 'hover:bg-brand-hover'}`}>
-              <span className="mr-[8px] flex h-[12px] w-[12px] items-center justify-center rounded-[4px] border border-[#EEEEEE] bg-[#FDFDFD]">
+              <span className="mr-[8px] flex h-[12px] w-[12px] items-center justify-center rounded-[4px] border border-border-default bg-bg-panel">
                 {checked && <span className="h-[6px] w-[6px] rounded-[1px] bg-brand" />}
               </span>
               <span className="mx-auto truncate" style={{ fontWeight: 800 }}>{opt}</span>
@@ -943,8 +943,8 @@ function MenuMulti({ width, value, options, selected, onToggle }: { width: numbe
 function CubeInput({ width, value, onChange, placeholder = '请输入', disabled, invalid, conflicted }: { width: number; value: string | number; onChange: (v: string) => void; placeholder?: string; disabled?: boolean; invalid?: boolean; conflicted?: boolean }) {
   const [focused, setFocused] = useState(false)
   const [hovered, setHovered] = useState(false)
-  const borderColor = invalid ? '#FF7D7D' : conflicted ? '#F5A623' : focused ? 'var(--color-brand)' : hovered ? 'var(--color-brand)' : '#EEEEEE'
-  const bgColor = conflicted ? 'rgba(245,166,35,0.2)' : invalid && !focused ? 'rgba(255,0,0,0.08)' : '#FFFFFF'
+  const borderColor = invalid ? 'var(--u-danger)' : conflicted ? 'var(--u-warning)' : focused ? 'var(--color-brand)' : hovered ? 'var(--color-brand)' : 'var(--u-border)'
+  const bgColor = conflicted ? 'var(--u-warning-light)' : invalid && !focused ? 'var(--u-danger-light)' : 'var(--u-bg-panel)'
   return (
     <input
       type="text"
@@ -956,7 +956,7 @@ function CubeInput({ width, value, onChange, placeholder = '请输入', disabled
       onMouseLeave={() => setHovered(false)}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="h-[36px] rounded-[8px] border border-transparent bg-white px-[10px] text-center text-[16px] leading-[22px] text-black placeholder:text-[#C3C3C3] outline-none"
+      className="h-[36px] rounded-[8px] border border-transparent bg-bg-panel px-[10px] text-center text-[16px] leading-[22px] text-text-primary placeholder:text-text-muted outline-none"
       style={{ width, fontWeight: 600, borderColor, transition: 'border-color 0.15s, background-color 0.15s', backgroundColor: bgColor }}
     />
   )
@@ -986,8 +986,8 @@ function ActionButton({ variant, disabled, lastSubmittedAt, lastSubmitterName, o
           onMouseLeave={() => { setHover(false); setActive(false) }}
           onMouseDown={() => setActive(true)}
           onMouseUp={() => setActive(false)}
-          className="flex h-[60px] w-[159px] items-center justify-center rounded-[12px] bg-black text-[18px] leading-[25px] text-white transition-transform active:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
-          style={{ fontWeight: 900, transform: active ? 'scale(1)' : hover ? 'scale(1.03)' : 'scale(1)', transition: 'transform 0.15s' }}
+          className="flex h-[60px] w-[159px] items-center justify-center rounded-[12px] text-[18px] leading-[25px] transition-transform disabled:opacity-50"
+          style={{ fontWeight: 900, backgroundColor: 'var(--u-text-primary)', color: 'var(--u-bg-panel)', transform: active ? 'scale(1)' : hover ? 'scale(1.03)' : 'scale(1)', transition: 'transform 0.15s' }}
         >
           <span className="inline-flex items-center gap-[10px]">
             {completeText || '提交'}
@@ -1005,8 +1005,8 @@ function ActionButton({ variant, disabled, lastSubmittedAt, lastSubmitterName, o
       onMouseLeave={() => { setHover(false); setActive(false) }}
       onMouseDown={() => setActive(true)}
       onMouseUp={() => setActive(false)}
-      className="h-[60px] w-[159px] rounded-[12px] bg-[#F2F2F2] text-[18px] leading-[25px] text-black transition-transform active:bg-[#E5E5E5]"
-      style={{ fontWeight: 900, transform: active ? 'scale(1)' : hover ? 'scale(1.03)' : 'scale(1)', transition: 'transform 0.15s' }}
+      className="h-[60px] w-[159px] rounded-[12px] text-[18px] leading-[25px] transition-transform"
+      style={{ fontWeight: 900, backgroundColor: 'var(--u-bg-hover)', color: 'var(--u-text-primary)', transform: active ? 'scale(1)' : hover ? 'scale(1.03)' : 'scale(1)', transition: 'transform 0.15s' }}
     >
       {completeText || '取消'}
     </button>
@@ -1020,7 +1020,7 @@ function TitleMineIcon() { return <svg width="12" height="12" viewBox="0 0 12 12
 function TipsBadge({ label, value, onClick }: { label: string; value: string | number; onClick?: () => void }) {
   const [hovered, setHovered] = useState(false)
   const [active, setActive] = useState(false)
-  const color = (hovered || active) && onClick ? 'var(--color-brand)' : '#8C8C8C'
+  const color = (hovered || active) && onClick ? 'var(--color-brand)' : 'var(--u-text-muted)'
   return (
     <span
       className={`text-[12px] leading-[17px] underline ${onClick ? 'cursor-pointer' : ''}`}

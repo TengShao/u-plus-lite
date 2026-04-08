@@ -51,9 +51,9 @@ function PipelineMultiMenu({ width, value, options, selected, onToggle }: { widt
         </span>
         <ArrowIcon flipped />
       </div>
-      <div className="h-px bg-[#0000000B] mx-px" />
+      <div className="h-px mx-px" style={{ backgroundColor: 'var(--u-border)', opacity: 0.4 }} />
       {/* Options */}
-      <div className="overflow-y-auto" style={{ maxHeight: 260, scrollbarWidth: 'thin', scrollbarColor: 'rgba(0,0,0,0.2) transparent' }}>
+      <div className="overflow-y-auto" style={{ maxHeight: 260, scrollbarWidth: 'thin', scrollbarColor: 'var(--u-scrollbar-thumb) transparent' }}>
         {options.map((opt) => {
           const checked = selected.includes(opt)
           return (
@@ -266,7 +266,7 @@ export default function AuthModal({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="mt-[32px] flex h-[46px] w-full items-center justify-center rounded-[12px] text-[18px] font-black hover:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
+                className="mt-[32px] flex h-[46px] w-full items-center justify-center rounded-[12px] text-[18px] font-black"
                 style={{ letterSpacing: '-0.5px', backgroundColor: 'var(--u-text-primary)', color: 'var(--u-bg-panel)' }}
               >
                 {isLoading ? '登录中...' : '登录'}
@@ -376,7 +376,7 @@ export default function AuthModal({
                           </span>
                           <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon flipped /></span>
                         </div>
-                        <div className="h-px bg-[#0000000B] mx-px" />
+                        <div className="h-px mx-px" style={{ backgroundColor: 'var(--u-border)', opacity: 0.4 }} />
                         {['P5', 'P4', 'P3', 'INTERN', 'OUTSOURCE'].map((l) => (
                           <button
                             type="button"
@@ -401,7 +401,7 @@ export default function AuthModal({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="mt-[33px] flex h-[46px] w-full items-center justify-center rounded-[12px] text-[18px] font-black hover:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
+                className="mt-[33px] flex h-[46px] w-full items-center justify-center rounded-[12px] text-[18px] font-black"
                 style={{ letterSpacing: '-0.5px', backgroundColor: 'var(--u-text-primary)', color: 'var(--u-bg-panel)' }}
               >
                 {isLoading ? '注册中...' : '注册'}

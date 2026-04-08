@@ -198,7 +198,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 font-alibaba" onClick={onClose}>
-      <div className="flex flex-col rounded-[24px] bg-[#F9F9F9]" style={{ width: 680, maxHeight: '80vh' }} onClick={e => e.stopPropagation()}>
+      <div className="flex flex-col rounded-[24px] bg-bg-panel" style={{ width: 680, maxHeight: '80vh' }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-black/10">
           <span className="text-[18px] font-bold text-black">导入需求组</span>
@@ -210,7 +210,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
           {step === 'input' ? (
             <div className="flex flex-col gap-4">
               <textarea
-                className="w-full h-48 p-3 rounded-lg border border-[#EEEEEE] text-[14px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand resize-none"
+                className="w-full h-48 p-3 rounded-lg border border-border-default text-[14px] text-text-primary placeholder:text-text-muted outline-none hover:border-brand focus:border-brand resize-none"
                 style={{ fontFamily: 'inherit' }}
                 placeholder="粘贴纯文本或 CSV 内容..."
                 value={rawContent}
@@ -220,7 +220,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
                 <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 h-10 px-4 rounded-[8px] border border-[#EEEEEE] bg-white text-[14px] text-black hover:border-brand"
+                  className="flex items-center gap-2 h-10 px-4 rounded-[8px] border border-border-default bg-bg-panel text-[14px] text-text-primary hover:border-brand"
                 >
                   📎 上传 CSV
                 </button>
@@ -233,7 +233,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
           ) : (
             <div className="flex flex-col gap-3">
               {groups.length === 0 ? (
-                <div className="text-center py-8 text-[#C3C3C3]">未解析出任何需求组</div>
+                <div className="text-center py-8 text-text-muted">未解析出任何需求组</div>
               ) : (
                 <>
                   {/* 全选操作栏 */}
@@ -245,12 +245,12 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
                       onChange={handleToggleSelectAll}
                       className="w-4 h-4"
                     />
-                    <span className="text-[13px] text-[#666]">
+                    <span className="text-[13px] text-text-secondary">
                       {selectedIds.size > 0 ? `已选 ${selectedIds.size} 项` : '全选'}
                     </span>
                     <div className="ml-auto flex items-center gap-2">
                       {primaryAction === 'import' && groups.length < 2 && (
-                        <span className="text-[12px] text-[#999]">至少需要2个需求组</span>
+                        <span className="text-[12px] text-text-muted">至少需要2个需求组</span>
                       )}
                       <button
                         onClick={primaryAction === 'merge' ? handleCancelMerge : handleStartMerge}
@@ -260,7 +260,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
                             ? 'border-brand bg-brand text-white'
                             : groups.length >= 2
                               ? 'border-brand text-brand hover:bg-brand-hover'
-                              : 'border-[#CCCCCC] text-[#CCCCCC] cursor-not-allowed'
+                              : 'border-border-strong text-text-muted cursor-not-allowed'
                         }`}
                       >
                         {primaryAction === 'merge' ? '取消合并' : '合并'}
@@ -270,7 +270,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
 
                   {/* 分组卡片列表 */}
                   {groups.map((group, gi) => (
-                    <div key={gi} className="rounded-[12px] border border-[#EEEEEE] bg-white p-4">
+                    <div key={gi} className="rounded-[12px] border border-border-default bg-bg-panel p-4">
                       <div className="flex items-center gap-3 mb-3">
                         <input
                           type="checkbox"
@@ -295,17 +295,17 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
                             {group.name}
                           </span>
                         )}
-                        <span className={`text-[12px] px-2 py-0.5 rounded-full ${group.action === 'MATCH' ? 'bg-brand-hover text-brand' : 'bg-[rgba(0,0,0,0.05)] text-[#999]'}`}>
+                        <span className={`text-[12px] px-2 py-0.5 rounded-full ${group.action === 'MATCH' ? 'bg-brand-hover text-brand' : 'bg-bg-hover text-text-muted'}`}>
                           {group.action === 'MATCH' ? `已有「${group.matchedGroup?.name}」` : '新建'}
                         </span>
-                        <button onClick={() => handleDeleteGroup(gi)} className="text-[#E96631] text-[14px] hover:underline">删除</button>
+                        <button onClick={() => handleDeleteGroup(gi)} className="text-[14px] hover:underline" style={{ color: 'var(--u-danger)' }}>删除</button>
                       </div>
                       <div className="flex flex-col gap-1 pl-7">
                         {group.items.map((item, ii) => (
                           <div key={ii} className="flex items-center justify-between text-[13px]">
-                            <span className="text-[#666]">{item.originalText}</span>
-                            <span className="text-black font-bold">{item.manDays} 人天</span>
-                            <button onClick={() => handleDeleteItem(gi, ii)} className="text-[#E96631] hover:underline">×</button>
+                            <span className="text-text-secondary">{item.originalText}</span>
+                            <span className="font-bold" style={{ color: 'var(--u-text-primary)' }}>{item.manDays} 人天</span>
+                            <button onClick={() => handleDeleteItem(gi, ii)} className="hover:underline" style={{ color: 'var(--u-danger)' }}>×</button>
                           </div>
                         ))}
                       </div>
@@ -324,14 +324,16 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
             <>
               <button
                 onClick={onClose}
-                className="h-10 w-28 rounded-[8px] bg-[#F2F2F2] text-[16px] font-bold text-black"
+                className="h-10 w-28 rounded-[8px] text-[16px] font-bold"
+                style={{ backgroundColor: 'var(--u-bg-hover)', color: 'var(--u-text-primary)' }}
               >
                 取消
               </button>
               <button
                 onClick={handleParse}
                 disabled={!rawContent.trim() || isLoading}
-                className="h-10 w-28 rounded-[8px] bg-black text-[16px] font-bold text-white disabled:bg-[#B6B6B6]"
+                className="h-10 w-28 rounded-[8px] text-[16px] font-bold disabled:opacity-50"
+                style={{ backgroundColor: 'var(--u-text-primary)', color: 'var(--u-bg-panel)' }}
               >
                 {isLoading ? '解析中...' : '解析'}
               </button>
@@ -341,7 +343,8 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
               {primaryAction !== 'merge' && (
                 <button
                   onClick={() => { setStep('input'); setGroups([]); setError(null); setPrimaryAction('import') }}
-                  className="h-10 w-28 rounded-[8px] bg-[#F2F2F2] text-[16px] font-bold text-black"
+                  className="h-10 w-28 rounded-[8px] text-[16px] font-bold"
+                  style={{ backgroundColor: 'var(--u-bg-hover)', color: 'var(--u-text-primary)' }}
                 >
                   上一步
                 </button>
@@ -354,9 +357,13 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
                     : groups.length === 0 || selectedIds.size === 0 || isLoading
                 }
                 title={primaryAction === 'import' && groups.length < 2 ? '需求组数量不足以合并' : undefined}
-                className={`h-10 w-32 rounded-[8px] text-[16px] font-bold text-white disabled:bg-[#B6B6B6] ${
-                  primaryAction === 'merge' ? 'bg-black' : 'bg-brand'
+                className={`h-10 w-32 rounded-[8px] text-[16px] font-bold disabled:opacity-50 ${
+                  primaryAction === 'merge' ? '' : ''
                 }`}
+                style={{
+                  backgroundColor: primaryAction === 'merge' ? 'var(--u-text-primary)' : 'var(--color-brand)',
+                  color: 'var(--u-bg-panel)',
+                }}
               >
                 {isLoading ? '处理中...' : primaryAction === 'merge' ? '合并' : '确认导入'}
               </button>

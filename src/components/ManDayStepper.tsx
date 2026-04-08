@@ -50,7 +50,7 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
 
   return (
     <div className={`relative flex h-[60px] items-center justify-center rounded-[12px] border ${isComplete ? 'w-[64px] justify-center bg-transparent' : 'w-[200px]'}`}
-      style={{ borderColor: conflicted ? '#F5A623' : '#EEEEEE', backgroundColor: conflicted ? 'rgba(245,166,35,0.2)' : '#FDFDFD', transition: 'border-color 0.15s, background-color 0.15s' }}
+      style={{ borderColor: conflicted ? 'var(--u-warning)' : 'var(--u-border)', backgroundColor: conflicted ? 'var(--u-warning-light)' : 'var(--u-bg-panel)', transition: 'border-color 0.15s, background-color 0.15s' }}
     >
       {/* Decrease button with animation — hidden when COMPLETE */}
       {!isComplete && (
@@ -59,8 +59,8 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
             type="button"
             disabled={disabled}
             onClick={handleDecrease}
-            className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-white text-[24px] leading-none text-black/80 shadow-[0_1px_3px_#0000001a] border border-[#EEEEEE] transition-transform duration-100 hover:scale-[1.1] hover:border-brand active:scale-[0.95] active:border-brand disabled:text-black/20"
-            style={{ fontWeight: 300 }}
+            className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-bg-panel text-[24px] leading-none border border-border-default transition-transform duration-100 hover:scale-[1.1] hover:border-brand active:scale-[0.95] active:border-brand disabled:opacity-30"
+            style={{ fontWeight: 300, color: 'var(--u-text-primary)' }}
           >
             🦴
           </button>
@@ -68,7 +68,7 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
             <span
               key={decreaseAnim}
               className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-[4px] text-[16px] animate-fade-out"
-              style={{ fontWeight: 800, color: '#E96631' }}
+              style={{ fontWeight: 800, color: 'var(--u-danger)' }}
             >
               🦴
             </span>
@@ -92,8 +92,8 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
         }}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        className={`absolute left-1/2 -translate-x-1/2 h-[48px] w-[80px] rounded-[8px] text-center text-[20px] leading-[48px] outline-none hover:border-brand focus:border-brand ${isComplete ? 'border-transparent bg-transparent' : 'border border-[#EEEEEE]'}`}
-        style={{ fontWeight: 800, appearance: 'textfield', WebkitAppearance: 'none', MozAppearance: 'textfield' }}
+        className={`absolute left-1/2 -translate-x-1/2 h-[48px] w-[80px] rounded-[8px] text-center text-[20px] leading-[48px] outline-none hover:border-brand focus:border-brand ${isComplete ? 'border-transparent bg-transparent' : 'border'}`}
+        style={{ fontWeight: 800, appearance: 'textfield', WebkitAppearance: 'none', MozAppearance: 'textfield', color: 'var(--u-text-primary)', borderColor: 'var(--u-border)' }}
       />
       <style>{`input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{appearance:none;-webkit-appearance:none;margin:0}`}</style>
 
@@ -104,7 +104,7 @@ export default function ManDayStepper({ value, onChange, onDirty, disabled, isCo
             type="button"
             disabled={disabled}
             onClick={handleIncrease}
-            className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-white text-[24px] leading-none text-black/80 shadow-[0_1px_3px_#0000001a] border border-[#EEEEEE] transition-transform duration-100 hover:scale-[1.1] hover:border-brand active:scale-[0.95] active:border-brand disabled:text-black/20"
+            className="flex h-[44px] w-[44px] items-center justify-center rounded-[8px] bg-bg-panel text-[24px] leading-none border border-border-default transition-transform duration-100 hover:scale-[1.1] hover:border-brand active:scale-[0.95] active:border-brand disabled:opacity-30"
             style={{ fontWeight: 300 }}
           >
             <span className="inline-block scale-y-[-1]">🍗</span>

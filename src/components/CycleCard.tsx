@@ -31,7 +31,7 @@ export default function CycleCard({
     <div
       className={`relative flex h-[78px] w-[284px] items-center justify-between rounded-[12px] px-[18px] transition-shadow ${
         isSelected
-          ? 'bg-white shadow-[0_0_8px_0_#0000001a]'
+          ? 'bg-bg-panel shadow-[0_0_8px_0_rgba(0,0,0,0.1)]'
           : 'bg-transparent hover:shadow-[0_0_6px_0_rgba(0,0,0,0.15)]'
       } font-alibaba`}
     >
@@ -41,11 +41,11 @@ export default function CycleCard({
       >
         <span
           className="h-2 w-2 shrink-0 rounded-full"
-          style={{ backgroundColor: isOpen ? 'var(--color-brand)' : '#B6B6B6' }}
+          style={{ backgroundColor: isOpen ? 'var(--color-brand)' : 'var(--u-text-muted)' }}
         />
         <div className="flex h-full items-center" style={{ gap: '6px' }}>
           <span
-            className="text-[16px] leading-[22px] text-black"
+            className="text-[16px] leading-[22px] text-text-primary"
             style={{ fontWeight: 800, letterSpacing: '-0.91px' }}
           >
             {cycle.label}
@@ -54,7 +54,7 @@ export default function CycleCard({
             className="text-[16px] leading-[22px]"
             style={{
               fontWeight: 500,
-              color: '#8C8C8C',
+              color: 'var(--u-text-muted)',
               letterSpacing: '-1.04px',
             }}
           >
@@ -62,8 +62,8 @@ export default function CycleCard({
           </span>
           {isSelected && (
             <span className="ml-[6px] flex items-center gap-[12px]">
-              <span className="mx-0 inline-block h-[10px] w-px shrink-0 bg-[#00000013]" style={{ marginTop: 4 }} />
-              <span className="shrink-0 text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>
+              <span className="mx-0 inline-block h-[10px] w-px shrink-0" style={{ backgroundColor: 'var(--u-border)', marginTop: 4 }} />
+              <span className="shrink-0 text-[12px] leading-[17px] text-text-muted" style={{ fontWeight: 400 }}>
                 总人天:{cycle.currentUserTotalManDays}
               </span>
             </span>

@@ -88,22 +88,22 @@ export function DesignerCube({
 
   return (
     <div
-      className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-[#EEEEEE] bg-[#FDFDFD] px-[8px] font-alibaba"
+      className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-border-default bg-bg-panel px-[8px] font-alibaba"
       style={{
         width: 'auto',
         minWidth: MIN_WIDTH,
         maxWidth: MAX_WIDTH,
       }}
     >
-      <span className="mt-[12px] text-[13px] leading-[20px]" style={{ fontWeight: 400, color: '#8C8C8C' }}>
+      <span className="mt-[12px] text-[13px] leading-[20px]" style={{ fontWeight: 400, color: 'var(--u-text-muted)' }}>
         {label}
       </span>
       {disabled || isEmpty || workloads.length === 0 ? (
-        <span className="mt-[12px] text-[16px] leading-[22px] text-black" style={{ fontWeight: 600 }}>
+        <span className="mt-[12px] text-[16px] leading-[22px] text-text-primary" style={{ fontWeight: 600 }}>
           {value ?? '-'}
         </span>
       ) : !hasContent ? (
-        <span className="mt-[12px] text-[16px] leading-[22px] text-black" style={{ fontWeight: 600 }}>
+        <span className="mt-[12px] text-[16px] leading-[22px] text-text-primary" style={{ fontWeight: 600 }}>
           {value ?? '-'}
         </span>
       ) : (

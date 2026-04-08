@@ -78,14 +78,14 @@ export function TipsProvider({ children }: { children: React.ReactNode }) {
               height: 40,
               paddingLeft: 40,
               paddingRight: 40,
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'var(--u-bg-panel)',
               borderWidth: 1,
               borderStyle: 'solid',
-              borderColor: type === 'positive' ? 'var(--color-brand)' : '#FF7D7D',
+              borderColor: type === 'positive' ? 'var(--color-brand)' : 'var(--u-danger)',
               borderRadius: 8,
               fontSize: 14,
               fontWeight: 500,
-              color: type === 'positive' ? 'var(--color-brand)' : '#FF7D7D',
+              color: type === 'positive' ? 'var(--color-brand)' : 'var(--u-danger)',
               whiteSpace: 'nowrap',
             }}
           >

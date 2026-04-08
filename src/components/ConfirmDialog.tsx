@@ -31,22 +31,22 @@ export default function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
       <div
-        className="flex flex-col items-center rounded-[24px] bg-[#F9F9F9] font-alibaba"
+        className="flex flex-col items-center rounded-[24px] bg-bg-panel font-alibaba"
         onClick={(e) => e.stopPropagation()}
         style={{ width: 369, padding: '28px 17.5px 18px' }}
       >
         {/* Title */}
         <div
-          className="text-[18px] text-black"
-          style={{ fontWeight: 700, letterSpacing: '-1px' }}
+          className="text-[18px]"
+          style={{ fontWeight: 700, letterSpacing: '-1px', color: 'var(--u-text-primary)' }}
         >
           {title}
         </div>
 
         {/* Message */}
         <div
-          className="mt-[16px] text-[16px] text-black"
-          style={{ fontWeight: 400, maxWidth: 302, wordWrap: 'break-word', textAlign: 'center' }}
+          className="mt-[16px] text-[16px]"
+          style={{ fontWeight: 400, maxWidth: 302, wordWrap: 'break-word', textAlign: 'center', color: 'var(--u-text-primary)' }}
         >
           {message}
         </div>
@@ -61,12 +61,13 @@ export default function ConfirmDialog({
             onMouseDown={() => setCancelActive(true)}
             onMouseUp={() => setCancelActive(false)}
             onMouseLeave={() => setCancelActive(false)}
-            className="flex items-center justify-center rounded-[8px] text-[18px] text-black"
+            className="flex items-center justify-center rounded-[8px] text-[18px]"
             style={{
               width: btnW,
               height: btnH,
               fontWeight: 900,
-              backgroundColor: cancelActive ? '#D7D7D7' : '#F2F2F2',
+              backgroundColor: cancelActive ? 'var(--u-bg-active)' : 'var(--u-bg-hover)',
+              color: 'var(--u-text-primary)',
               letterSpacing: '-0.5px',
             }}
           >
@@ -79,12 +80,13 @@ export default function ConfirmDialog({
             onMouseDown={() => setConfirmActive(true)}
             onMouseUp={() => setConfirmActive(false)}
             onMouseLeave={() => setConfirmActive(false)}
-            className="flex items-center justify-center rounded-[8px] text-[18px] text-white"
+            className="flex items-center justify-center rounded-[8px] text-[18px]"
             style={{
               width: btnW,
               height: btnH,
               fontWeight: 900,
-              backgroundColor: confirmActive ? '#3A3A3A' : '#000000',
+              backgroundColor: confirmActive ? 'var(--u-bg-active)' : 'var(--u-text-primary)',
+              color: 'var(--u-bg-panel)',
               letterSpacing: '-0.5px',
             }}
           >

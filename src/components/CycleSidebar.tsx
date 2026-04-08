@@ -122,8 +122,8 @@ export default function CycleSidebar({
             <div key={year}>
               {gi > 0 && (
                 <div className="mx-[16px] my-[4px] flex h-[34px] w-[252px] items-center font-alibaba">
-                  <span className="text-[14px] leading-[20px] text-[#C8C8C8]" style={{ fontWeight: 500, letterSpacing: '-0.91px' }}>{year}</span>
-                  <span className="ml-[9px] h-px flex-1 bg-[#DDDDDD]" />
+                  <span className="text-[14px] leading-[20px] text-text-muted" style={{ fontWeight: 500, letterSpacing: '-0.91px' }}>{year}</span>
+                  <span className="ml-[9px] h-px flex-1" style={{ backgroundColor: 'var(--u-border)' }} />
                 </div>
               )}
               <div className="flex flex-col gap-[4px]">
@@ -159,8 +159,8 @@ export default function CycleSidebar({
         <div className="p-[18px]">
           <button
             onClick={createCycle}
-            className="relative mx-auto block h-[60px] w-[284px] rounded-[12px] bg-[#000000] text-[18px] leading-[25px] text-white transition-transform active:bg-[#3A3A3A] disabled:bg-[#B6B6B6] font-alibaba"
-            style={{ fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s' }}
+            className="relative mx-auto block h-[60px] w-[284px] rounded-[12px] text-[18px] leading-[25px] transition-transform disabled:opacity-50 font-alibaba"
+            style={{ fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s', backgroundColor: 'var(--u-text-primary)', color: 'var(--u-bg-panel)' }}
             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
             onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
@@ -169,7 +169,7 @@ export default function CycleSidebar({
             <span>新建月结</span>
             <span className="pointer-events-none absolute right-[18px] top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <g stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <g stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12H19" />
                   <path d="M12 5V19" />
                 </g>

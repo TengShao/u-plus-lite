@@ -12,7 +12,7 @@ const STATUS_LABELS = ['未完成', '已完成', '未提交']
 function ArrowIcon({ flipped }: { flipped?: boolean }) {
   return (
     <svg
-      width="7" height="5" viewBox="0 0 7 5" fill="#000" xmlns="http://www.w3.org/2000/svg"
+      width="7" height="5" viewBox="0 0 7 5" fill="currentColor" xmlns="http://www.w3.org/2000/svg"
       className="opacity-20" style={flipped ? { transform: 'scaleY(-1)' } : undefined}
       aria-hidden="true"
     >
@@ -26,14 +26,14 @@ function CheckboxIcon({ checked }: { checked: boolean }) {
   if (!checked) {
     return (
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <rect x="0.5" y="0.5" width="11" height="11" rx="2" stroke="#C8C8C8" />
+        <rect x="0.5" y="0.5" width="11" height="11" rx="2" stroke="var(--u-text-muted)" />
       </svg>
     )
   }
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <rect width="12" height="12" rx="2" fill="var(--color-brand)" />
-      <path d="M3 6L5.5 8.5L9 3.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 6L5.5 8.5L9 3.5" stroke="var(--u-bg-panel)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -139,7 +139,7 @@ function DropdownTrigger({
       }}
     >
       <div className="flex items-center pl-[8px]">
-        <span className="shrink-0 text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>{label}</span>
+        <span className="shrink-0 text-[12px] leading-[17px] text-text-muted" style={{ fontWeight: 400 }}>{label}</span>
         <span className="mx-[6px] h-[14px] w-px shrink-0 bg-black/10" />
       </div>
       <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-black" style={{ fontWeight: 600 }}>{display}</span>
@@ -196,7 +196,7 @@ function MultiDropdown({
           {/* header — same as trigger */}
           <div className="flex h-[36px] items-center">
             <div className="flex items-center pl-[8px]">
-              <span className="shrink-0 text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>{label}</span>
+              <span className="shrink-0 text-[12px] leading-[17px] text-text-muted" style={{ fontWeight: 400 }}>{label}</span>
               <span className="mx-[6px] h-[14px] w-px shrink-0 bg-black/10" />
             </div>
             <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-black" style={{ fontWeight: 600 }}>{display}</span>
@@ -204,7 +204,7 @@ function MultiDropdown({
               <ArrowIcon flipped />
             </span>
           </div>
-          <div className="h-px bg-[#0000000B] mx-px" />
+          <div className="h-px mx-px" style={{ backgroundColor: 'var(--u-border)', opacity: 0.4 }} />
           {/* items */}
           <div>
             <DropdownItem
@@ -272,7 +272,7 @@ function SingleDropdown({
         >
           <div className="flex h-[36px] items-center">
             <div className="flex items-center pl-[8px]">
-              <span className="shrink-0 text-[12px] leading-[17px] text-[#8C8C8C]" style={{ fontWeight: 400 }}>{label}</span>
+              <span className="shrink-0 text-[12px] leading-[17px] text-text-muted" style={{ fontWeight: 400 }}>{label}</span>
               <span className="mx-[6px] h-[14px] w-px shrink-0 bg-black/10" />
             </div>
             <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-black" style={{ fontWeight: 600 }}>{display}</span>
@@ -280,7 +280,7 @@ function SingleDropdown({
               <ArrowIcon flipped />
             </span>
           </div>
-          <div className="h-px bg-[#0000000B] mx-px" />
+          <div className="h-px mx-px" style={{ backgroundColor: 'var(--u-border)', opacity: 0.4 }} />
           <div>
             <DropdownItem
               label={`全部`}
@@ -332,7 +332,7 @@ function DropdownItem({
         {label}
       </span>
       {count !== undefined && (
-        <span className="ml-2 text-[12px] text-[#8C8C8C]" style={{ fontWeight: 600 }}>
+        <span className="ml-2 text-[12px] text-text-muted" style={{ fontWeight: 600 }}>
           {count}
         </span>
       )}

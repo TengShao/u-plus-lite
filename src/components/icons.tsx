@@ -28,7 +28,7 @@ export function ConfirmIcon() {
 export function SubmitIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <g stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <g stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="12" y1="22" x2="12" y2="12" />
         <polyline points="16 17 18 19 22 15" />
         <path d="M21 11.127V8C20.9993 7.2862 20.6182 6.6269 20 6.27L13 2.27C12.3812 1.91273 11.6188 1.91273 11 2.27L4 6.27C3.38183 6.6269 3.00073 7.2862 3 8V16C3.00109 16.7134 3.38214 17.3723 4 17.729L11 21.729C11.6186 22.0866 12.381 22.087 13 21.73L14.32 20.977" />
@@ -41,7 +41,7 @@ export function SubmitIcon() {
 export function ClockIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" opacity="0.3">
-      <g stroke="black" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+      <g stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="8 7 8 8.1 8.8 8.6" />
         <path d="M8 2h1a1 1 0 0 1 1 1v.4" />
         <path d="M4 2H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h1" />
@@ -71,7 +71,7 @@ export function ActionIconButton({ type, disabled, onClick }: { type: 'complete'
   const isUpload = type === 'upload' || type === 'upload-dark'
   const isUploadDark = type === 'upload-dark'
   const showTint = !disabled && (hover || active)
-  const color = isDelete ? (hover || active ? '#E91B1B' : '#000000') : isUpload ? '#000000' : 'var(--color-brand)'
+  const color = isDelete ? (hover || active ? 'var(--u-danger)' : 'currentColor') : isUpload ? 'currentColor' : 'var(--color-brand)'
   const iconOpacity = disabled
     ? 0.1
     : isDelete
@@ -88,7 +88,7 @@ export function ActionIconButton({ type, disabled, onClick }: { type: 'complete'
       onMouseDown={() => setActive(true)}
       onMouseUp={() => setActive(false)}
       className="flex h-[52px] w-[52px] items-center justify-center rounded-full"
-      style={{ background: isUpload ? (showTint ? (isUploadDark ? '#ECECEC' : '#F7F7F7') : 'transparent') : (showTint ? (isDelete ? '#FF000017' : 'var(--color-brand-tint)') : 'transparent'), color }}
+      style={{ background: isUpload ? (showTint ? (isUploadDark ? 'var(--u-bg-hover)' : 'var(--u-bg-active)') : 'transparent') : (showTint ? (isDelete ? 'var(--u-danger-light)' : 'var(--color-brand-tint)') : 'transparent'), color }}
     >
       <span style={{ opacity: iconOpacity }}>
         {type === 'complete' ? <ConfirmIcon /> : type === 'delete' ? <DeleteIcon /> : <UploadIcon />}
