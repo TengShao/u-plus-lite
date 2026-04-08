@@ -971,6 +971,8 @@ do_update() {
         print_status "fail" "Git fetch 失败"
         exit 1
     fi
+    # stash 本地修改（如 package-lock.json）以避免 pull 冲突
+    git stash --include-untracked 2>/dev/null || true
     local pull_output
     pull_output=$(git pull origin master 2>&1)
     if echo "$pull_output" | grep -q "Already up to date."; then
@@ -978,6 +980,8 @@ do_update() {
     else
         echo "$pull_output"
     fi
+    # 恢复 stash（部署目录的本地修改通常不需要保留）
+    git stash drop 2>/dev/null || true
 
     # git pull 成功后立即更新版本号
     echo "v$LATEST_VERSION" > version.txt
