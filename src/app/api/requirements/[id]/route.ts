@@ -38,10 +38,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       convertedManDays: getConvertedManDays(w.manDays, w.user.level),
     }))
 
+  const totalManDays = cycleWorkloads.reduce((sum, w) => sum + w.manDays, 0)
+
   return NextResponse.json({
     ...rg,
     types: rg.types ? JSON.parse(rg.types) : [],
     cycleWorkloads,
+    totalManDays: Math.round(totalManDays * 10) / 10,
+    funcPointsRecommended: Math.round(totalManDays * 6.2),
     lastSubmitterName,
   })
 }

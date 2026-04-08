@@ -793,7 +793,7 @@ export default function RequirementCardExpanded({
             conflicted={conflictedFields.has('manDays')}
           />
 
-          <ActionIconButton type="upload" disabled={!userEditable} onClick={() => {}} />
+          {!isComplete && <ActionIconButton type="upload" disabled={!userEditable} onClick={() => {}} />}
         </div>
 
         <div className="flex items-end gap-[12px] relative">
