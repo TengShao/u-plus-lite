@@ -159,22 +159,14 @@ export default function CycleSidebar({
         <div className="p-[18px]">
           <button
             onClick={createCycle}
-            className="relative mx-auto block h-[60px] w-[284px] rounded-[12px] text-[18px] leading-[25px] transition-transform disabled:opacity-50 font-alibaba"
-            style={{ fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s', backgroundColor: 'var(--u-text-primary)', color: 'var(--u-bg-panel)' }}
+            className="relative mx-auto block h-[60px] w-[300px] rounded-[12px] text-[18px] leading-[25px] transition-transform disabled:opacity-50 font-alibaba"
+            style={{ fontWeight: 900, transform: 'scale(1)', transition: 'transform 0.15s', backgroundColor: 'var(--u-bg-hover)', color: 'var(--u-text-primary)' }}
             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
             onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
             onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.03)' }}
           >
             <span>新建月结</span>
-            <span className="pointer-events-none absolute right-[18px] top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <g stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12H19" />
-                  <path d="M12 5V19" />
-                </g>
-              </svg>
-            </span>
           </button>
         </div>
       )}

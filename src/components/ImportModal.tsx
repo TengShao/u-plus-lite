@@ -201,8 +201,8 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
       <div className="flex flex-col rounded-[24px] bg-bg-panel" style={{ width: 680, maxHeight: '80vh' }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-black/10">
-          <span className="text-[18px] font-bold text-black">导入需求组</span>
-          <button onClick={onClose} className="text-black/40 hover:text-black">✕</button>
+          <span className="text-[18px] font-bold text-[var(--u-text-primary)]">导入需求组</span>
+          <button onClick={onClose} className="text-[var(--u-text-primary)]/40 hover:text-[var(--u-text-primary)]">✕</button>
         </div>
 
         {/* Body */}
@@ -280,7 +280,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
                         />
                         {editingGroupName === gi ? (
                           <input
-                            className="flex-1 h-8 px-2 rounded border border-brand text-[14px] text-black outline-none"
+                            className="flex-1 h-8 px-2 rounded border border-brand text-[14px] text-[var(--u-text-primary)] outline-none"
                             value={editedName}
                             onChange={e => setEditedName(e.target.value)}
                             onBlur={() => handleSaveEditName(gi)}
@@ -289,7 +289,7 @@ export default function ImportModal({ cycleId, onClose, onImportComplete, onDraf
                           />
                         ) : (
                           <span
-                            className="flex-1 text-[16px] font-bold text-black cursor-pointer hover:text-brand"
+                            className="flex-1 text-[16px] font-bold text-[var(--u-text-primary)] cursor-pointer hover:text-brand"
                             onClick={() => handleStartEditName(gi, group.name)}
                           >
                             {group.name}

@@ -27,7 +27,7 @@ function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onTogg
       type="button"
       data-dropdown-root="true"
       onClick={onToggle}
-      className={`relative z-10 flex h-[36px] items-center rounded-[8px] border bg-white px-[10px]`}
+      className={`relative z-10 flex h-[36px] items-center rounded-[8px] border bg-bg-panel px-[10px]`}
       style={{ width, borderColor, boxShadow, fontWeight: 800, transition: 'border-color 0.15s', gap: 8 }}
     >
       <span
@@ -43,7 +43,7 @@ function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onTogg
 
 function PipelineMultiMenu({ width, value, options, selected, onToggle }: { width: number; value: string; options: readonly string[]; selected: string[]; onToggle: (v: string) => void }) {
   return (
-    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid var(--color-brand)', width }}>
+    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 overflow-hidden rounded-[8px] bg-bg-panel" style={{ border: '1px solid var(--color-brand)', width, boxShadow: 'var(--u-shadow-sm)' }}>
       {/* Trigger clone (arrow flipped) */}
       <div className="relative flex h-[36px] items-center justify-center px-[10px]">
         <span className="flex-1 overflow-hidden whitespace-nowrap text-center text-[16px] leading-[22px]" style={{ fontWeight: 800 }}>
@@ -211,7 +211,7 @@ export default function AuthModal({
         style={{
           width: 370,
           padding: '30px 18px 30px',
-          boxShadow: '0 0 20px rgba(0,0,0,0.15)',
+          boxShadow: 'var(--u-shadow-panel)',
         }}
       >
         {/* Title */}
@@ -238,7 +238,7 @@ export default function AuthModal({
             <form onSubmit={handleSignin} className="flex w-[306px] flex-col gap-[6px] self-center">
               {/* 账号 */}
               <div>
-                <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>账号</div>
+                <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-text-primary" style={{ fontWeight: 500 }}>账号</div>
                 <input
                   type="text"
                   value={name}
@@ -251,7 +251,7 @@ export default function AuthModal({
 
               {/* 密码 */}
               <div className="mt-[12px]">
-                <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>密码</div>
+                <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-text-primary" style={{ fontWeight: 500 }}>密码</div>
                 <input
                   type="password"
                   value={password}
@@ -289,7 +289,7 @@ export default function AuthModal({
             <form onSubmit={handleSignup} className="flex w-[306px] flex-col gap-0 self-center">
               {/* 账号 */}
               <div>
-                <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>账号</div>
+                <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-text-primary" style={{ fontWeight: 500 }}>账号</div>
                 <input
                   type="text"
                   value={name}
@@ -302,7 +302,7 @@ export default function AuthModal({
 
               {/* 密码 */}
               <div className="mt-[24px]">
-                <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>密码</div>
+                <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-text-primary" style={{ fontWeight: 500 }}>密码</div>
                 <input
                   type="password"
                   value={password}
@@ -329,7 +329,7 @@ export default function AuthModal({
               <div className="mt-[24px] flex gap-[28px]">
                 {/* 管线 - 下拉多选 */}
                 <div style={{ width: 139 }}>
-                  <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>管线</div>
+                  <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-text-primary" style={{ fontWeight: 500 }}>管线</div>
                   <div className="relative" ref={pipelineRef}>
                     <SelectTrigger
                       width={139}
@@ -351,7 +351,7 @@ export default function AuthModal({
 
                 {/* 职级 */}
                 <div style={{ width: 139 }}>
-                  <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-black" style={{ fontWeight: 500 }}>职级</div>
+                  <div className="mb-[6px] pl-[11px] text-[14px] leading-[20px] text-text-primary" style={{ fontWeight: 500 }}>职级</div>
                   <div className="relative" ref={levelRef}>
                     <button
                       type="button"
@@ -368,7 +368,7 @@ export default function AuthModal({
                       <span className="absolute right-[10px] top-1/2 -translate-y-1/2"><ArrowIcon flipped={levelOpen} /></span>
                     </button>
                     {levelOpen && (
-                      <div className="absolute left-0 top-0 z-20 w-full overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: '1px solid var(--color-brand)' }}>
+                      <div className="absolute left-0 top-0 z-20 w-full overflow-hidden rounded-[8px] bg-bg-panel" style={{ border: '1px solid var(--color-brand)', boxShadow: 'var(--u-shadow-sm)' }}>
                         {/* Trigger clone */}
                         <div className="relative h-[36px] px-[10px]">
                           <span className="absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center text-[16px] leading-[22px]" style={{ fontWeight: 800 }}>

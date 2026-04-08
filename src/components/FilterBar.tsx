@@ -132,17 +132,18 @@ function DropdownTrigger({
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="flex h-[36px] min-w-[120px] items-center rounded-[8px] bg-white shadow-[0_0_3px_0_rgba(0,0,0,0.10)] font-alibaba"
+      className="flex h-[36px] min-w-[120px] items-center rounded-[8px] bg-bg-panel font-alibaba"
       style={{
         border: showBorder ? `1px solid var(--color-brand)` : '1px solid transparent',
         transition: 'border-color 0.15s',
+        boxShadow: 'var(--u-shadow-sm)',
       }}
     >
       <div className="flex items-center pl-[8px]">
         <span className="shrink-0 text-[12px] leading-[17px] text-text-muted" style={{ fontWeight: 400 }}>{label}</span>
-        <span className="mx-[6px] h-[14px] w-px shrink-0 bg-black/10" />
+        <span className="mx-[6px] h-[14px] w-px shrink-0" style={{ backgroundColor: 'var(--u-border)' }} />
       </div>
-      <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-black" style={{ fontWeight: 600 }}>{display}</span>
+      <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-text-primary" style={{ fontWeight: 600 }}>{display}</span>
       <span className="shrink-0 pr-[8px]">
         <ArrowIcon flipped={open} />
       </span>
@@ -190,16 +191,16 @@ function MultiDropdown({
       />
       {open && (
         <div
-          className="absolute left-0 top-0 z-20 min-w-[120px] rounded-[8px] bg-white shadow-[0_0_3px_0_rgba(0,0,0,0.10)] font-alibaba"
-          style={{ border: `1px solid var(--color-brand)` }}
+          className="absolute left-0 top-0 z-20 min-w-[120px] rounded-[8px] bg-bg-panel font-alibaba"
+          style={{ border: `1px solid var(--color-brand)`, boxShadow: 'var(--u-shadow-sm)' }}
         >
           {/* header — same as trigger */}
           <div className="flex h-[36px] items-center">
             <div className="flex items-center pl-[8px]">
               <span className="shrink-0 text-[12px] leading-[17px] text-text-muted" style={{ fontWeight: 400 }}>{label}</span>
-              <span className="mx-[6px] h-[14px] w-px shrink-0 bg-black/10" />
+              <span className="mx-[6px] h-[14px] w-px shrink-0" style={{ backgroundColor: 'var(--u-border)' }} />
             </div>
-            <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-black" style={{ fontWeight: 600 }}>{display}</span>
+            <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-text-primary" style={{ fontWeight: 600 }}>{display}</span>
             <span className="shrink-0 pr-[8px]">
               <ArrowIcon flipped />
             </span>
@@ -267,15 +268,15 @@ function SingleDropdown({
       />
       {open && (
         <div
-          className="absolute left-0 top-0 z-20 min-w-[120px] rounded-[8px] bg-white shadow-[0_0_3px_0_rgba(0,0,0,0.10)] font-alibaba"
-          style={{ border: `1px solid var(--color-brand)` }}
+          className="absolute left-0 top-0 z-20 min-w-[120px] rounded-[8px] bg-bg-panel font-alibaba"
+          style={{ border: `1px solid var(--color-brand)`, boxShadow: 'var(--u-shadow-sm)' }}
         >
           <div className="flex h-[36px] items-center">
             <div className="flex items-center pl-[8px]">
               <span className="shrink-0 text-[12px] leading-[17px] text-text-muted" style={{ fontWeight: 400 }}>{label}</span>
-              <span className="mx-[6px] h-[14px] w-px shrink-0 bg-black/10" />
+              <span className="mx-[6px] h-[14px] w-px shrink-0" style={{ backgroundColor: 'var(--u-border)' }} />
             </div>
-            <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-black" style={{ fontWeight: 600 }}>{display}</span>
+            <span className="min-w-0 flex-1 truncate px-[6px] text-center text-[12px] leading-[17px] text-text-primary" style={{ fontWeight: 600 }}>{display}</span>
             <span className="shrink-0 pr-[8px]">
               <ArrowIcon flipped />
             </span>
@@ -326,7 +327,7 @@ function DropdownItem({
         </span>
       )}
       <span
-        className="flex-1 truncate text-left text-[12px] leading-[17px] text-black font-alibaba"
+        className="flex-1 truncate text-left text-[12px] leading-[17px] text-text-primary font-alibaba"
         style={{ fontWeight: 600 }}
       >
         {label}

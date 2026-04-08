@@ -24,6 +24,7 @@
   --u-bg-subtle: #f8fafc;
   --u-bg-hover: #f0f0f0;
   --u-bg-active: #e8e8e8;
+  --u-bg-cube: #F8F8F8;
 
   /* Border colors */
   --u-border: #e5e7eb;
@@ -54,6 +55,9 @@
   /* Scrollbar colors */
   --u-scrollbar-thumb: rgba(0, 0, 0, 0.2);
   --u-scrollbar-thumb-hover: rgba(0, 0, 0, 0.35);
+
+  /* Completed overlay */
+  --u-overlay-complete: rgba(0, 0, 0, 0.08);
 }
 
 @font-face {
@@ -198,6 +202,7 @@ input.no-spin[type='number'] {
   --u-bg-subtle: #252525;
   --u-bg-hover: #2a2a2a;
   --u-bg-active: #333333;
+  --u-bg-cube: #2B2B2B;
 
   --u-border: #333333;
   --u-border-strong: #444444;
@@ -215,14 +220,17 @@ input.no-spin[type='number'] {
   --u-danger-light: rgba(248, 113, 113, 0.12);
   --u-info: #79B714;
 
-  --u-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --u-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
-  --u-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --u-shadow-panel: 0 8px 24px rgba(0, 0, 0, 0.4);
-  --u-shadow-card: 0 4px 14px rgba(0, 0, 0, 0.35);
+  --u-shadow-sm: 0 0 2px rgba(255, 255, 255, 0.12);
+  --u-shadow-md: 0 0 14px rgba(255, 255, 255, 0.15);
+  --u-shadow-lg: 0 0 24px rgba(255, 255, 255, 0.18);
+  --u-shadow-panel: 0 0 24px rgba(255, 255, 255, 0.18);
+  --u-shadow-card: 0 0 14px rgba(255, 255, 255, 0.15);
 
   --u-scrollbar-thumb: rgba(255, 255, 255, 0.15);
   --u-scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
+
+  /* Completed overlay */
+  --u-overlay-complete: rgba(0, 0, 0, 0.35);
 }
 
 /* Scrollbar auto-hide with smooth scrolling */

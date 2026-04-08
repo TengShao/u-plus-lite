@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { type RequirementData } from './RequirementPanel'
 import { ActionIconButton } from './icons'
@@ -37,6 +38,7 @@ export default function RequirementCardCollapsed({
   const isClosed = cycleStatus === 'CLOSED'
   const buttonsDisabled = isClosed
   const completeDisabled = isComplete || isClosed
+  const [hovered, setHovered] = useState(false)
 
   const healthColor = data.healthStatus ? HEALTH_COLORS[data.healthStatus] : null
 
@@ -44,12 +46,14 @@ export default function RequirementCardCollapsed({
     <div
       data-req-id={String(data.id)}
       onClick={onExpand}
-      className="animate-card-collapse mx-auto min-w-[1080px] max-w-full relative cursor-pointer rounded-[24px] bg-bg-panel font-alibaba transition-shadow hover:shadow-[0_0_8px_0_rgba(0,0,0,0.15)]"
-      style={{ height: 152 }}
+      className="animate-card-collapse mx-auto min-w-[1080px] max-w-full relative cursor-pointer rounded-[24px] bg-bg-panel font-alibaba"
+      style={{ height: 152, boxShadow: hovered ? 'var(--u-shadow-md)' : undefined }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Disabled overlay */}
       {isComplete && (
-        <div className="pointer-events-none absolute inset-0 z-10 rounded-[24px] bg-black/5" />
+        <div className="pointer-events-none absolute inset-0 z-10 rounded-[24px]" style={{ backgroundColor: 'var(--u-overlay-complete)' }} />
       )}
       {/* Name + info tags — top-left */}
       <div className="absolute left-[25px] top-[18px] flex items-center gap-[12px]" style={{ right: 200 }}>

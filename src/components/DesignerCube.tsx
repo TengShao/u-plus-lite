@@ -88,7 +88,7 @@ export function DesignerCube({
 
   return (
     <div
-      className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-border-default bg-bg-panel px-[8px] font-alibaba"
+      className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-border-default bg-[var(--u-bg-cube)] px-[8px] font-alibaba"
       style={{
         width: 'auto',
         minWidth: MIN_WIDTH,

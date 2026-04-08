@@ -23,7 +23,7 @@ export function Cube({ label, value, labelColor, valueColor, width, required, di
 }) {
   return (
     <div
-      className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-border-default bg-bg-panel px-[8px] font-alibaba"
+      className="relative flex h-[80px] shrink-0 flex-col items-center rounded-[12px] border border-border-default bg-[var(--u-bg-cube)] px-[8px] font-alibaba"
       style={{ width: width ?? 80 }}
     >
       <span className="mt-[12px] text-[13px] leading-[20px]" style={{ fontWeight: 400, color: labelColor || 'var(--u-text-muted)' }}>{label}</span>

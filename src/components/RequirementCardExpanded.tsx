@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { type RequirementData } from './RequirementPanel'
 import type { PipelineSettingData } from './RequirementPanel'
 import { LEVEL_COEFFICIENTS, MODULES, RATINGS, RATING_STANDARDS, TYPES } from '@/lib/constants'
-import { getHealthStatus, getSuitableRating } from '@/lib/compute'
+import { getConvertedManDays, getHealthStatus, getSuitableRating } from '@/lib/compute'
 import { useTips } from './Tips'
 import { DeleteIcon, ConfirmIcon, SubmitIcon, ClockIcon, ActionIconButton } from './icons'
 import { Cube, DesignerChip } from './Cube'
@@ -143,7 +143,15 @@ export default function RequirementCardExpanded({
     return () => { cancelled = true }
   }, [data.id]) // Only re-run when requirement ID changes (i.e., when expanding a different card)
 
-  // Real-time computed values based on local manDays
+  // Real-time computed values based on local manDays (using converted man-days for consistency with API)
+  const ratingStandard = rating ? (RATING_STANDARDS[rating] ?? 1) : 0
+  const myOldConverted = myWorkload?.convertedManDays ?? 0
+  const myNewConverted = getConvertedManDays(manDays, session?.user?.level ?? null)
+  const computedTotalConvertedManDays = data.totalConvertedManDays - myOldConverted + myNewConverted
+  const computedInputRatio = rating ? Math.round((computedTotalConvertedManDays / ratingStandard) * 100) : 0
+  const computedHealthStatus = rating ? getHealthStatus(computedInputRatio) : null
+
+  // Total man-days (raw) for display
   const computedTotalManDays = data.totalManDays - (myWorkload?.manDays ?? 0) + manDays
   const computedFuncPointsRecommended = Math.round(computedTotalManDays * 6.2)
 
@@ -154,11 +162,6 @@ export default function RequirementCardExpanded({
   const computedParticipantCount = data.participantCount
     - ((myWorkload?.manDays ?? 0) > 0 ? 1 : 0)
     + (manDays > 0 ? 1 : 0)
-
-  // Real-time input ratio (approximation using raw man-days instead of converted)
-  const ratingStandard = rating ? (RATING_STANDARDS[rating] ?? 1) : 0
-  const computedInputRatio = rating ? Math.round((computedTotalManDays / ratingStandard) * 100) : 0
-  const computedHealthStatus = rating ? getHealthStatus(computedInputRatio) : null
 
   const hasRatingTip = !isComplete && computedRecommendedRating && computedRecommendedRating !== rating
   const hasFuncPointsTip = !isComplete && computedTotalManDays > 0 && funcPoints !== computedFuncPointsRecommended
@@ -564,7 +567,7 @@ export default function RequirementCardExpanded({
   ], [computedTotalManDays, computedParticipantCount, computedInputRatio, computedHealthStatus, rating])
 
   return (
-    <div data-req-id={String(data.id)} ref={cardRef} className={`${isCollapsing ? 'animate-card-fold-up' : 'animate-card-expand'} mx-auto min-w-[1080px] max-w-full rounded-[24px] bg-white px-[20px] pb-[20px] pt-[20px] shadow-[0_0_8px_0_rgba(0,0,0,0.15)] font-alibaba`}>
+    <div data-req-id={String(data.id)} ref={cardRef} className={`${isCollapsing ? 'animate-card-fold-up' : 'animate-card-expand'} mx-auto min-w-[1080px] max-w-full rounded-[24px] bg-bg-panel px-[20px] pb-[20px] pt-[20px] font-alibaba`} style={{ boxShadow: 'var(--u-shadow-md)' }}>
       {/* 需求名称区域: 标题+输入框+信息方块 一行布局 */}
       <div className="flex items-start">
         <div className="w-[600px]">
@@ -577,7 +580,7 @@ export default function RequirementCardExpanded({
           <div className="relative mt-[10px] flex items-center">
             <div className="relative w-[600px]">
               <div
-                className={`relative h-[42px] rounded-[8px] border ${conflictedFields.has('name') ? 'bg-[rgba(245,166,35,0.2)]' : nameInvalid ? 'bg-[rgba(255,0,0,0.08)] shadow-[0_0_3px_rgba(0,0,0,0.06)]' : 'bg-white'}`}
+                className={`relative h-[42px] rounded-[8px] border ${conflictedFields.has('name') ? 'bg-[rgba(245,166,35,0.2)]' : nameInvalid ? 'bg-[rgba(255,0,0,0.08)]' : 'bg-bg-panel'}`}
                 style={{ borderColor: conflictedFields.has('name') ? 'var(--u-warning)' : nameInvalid ? 'var(--u-danger)' : isComplete ? 'transparent' : nameFocused ? 'var(--color-brand)' : nameHovered ? 'var(--color-brand)' : 'var(--u-border)', transition: 'border-color 0.15s, background-color 0.15s' }}
                 onMouseEnter={() => setNameHovered(true)}
                 onMouseLeave={() => setNameHovered(false)}
@@ -858,7 +861,7 @@ function fitDropdownTextSize(text: string, width: number) {
 
 function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onToggle, invalid, conflicted, truncate, isHovered, onMouseEnter, onMouseLeave }: { width: number; value: string; placeholder?: string; isOpen: boolean; onToggle: () => void; invalid?: boolean; conflicted?: boolean; truncate?: boolean; isHovered?: boolean; onMouseEnter?: () => void; onMouseLeave?: () => void }) {
   const borderColor = invalid ? 'var(--u-danger)' : conflicted ? 'var(--u-warning)' : isOpen ? 'transparent' : isHovered ? 'var(--color-brand)' : 'var(--u-border)'
-  const boxShadow = invalid ? '0 0 3px rgba(0,0,0,0.06)' : 'none'
+  const boxShadow = invalid ? 'var(--u-shadow-sm)' : 'none'
   const displayText = value || placeholder
   const fontSize = fitDropdownTextSize(displayText, width)
   return (
@@ -868,7 +871,7 @@ function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onTogg
       onClick={onToggle}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`relative z-10 h-[36px] rounded-[8px] border bg-white px-[10px] ${truncate ? 'overflow-hidden' : ''}`}
+      className={`relative z-10 h-[36px] rounded-[8px] border px-[10px] ${truncate ? 'overflow-hidden' : ''}`}
       style={{ width, borderColor, boxShadow, backgroundColor: conflicted ? 'var(--u-warning-light)' : invalid ? 'var(--u-danger-light)' : 'var(--u-bg-panel)', fontWeight: 800, transition: 'border-color 0.15s, background-color 0.15s' }}
     >
       <span
@@ -884,7 +887,7 @@ function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onTogg
 
 function MenuSingle({ width, value, options, selected, onPick }: { width: number; value: string; options: readonly string[]; selected: string; onPick: (v: string) => void }) {
   return (
-    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 min-w-[104px] overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: `1px solid var(--color-brand)`, width }}>
+    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 min-w-[104px] overflow-hidden rounded-[8px] bg-bg-panel" style={{ border: `1px solid var(--color-brand)`, width, boxShadow: 'var(--u-shadow-sm)' }}>
       {/* Trigger clone (arrow flipped) */}
       <div className="relative h-[36px] px-[10px]">
         <span
@@ -897,7 +900,7 @@ function MenuSingle({ width, value, options, selected, onPick }: { width: number
       </div>
       <div className="h-px mx-px" style={{ backgroundColor: 'var(--u-border)', opacity: 0.4 }} />
       {/* Options */}
-      <div className="overflow-y-auto" style={{ maxHeight: 260, scrollbarWidth: 'thin', scrollbarColor: 'rgba(0,0,0,0.2) transparent' }}>
+      <div className="overflow-y-auto" style={{ maxHeight: 260, scrollbarWidth: 'thin', scrollbarColor: 'var(--u-scrollbar-thumb) transparent' }}>
         {options.map((opt) => (
           <button key={opt} onClick={() => onPick(opt)} className={`flex h-[30px] w-full items-center justify-center text-[14px] ${selected === opt ? 'bg-brand-hover' : 'hover:bg-brand-hover'}`} style={{ fontWeight: 800 }}>
             {opt}
@@ -910,7 +913,7 @@ function MenuSingle({ width, value, options, selected, onPick }: { width: number
 
 function MenuMulti({ width, value, options, selected, onToggle }: { width: number; value: string; options: readonly string[]; selected: string[]; onToggle: (v: string) => void }) {
   return (
-    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 overflow-hidden rounded-[8px] bg-white shadow-[0_0_3px_rgba(0,0,0,0.1)]" style={{ border: `1px solid var(--color-brand)`, width }}>
+    <div data-dropdown-root="true" className="absolute left-0 top-0 z-20 overflow-hidden rounded-[8px] bg-bg-panel" style={{ border: `1px solid var(--color-brand)`, width, boxShadow: 'var(--u-shadow-sm)' }}>
       {/* Trigger clone (arrow flipped) */}
       <div className="relative h-[36px] px-[10px]">
         <span
@@ -923,7 +926,7 @@ function MenuMulti({ width, value, options, selected, onToggle }: { width: numbe
       </div>
       <div className="h-px mx-px" style={{ backgroundColor: 'var(--u-border)', opacity: 0.4 }} />
       {/* Options */}
-      <div className="overflow-y-auto" style={{ maxHeight: 260, scrollbarWidth: 'thin', scrollbarColor: 'rgba(0,0,0,0.2) transparent' }}>
+      <div className="overflow-y-auto" style={{ maxHeight: 260, scrollbarWidth: 'thin', scrollbarColor: 'var(--u-scrollbar-thumb) transparent' }}>
         {options.map((opt) => {
           const checked = selected.includes(opt)
           return (
@@ -971,7 +974,7 @@ function ActionButton({ variant, disabled, lastSubmittedAt, lastSubmitterName, o
     return (
       <div className="relative flex h-[60px] w-[159px] items-center justify-center">
         {lastSubmittedAt && !hideIcon && (
-          <div className="absolute bottom-[68px] left-1/2 flex -translate-x-1/2 items-center whitespace-nowrap text-[12px] text-black/30" style={{ fontWeight: 400 }}>
+          <div className="absolute bottom-[68px] left-1/2 flex -translate-x-1/2 items-center whitespace-nowrap text-[12px]" style={{ fontWeight: 400, color: 'var(--u-text-muted)' }}>
             <span className="mr-[4px]"><ClockIcon /></span>
             {new Date(lastSubmittedAt).toLocaleString('zh-CN', {
               month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',

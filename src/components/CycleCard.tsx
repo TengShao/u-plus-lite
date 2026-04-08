@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 
 type Cycle = {
   id: number
@@ -26,14 +27,16 @@ export default function CycleCard({
   onToggle?: () => void
 }) {
   const isOpen = cycle.status === 'OPEN'
+  const [hovered, setHovered] = useState(false)
 
   return (
     <div
-      className={`relative flex h-[78px] w-[284px] items-center justify-between rounded-[12px] px-[18px] transition-shadow ${
-        isSelected
-          ? 'bg-bg-panel shadow-[0_0_8px_0_rgba(0,0,0,0.1)]'
-          : 'bg-transparent hover:shadow-[0_0_6px_0_rgba(0,0,0,0.15)]'
-      } font-alibaba`}
+      className={`relative flex h-[78px] w-[300px] items-center justify-between rounded-[12px] px-[18px] font-alibaba ${
+        isSelected ? 'bg-bg-panel' : 'bg-transparent'
+      }`}
+      style={{ boxShadow: (isSelected || hovered) ? 'var(--u-shadow-md)' : undefined }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       <button
         onClick={onSelect}
@@ -78,26 +81,24 @@ export default function CycleCard({
           }}
           className="flex h-[24px] w-[24px] shrink-0 items-center"
           onMouseEnter={(e) => {
-            const img = e.currentTarget.querySelector('img') as HTMLImageElement | null
-            if (img) {
-              img.style.opacity = '1'
-              img.src = isOpen ? '/shutdown-close.svg' : '/shutdown-open.svg'
+            const svg = e.currentTarget.querySelector('svg') as SVGElement | null
+            if (svg) {
+              svg.style.opacity = '1'
+              svg.style.color = isOpen ? '#E91B1B' : '#8ECA2E'
             }
           }}
           onMouseLeave={(e) => {
-            const img = e.currentTarget.querySelector('img') as HTMLImageElement | null
-            if (img) {
-              img.style.opacity = '0.1'
-              img.src = '/shutdown.svg'
+            const svg = e.currentTarget.querySelector('svg') as SVGElement | null
+            if (svg) {
+              svg.style.opacity = '0.3'
+              svg.style.color = 'currentColor'
             }
           }}
         >
-          <img
-            src="/shutdown.svg"
-            alt={isOpen ? '关闭月结' : '开启月结'}
-            className="h-[24px] w-[24px]"
-            style={{ opacity: 0.1 }}
-          />
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }} aria-hidden="true">
+            <line x1="12" y1="2" x2="12" y2="12" />
+            <path d="M18.4,6.6 C21.9,10.1 21.9,15.8 18.4,19.3 C14.9,22.8 9.2,22.8 5.6,19.3 C2.1,15.8 2.1,10.1 5.6,6.6" />
+          </svg>
         </button>
       )}
     </div>
