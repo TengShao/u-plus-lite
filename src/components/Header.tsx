@@ -302,7 +302,7 @@ export default function Header({
   const [isHovered, setIsHovered] = useState(false)
   const [mounted, setMounted] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const userMenuRef = useRef<HTMLDivElement>(null)
+  const userMenuRef = useRef<HTMLButtonElement>(null)
   const isAdmin = session?.user?.role === 'ADMIN'
 
   useEffect(() => { setMounted(true) }, [])
