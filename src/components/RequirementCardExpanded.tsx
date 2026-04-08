@@ -13,15 +13,15 @@ import ManDayStepper from './ManDayStepper'
 
 const HEALTH_COLORS: Record<string, string> = {
   '适合': 'var(--color-brand)',
-  '欠饱和': '#F8CF33',
-  '过饱和': '#E96631',
+  '欠饱和': 'var(--u-warning)',
+  '过饱和': 'var(--u-danger)',
 }
 
 /* ---------- Arrow icon (reused from FilterBar) ---------- */
 function ArrowIcon({ flipped }: { flipped?: boolean }) {
   return (
     <svg
-      width="7" height="5" viewBox="0 0 7 5" fill="#000" xmlns="http://www.w3.org/2000/svg"
+      width="7" height="5" viewBox="0 0 7 5" fill="currentColor" xmlns="http://www.w3.org/2000/svg"
       className="opacity-20" style={flipped ? { transform: 'scaleY(-1)' } : undefined}
       aria-hidden="true"
     >
@@ -590,7 +590,7 @@ export default function RequirementCardExpanded({
                   onChange={(e) => { setName(e.target.value) }}
                   placeholder="请输入需求组名称"
                   autoFocus={isDraft}
-                  className="h-full w-full bg-transparent px-[10px] pr-[40px] text-[16px] leading-[22px] text-black placeholder:text-[#C3C3C3] outline-none"
+                  className="h-full w-full bg-transparent px-[10px] pr-[40px] text-[16px] leading-[22px] text-text-primary placeholder:text-text-muted outline-none"
                   style={{ fontWeight: 600 }}
                 />
                 {userEditable && name.length > 0 && (

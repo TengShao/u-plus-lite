@@ -10,11 +10,49 @@
 :root {
   --font-alibaba: 'Alibaba PuHuiTi 2.0', 'PingFang SC', 'Microsoft YaHei',
     'Helvetica Neue', sans-serif;
+
+  /* Brand colors */
   --color-brand: #79B714;
   --color-brand-dark: #669618;
   --color-brand-light: #8eca2e27;
   --color-brand-hover: rgba(142, 202, 46, 0.15);
   --color-brand-tint: #8ECA2E2F;
+
+  /* Background colors */
+  --u-bg-page: #F2F2F2;
+  --u-bg-panel: #ffffff;
+  --u-bg-subtle: #f8fafc;
+  --u-bg-hover: #f0f0f0;
+  --u-bg-active: #e8e8e8;
+
+  /* Border colors */
+  --u-border: #e5e7eb;
+  --u-border-strong: #d1d5db;
+  --u-border-focus: var(--color-brand);
+
+  /* Text colors */
+  --u-text-primary: #111827;
+  --u-text-secondary: #4b5563;
+  --u-text-muted: #9ca3af;
+  --u-text-inverse: #ffffff;
+
+  /* Semantic colors */
+  --u-success: #2D9F45;
+  --u-warning: #F5A623;
+  --u-danger: #E96631;
+  --u-danger-light: rgba(233, 102, 49, 0.12);
+  --u-info: #79B714;
+
+  /* Shadow tokens */
+  --u-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --u-shadow-md: 0 4px 14px rgba(15, 23, 42, 0.08);
+  --u-shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12);
+  --u-shadow-panel: 0 8px 24px rgba(15, 23, 42, 0.06);
+  --u-shadow-card: 0 4px 14px rgba(15, 23, 42, 0.05);
+
+  /* Scrollbar colors */
+  --u-scrollbar-thumb: rgba(0, 0, 0, 0.2);
+  --u-scrollbar-thumb-hover: rgba(0, 0, 0, 0.35);
 }
 
 @font-face {
@@ -43,20 +81,6 @@
   .font-alibaba {
     font-family: var(--font-alibaba);
   }
-}
-
-:root {
-  --u-bg-page: #F2F2F2;
-  --u-bg-panel: #ffffff;
-  --u-bg-subtle: #f8fafc;
-  --u-border: #e5e7eb;
-  --u-border-strong: #d1d5db;
-  --u-text-primary: #111827;
-  --u-text-secondary: #4b5563;
-  --u-text-muted: #9ca3af;
-  --u-accent: #2563eb;
-  --u-shadow-panel: 0 8px 24px rgba(15, 23, 42, 0.06);
-  --u-shadow-card: 0 4px 14px rgba(15, 23, 42, 0.05);
 }
 
 html,
@@ -163,10 +187,46 @@ input.no-spin[type='number'] {
   animation: cardFoldUpOut 100ms ease-in forwards;
 }
 
+/* ============================================
+   Dark Mode
+   ============================================ */
+
+[data-theme="dark"] {
+  --u-bg-page: #121212;
+  --u-bg-panel: #1e1e1e;
+  --u-bg-subtle: #252525;
+  --u-bg-hover: #2a2a2a;
+  --u-bg-active: #333333;
+
+  --u-border: #333333;
+  --u-border-strong: #444444;
+  --u-border-focus: var(--color-brand);
+
+  --u-text-primary: #e5e5e5;
+  --u-text-secondary: #a3a3a3;
+  --u-text-muted: #737373;
+  --u-text-inverse: #111827;
+
+  --u-success: #4ade80;
+  --u-warning: #fbbf24;
+  --u-danger: #f87171;
+  --u-danger-light: rgba(248, 113, 113, 0.12);
+  --u-info: #79B714;
+
+  --u-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --u-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --u-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --u-shadow-panel: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --u-shadow-card: 0 4px 14px rgba(0, 0, 0, 0.35);
+
+  --u-scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --u-scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
+}
+
 /* Scrollbar auto-hide with smooth scrolling */
 .auto-hide-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  scrollbar-color: var(--u-scrollbar-thumb) transparent;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   transition: scrollbar-color 0.3s ease;
@@ -182,7 +242,7 @@ input.no-spin[type='number'] {
 }
 
 .auto-hide-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--u-scrollbar-thumb);
   border-radius: 4px;
   border: 2px solid transparent;
   background-clip: content-box;
@@ -190,7 +250,7 @@ input.no-spin[type='number'] {
 }
 
 .auto-hide-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: var(--u-scrollbar-thumb-hover);
   background-clip: content-box;
 }
 
@@ -206,10 +266,10 @@ input.no-spin[type='number'] {
 
 /* Scrollbar visible state */
 .auto-hide-scrollbar.scrollbar-visible {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  scrollbar-color: var(--u-scrollbar-thumb) transparent;
 }
 
 .auto-hide-scrollbar.scrollbar-visible::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--u-scrollbar-thumb);
   background-clip: content-box;
 }

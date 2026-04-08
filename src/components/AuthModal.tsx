@@ -18,7 +18,7 @@ function ArrowIcon({ flipped }: { flipped?: boolean }) {
 }
 
 function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onToggle }: { width: number; value: string; placeholder?: string; isOpen: boolean; onToggle: () => void }) {
-  const borderColor = isOpen ? 'transparent' : '#EEEEEE'
+  const borderColor = isOpen ? 'transparent' : 'var(--u-border)'
   const boxShadow = 'none'
   const displayText = value || placeholder
   const fontSize = fitDropdownTextSize(displayText, width)
@@ -32,7 +32,7 @@ function SelectTrigger({ width, value, placeholder = '请选择', isOpen, onTogg
     >
       <span
         className="flex-1 overflow-hidden whitespace-nowrap text-center text-[16px] leading-[22px]"
-        style={{ color: value ? undefined : '#C3C3C3', fontSize }}
+        style={{ color: value ? undefined : 'var(--u-text-muted)', fontSize }}
       >
         {displayText}
       </span>
@@ -63,7 +63,7 @@ function PipelineMultiMenu({ width, value, options, selected, onToggle }: { widt
               onClick={() => onToggle(opt)}
               className={`flex h-[30px] w-full items-center px-[8px] text-[14px] ${checked ? 'bg-brand-hover' : 'hover:bg-brand-hover'}`}
             >
-              <span className="mr-[8px] flex h-[12px] w-[12px] items-center justify-center rounded-[4px] border border-[#EEEEEE] bg-[#FDFDFD]">
+              <span className="mr-[8px] flex h-[12px] w-[12px] items-center justify-center rounded-[4px] border border-border-default bg-bg-panel">
                 {checked && <span className="h-[6px] w-[6px] rounded-[1px] bg-brand" />}
               </span>
               <span className="mx-auto truncate" style={{ fontWeight: 800 }}>{opt}</span>
@@ -207,7 +207,7 @@ export default function AuthModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 font-alibaba">
       <div
-        className="flex flex-col items-center rounded-[24px] bg-[#F4F4F4]"
+        className="flex flex-col items-center rounded-[24px] bg-bg-panel"
         style={{
           width: 370,
           padding: '30px 18px 30px',
@@ -216,7 +216,7 @@ export default function AuthModal({
       >
         {/* Title */}
         <div
-          className="text-[18px] text-black"
+          className="text-[18px] text-text-primary"
           style={{ fontWeight: 700, letterSpacing: '-1px' }}
         >
           {mode === 'signin' ? '来了啊！' : '怎么才来？'}
@@ -244,8 +244,8 @@ export default function AuthModal({
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="请输入姓名"
-                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand"
-                  style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
+                  className="h-[42px] w-full rounded-[8px] border border-border-default bg-bg-panel px-[15px] text-[16px] text-text-primary placeholder:text-text-muted outline-none hover:border-brand focus:border-brand"
+                  style={{ boxShadow: 'var(--u-shadow-sm)', fontWeight: 800 }}
                 />
               </div>
 
@@ -257,8 +257,8 @@ export default function AuthModal({
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="请输入密码"
-                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand"
-                  style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
+                  className="h-[42px] w-full rounded-[8px] border border-border-default bg-bg-panel px-[15px] text-[16px] text-text-primary placeholder:text-text-muted outline-none hover:border-brand focus:border-brand"
+                  style={{ boxShadow: 'var(--u-shadow-sm)', fontWeight: 800 }}
                 />
               </div>
 
@@ -266,8 +266,8 @@ export default function AuthModal({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="mt-[32px] flex h-[46px] w-full items-center justify-center rounded-[12px] bg-black text-[18px] font-black text-white hover:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
-                style={{ letterSpacing: '-0.5px' }}
+                className="mt-[32px] flex h-[46px] w-full items-center justify-center rounded-[12px] text-[18px] font-black hover:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
+                style={{ letterSpacing: '-0.5px', backgroundColor: 'var(--u-text-primary)', color: 'var(--u-bg-panel)' }}
               >
                 {isLoading ? '登录中...' : '登录'}
               </button>
@@ -277,7 +277,7 @@ export default function AuthModal({
             <button
               type="button"
               onClick={() => onSwitch('signup')}
-              className="mt-[14px] self-center text-center text-[14px] text-black underline underline-offset-4"
+              className="mt-[14px] self-center text-center text-[14px] underline underline-offset-4 text-text-primary"
               style={{ fontWeight: 700 }}
             >
               注册
@@ -295,8 +295,8 @@ export default function AuthModal({
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="请输入真实姓名"
-                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand"
-                  style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
+                  className="h-[42px] w-full rounded-[8px] border border-border-default bg-bg-panel px-[15px] text-[16px] text-text-primary placeholder:text-text-muted outline-none hover:border-brand focus:border-brand"
+                  style={{ boxShadow: 'var(--u-shadow-sm)', fontWeight: 800 }}
                 />
               </div>
 
@@ -308,8 +308,8 @@ export default function AuthModal({
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="请输入密码（至少8位）"
-                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand"
-                  style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
+                  className="h-[42px] w-full rounded-[8px] border border-border-default bg-bg-panel px-[15px] text-[16px] text-text-primary placeholder:text-text-muted outline-none hover:border-brand focus:border-brand"
+                  style={{ boxShadow: 'var(--u-shadow-sm)', fontWeight: 800 }}
                 />
               </div>
 
@@ -320,8 +320,8 @@ export default function AuthModal({
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="再输入一次"
-                  className="h-[42px] w-full rounded-[8px] border border-[#F3F3F3] bg-white px-[15px] text-[16px] text-black placeholder:text-[#C3C3C3] outline-none hover:border-brand focus:border-brand"
-                  style={{ boxShadow: '0 0 3px rgba(0,0,0,0.06)', fontWeight: 800 }}
+                  className="h-[42px] w-full rounded-[8px] border border-border-default bg-bg-panel px-[15px] text-[16px] text-text-primary placeholder:text-text-muted outline-none hover:border-brand focus:border-brand"
+                  style={{ boxShadow: 'var(--u-shadow-sm)', fontWeight: 800 }}
                 />
               </div>
 
@@ -356,12 +356,12 @@ export default function AuthModal({
                     <button
                       type="button"
                       onClick={() => setLevelOpen(!levelOpen)}
-                      className="relative z-10 h-[36px] w-full rounded-[8px] border border-[#EEEEEE] bg-white px-[10px] hover:border-brand"
+                      className="relative z-10 h-[36px] w-full rounded-[8px] border border-border-default bg-bg-panel px-[10px] hover:border-brand"
                       style={{ boxShadow: 'none', transition: 'border-color 0.15s' }}
                     >
                       <span
                         className="absolute left-1/2 top-1/2 block max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden whitespace-nowrap text-center leading-[22px]"
-                        style={{ color: level ? '#000' : '#C3C3C3', fontSize: 16, fontWeight: 800 }}
+                        style={{ color: level ? 'var(--u-text-primary)' : 'var(--u-text-muted)', fontSize: 16, fontWeight: 800 }}
                       >
                         {level || '请选择'}
                       </span>
@@ -401,8 +401,8 @@ export default function AuthModal({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="mt-[33px] flex h-[46px] w-full items-center justify-center rounded-[12px] bg-black text-[18px] font-black text-white hover:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
-                style={{ letterSpacing: '-0.5px' }}
+                className="mt-[33px] flex h-[46px] w-full items-center justify-center rounded-[12px] text-[18px] font-black hover:bg-[#3A3A3A] disabled:bg-[#B6B6B6]"
+                style={{ letterSpacing: '-0.5px', backgroundColor: 'var(--u-text-primary)', color: 'var(--u-bg-panel)' }}
               >
                 {isLoading ? '注册中...' : '注册'}
               </button>
@@ -412,7 +412,7 @@ export default function AuthModal({
             <button
               type="button"
               onClick={() => onSwitch('signin')}
-              className="mt-[14px] self-center text-center text-[14px] text-black underline underline-offset-4"
+              className="mt-[14px] self-center text-center text-[14px] underline underline-offset-4 text-text-primary"
               style={{ fontWeight: 700 }}
             >
               登录
