@@ -18,6 +18,9 @@ src/generated/
 # Plan docs
 docs/superpowers/plans/
 
+# Stitch docs
+docs/Stitch/
+
 # Prisma exports
 prisma/exports/
 
