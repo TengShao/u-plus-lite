@@ -40,6 +40,8 @@ yarn-error.log
 
 # Local generated assets
 public/logo.svg
+version.txt
+dist/
 
 # TypeScript
 tsconfig.tsbuildinfo

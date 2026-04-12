@@ -1,81 +1,56 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-# ============================================================
-# U-Plus-Lite 一键部署脚本 (macOS/Linux)
-#
-# 使用方式:
-#   curl -fsSL https://raw.githubusercontent.com/TengShao/u-plus-lite/master/deploy/deploy.sh | bash
-#
-# 或下载后直接运行:
-#   chmod +x deploy/deploy.sh && ./deploy/deploy.sh
-# ============================================================
-
-REPO_URL="https://github.com/TengShao/u-plus-lite.git"
+REPO_SLUG="TengShao/u-plus-lite"
+RELEASE_API_URL="https://api.github.com/repos/${REPO_SLUG}/releases/latest"
 DEFAULT_DIR="$HOME/u-plus-lite"
 DEPLOY_DIR=""
-DEPLOY_MODE=""  # "new" or "update"
+DEPLOY_MODE=""
 PROJECT_ROOT=""
 LATEST_VERSION="unknown"
-LOCAL_VERSION="unknown"
+RELEASE_URL=""
 PORT=3000
+RUNTIME_DIR=""
+SCRIPT_SOURCE_ROOT=""
 
-# ============================================================
-# 颜色定义
-# ============================================================
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# ============================================================
-# 工具函数
-# ============================================================
-
-# 检测命令是否存在
 command_exists() {
-    command -v "$1" &> /dev/null
+    command -v "$1" >/dev/null 2>&1
 }
 
-# 打印带颜色的状态
 print_status() {
-    local ok=$1
+    local kind=$1
     local msg=$2
-    if [ "$ok" = "ok" ]; then
+    if [ "$kind" = "ok" ]; then
         echo -e "${GREEN}[✓]${NC} $msg"
-    elif [ "$ok" = "fail" ]; then
+    elif [ "$kind" = "fail" ]; then
         echo -e "${RED}[✗]${NC} $msg"
     else
         echo -e "${YELLOW}[!]${NC} $msg"
     fi
 }
 
-# 获取局域网 IP
 get_local_ip() {
-    local ip
-    # macOS
+    local ip=""
     if command_exists ipconfig; then
-        ip=$(ipconfig getifaddr en0 2>/dev/null)
-        if [ -z "$ip" ]; then
-            ip=$(ipconfig getifaddr en1 2>/dev/null)
-        fi
+        ip=$(ipconfig getifaddr en0 2>/dev/null || true)
+        [ -z "$ip" ] && ip=$(ipconfig getifaddr en1 2>/dev/null || true)
     fi
-    # Linux
     if [ -z "$ip" ] && command_exists hostname; then
         ip=$(hostname -I 2>/dev/null | awk '{print $1}')
     fi
-    # Fallback
-    if [ -z "$ip" ]; then
-        ip=$(hostname 2>/dev/null)
-    fi
+    [ -z "$ip" ] && ip=$(hostname 2>/dev/null || echo "127.0.0.1")
     echo "$ip"
 }
 
-# 检测端口是否被占用
 is_port_used() {
     local port=$1
     if command_exists lsof; then
-        lsof -i :$port >/dev/null 2>&1
+        lsof -i :"$port" >/dev/null 2>&1
     elif command_exists ss; then
         ss -tuln | grep -q ":$port "
     else
@@ -83,38 +58,333 @@ is_port_used() {
     fi
 }
 
-# 查找可用端口
 find_available_port() {
     local port=3000
-    while is_port_used $port; do
+    while is_port_used "$port"; do
         port=$((port + 1))
     done
-    echo $port
+    echo "$port"
 }
 
-# 静默读取密码（跨平台兼容）
 read_secret() {
     local prompt="$1"
     local var_name="$2"
-    echo -n "$prompt"
+    printf '%s' "$prompt"
     read -s -r "$var_name"
-    echo ""
+    printf '\n'
 }
 
-# 生成随机密钥
+resolve_cli_helper() {
+    local script_dir
+    script_dir="$(cd "$(dirname "$0")" && pwd)"
+    if [ -f "$script_dir/interactive/index.cjs" ]; then
+        echo "$script_dir/interactive/index.cjs"
+    fi
+}
+
+cli_helper_available() {
+    local helper
+    helper="$(resolve_cli_helper)"
+    [ -n "$helper" ] && command_exists node && [ -t 0 ] && [ -t 2 ]
+}
+
+cli_select() {
+    local message="$1"
+    local default_value="$2"
+    local allow_cancel="$3"
+    shift 3
+
+    if cli_helper_available; then
+        local helper
+        helper="$(resolve_cli_helper)"
+        local serialized=""
+        local pair
+        for pair in "$@"; do
+            local value="${pair%%|*}"
+            local label="${pair#*|}"
+            serialized+="${value}"$'\t'"${label}"$'\n'
+        done
+
+        local result
+        result="$(CLI_MESSAGE="$message" CLI_DEFAULT="$default_value" CLI_CHOICES="$serialized" node "$helper" select)"
+        local status=$?
+        if [ $status -eq 0 ]; then
+            printf '%s' "$result"
+            return 0
+        fi
+        if [ $status -eq 130 ] && [ "$allow_cancel" = "1" ]; then
+            return 130
+        fi
+    fi
+
+    printf '%s\n' "$message" >&2
+    local pair
+    for pair in "$@"; do
+        local value="${pair%%|*}"
+        local label="${pair#*|}"
+        printf '  %s - %s\n' "$value" "$label" >&2
+    done
+    printf '\n' >&2
+    if [ "$allow_cancel" = "1" ]; then
+        printf '请选择（直接回车选择 %s，输入 q 退出）: ' "$default_value" >&2
+    else
+        printf '请选择（直接回车选择 %s）: ' "$default_value" >&2
+    fi
+
+    local result
+    read -r result
+    result=${result:-$default_value}
+    if [ "$allow_cancel" = "1" ] && { [ "$result" = "q" ] || [ "$result" = "Q" ]; }; then
+        return 130
+    fi
+    printf '%s' "$result"
+}
+
+cli_confirm() {
+    local message="$1"
+    local default_choice="$2"
+    cli_select "$message" "$default_choice" "1" "true|是" "false|否"
+}
+
 generate_secret() {
     if command_exists openssl; then
         openssl rand -base64 32 | tr -d '\n'
     elif [ -r /dev/urandom ]; then
         head -c 32 /dev/urandom | base64 | tr -d '\n'
     else
-        date +%s | sha256sum | cut -d' ' -f1 | base64 | head -c 32
+        date +%s | shasum -a 256 | awk '{print $1}' | base64 | head -c 32
     fi
 }
 
-# ============================================================
-# Step 0: 依赖检测
-# ============================================================
+cleanup_runtime_dir() {
+    if [ -n "${RUNTIME_DIR:-}" ] && [ -d "$RUNTIME_DIR" ]; then
+        rm -rf "$RUNTIME_DIR"
+    fi
+}
+
+create_runtime_helpers() {
+    local project_dir="$1"
+    cleanup_runtime_dir
+    RUNTIME_DIR="$(mktemp -d "${TMPDIR:-/tmp}/u-plus-lite-runtime.XXXXXX")"
+
+    cat > "$RUNTIME_DIR/seed.cjs" <<'SEED_EOF'
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
+
+const prisma = new PrismaClient();
+
+async function main() {
+  const args = process.argv.slice(2);
+  const resetMode = args.includes('--reset');
+  const filteredArgs = args.filter((arg) => arg !== '--reset');
+  const [providedName, providedPassword] = filteredArgs;
+
+  if (resetMode) {
+    await prisma.user.deleteMany({ where: { role: 'ADMIN' } });
+    console.log('已删除所有管理员账号');
+  }
+
+  if (providedName && providedPassword) {
+    const hashedPassword = await bcrypt.hash(providedPassword, 10);
+    await prisma.user.upsert({
+      where: { name: providedName },
+      update: {},
+      create: {
+        name: providedName,
+        password: hashedPassword,
+        role: 'ADMIN',
+      },
+    });
+    console.log(`Seed complete: admin user "${providedName}" created`);
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash('88888888', 10);
+  await prisma.user.upsert({
+    where: { name: '邵腾' },
+    update: {},
+    create: {
+      name: '邵腾',
+      password: hashedPassword,
+      role: 'ADMIN',
+    },
+  });
+  console.log('Seed complete: admin user "邵腾" created (default)');
+}
+
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());
+SEED_EOF
+
+    cat > "$RUNTIME_DIR/import.cjs" <<'IMPORT_EOF'
+const { PrismaClient } = require('@prisma/client');
+const fs = require('fs');
+const readline = require('readline');
+
+const prisma = new PrismaClient();
+
+function parseArgs() {
+  const args = {};
+  for (let index = 2; index < process.argv.length; index += 1) {
+    const arg = process.argv[index];
+    if (arg.startsWith('--pipelines=')) args.pipelines = arg.replace('--pipelines=', '');
+    if (arg.startsWith('--budget-items=')) args.budgetItems = arg.replace('--budget-items=', '');
+  }
+  return args;
+}
+
+async function readCsvLines(input) {
+  if (input === '-') {
+    const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
+    const lines = [];
+    for await (const line of rl) lines.push(line);
+    return lines;
+  }
+
+  if (!fs.existsSync(input)) {
+    console.error(`文件不存在: ${input}`);
+    process.exit(1);
+  }
+
+  return fs.readFileSync(input, 'utf8').split('\n').filter((line) => line.trim());
+}
+
+function parsePipelinesCsv(lines) {
+  if (lines.length < 2) return [];
+  return lines.slice(1).filter((line) => line.trim());
+}
+
+function parseBudgetItemsCsv(lines) {
+  if (lines.length < 2) return [];
+  return lines.slice(1).map((line) => {
+    const firstComma = line.indexOf(',');
+    if (firstComma === -1) return { pipeline: '', name: line.trim() };
+    return {
+      pipeline: line.slice(0, firstComma).trim(),
+      name: line.slice(firstComma + 1).split(',')[0].trim(),
+    };
+  });
+}
+
+async function ensureOtherPipeline() {
+  const existing = await prisma.pipelineSetting.findUnique({ where: { name: '其他' } });
+  if (existing) return existing.id;
+  const created = await prisma.pipelineSetting.create({ data: { name: '其他' } });
+  console.log('  自动创建"其他"管线');
+  return created.id;
+}
+
+async function importPipelines(args) {
+  if (!args.pipelines) {
+    console.log('跳过管线导入（未指定 --pipelines）');
+    return;
+  }
+
+  const lines = await readCsvLines(args.pipelines);
+  const names = parsePipelinesCsv(lines);
+  if (names.length === 0) {
+    console.log('pipelines.csv 为空，跳过');
+    return;
+  }
+
+  let created = 0;
+  let skipped = 0;
+  for (const name of names) {
+    if (!name.trim()) continue;
+    const existing = await prisma.pipelineSetting.findUnique({ where: { name } });
+    if (existing) skipped += 1;
+    else {
+      await prisma.pipelineSetting.create({ data: { name } });
+      created += 1;
+    }
+  }
+  console.log(`管线导入完成：跳过 ${skipped}，已创建 ${created}`);
+}
+
+async function importBudgetItems(args) {
+  if (!args.budgetItems) {
+    console.log('跳过预算项导入（未指定 --budget-items）');
+    return;
+  }
+
+  const otherPipelineId = await ensureOtherPipeline();
+  const lines = await readCsvLines(args.budgetItems);
+  const items = parseBudgetItemsCsv(lines);
+  if (items.length === 0) {
+    console.log('budget_items.csv 为空，跳过');
+    return;
+  }
+
+  const pipelineMap = new Map();
+  const allPipelines = await prisma.pipelineSetting.findMany();
+  for (const pipeline of allPipelines) pipelineMap.set(pipeline.name, pipeline.id);
+
+  let created = 0;
+  let skipped = 0;
+  for (const item of items) {
+    if (!item.name.trim()) continue;
+
+    let pipelineId = item.pipeline ? pipelineMap.get(item.pipeline) : undefined;
+    if (!pipelineId) {
+      if (item.pipeline) {
+        const createdPipeline = await prisma.pipelineSetting.create({ data: { name: item.pipeline } });
+        pipelineMap.set(item.pipeline, createdPipeline.id);
+        pipelineId = createdPipeline.id;
+        console.log(`  自动创建管线: ${item.pipeline}`);
+      } else {
+        pipelineId = otherPipelineId;
+      }
+    }
+
+    const existing = await prisma.budgetItemSetting.findFirst({
+      where: { pipelineId, name: item.name },
+    });
+    if (existing) skipped += 1;
+    else {
+      await prisma.budgetItemSetting.create({ data: { pipelineId, name: item.name } });
+      created += 1;
+    }
+  }
+  console.log(`预算项导入完成：跳过 ${skipped}，已创建 ${created}`);
+}
+
+async function main() {
+  const args = parseArgs();
+  console.log('');
+  await importPipelines(args);
+  await importBudgetItems(args);
+  console.log('');
+}
+
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());
+IMPORT_EOF
+
+    export NODE_PATH="${project_dir}/node_modules"
+}
+
+run_runtime_seed() {
+    local project_dir="$1"
+    shift
+    create_runtime_helpers "$project_dir"
+    NODE_PATH="${project_dir}/node_modules" node "$RUNTIME_DIR/seed.cjs" "$@"
+}
+
+run_runtime_import() {
+    local project_dir="$1"
+    shift
+    create_runtime_helpers "$project_dir"
+    NODE_PATH="${project_dir}/node_modules" node "$RUNTIME_DIR/import.cjs" "$@"
+}
+
 check_dependencies() {
     echo ""
     echo "=========================================="
@@ -127,22 +397,25 @@ check_dependencies() {
     local missing=()
     local need_install=()
 
-    # 检测 Git
-    if command_exists git; then
-        local git_version
-        git_version=$(git --version | sed 's/git version //')
-        print_status "ok" "Git: $git_version"
+    if command_exists curl; then
+        print_status "ok" "curl: 已安装"
     else
-        print_status "fail" "Git: 未安装"
-        missing+=("git")
+        print_status "fail" "curl: 未安装"
+        missing+=("curl")
     fi
 
-    # 检测 Node.js
+    if command_exists tar; then
+        print_status "ok" "tar: 已安装"
+    else
+        print_status "fail" "tar: 未安装"
+        missing+=("tar")
+    fi
+
     if command_exists node; then
         local node_version
         node_version=$(node -v)
         local major_version
-        major_version=$(echo $node_version | sed 's/v\([0-9]*\)\..*/\1/')
+        major_version=$(echo "$node_version" | sed 's/v\([0-9]*\)\..*/\1/')
         if [ "$major_version" -ge 18 ]; then
             print_status "ok" "Node.js: $node_version"
         else
@@ -154,7 +427,6 @@ check_dependencies() {
         missing+=("node")
     fi
 
-    # 检测 PM2
     if command_exists pm2; then
         print_status "ok" "PM2: 已安装"
     else
@@ -162,27 +434,19 @@ check_dependencies() {
         need_install+=("pm2")
     fi
 
-    # 如果 Git 缺失，退出
-    if [[ " ${missing[*]} " =~ " git " ]]; then
+    local missing_items="${missing[*]-}"
+    local need_install_items="${need_install[*]-}"
+
+    if [[ " ${missing_items} " =~ " curl " ]] || [[ " ${missing_items} " =~ " tar " ]]; then
         echo ""
-        echo -e "${RED}Git 是必需依赖，请先安装后再运行本脚本${NC}"
-        echo ""
-        echo "macOS 安装方法："
-        echo "  xcode-select --install"
-        echo ""
-        echo "Linux 安装方法："
-        echo "  sudo apt-get install git  # Debian/Ubuntu"
-        echo "  sudo yum install git      # CentOS/RHEL"
-        echo ""
+        echo -e "${RED}缺少必需系统依赖，请先安装后重试${NC}"
+        printf '缺少依赖: %s\n' "$missing_items"
         exit 1
     fi
 
-    # 如果 Node 缺失，尝试自动安装
-    if [[ " ${missing[*]} " =~ " node " ]]; then
+    if [[ " ${missing_items} " =~ " node " ]]; then
         echo ""
         echo -e "${YELLOW}检测到 Node.js 未安装，正在尝试自动安装...${NC}"
-        echo ""
-
         local install_ok=true
         if command_exists brew; then
             brew install node || install_ok=false
@@ -191,35 +455,25 @@ check_dependencies() {
         elif command_exists yum; then
             curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash - && sudo yum install -y nodejs || install_ok=false
         else
-            echo ""
-            echo -e "${RED}无法自动安装 Node.js，请手动安装后重试${NC}"
-            echo "下载地址: https://nodejs.org/"
-            exit 1
+            install_ok=false
         fi
 
         if [ "$install_ok" = "true" ] && command_exists node; then
             print_status "ok" "Node.js 安装成功: $(node -v)"
         else
-            echo -e "${RED}Node.js 安装失败，请手动安装后重试${NC}"
+            print_status "fail" "无法自动安装 Node.js，请手动安装后重试"
             exit 1
         fi
     fi
 
-    # 如果 PM2 缺失，自动安装
-    if [[ " ${need_install[*]} " =~ " pm2 " ]]; then
+    if [[ " ${need_install_items} " =~ " pm2 " ]]; then
         echo ""
         echo "正在安装 PM2..."
         if npm install -g pm2 --silent 2>&1; then
             print_status "ok" "PM2 安装成功"
         else
-            # macOS 可能需要 sudo
-            echo -e "${YELLOW}尝试使用 sudo 安装 PM2...${NC}"
-            if sudo npm install -g pm2 --silent 2>&1; then
-                print_status "ok" "PM2 安装成功"
-            else
-                print_status "fail" "PM2 安装失败，请手动安装: sudo npm install -g pm2"
-                exit 1
-            fi
+            print_status "fail" "PM2 安装失败，请手动执行: npm install -g pm2"
+            exit 1
         fi
     fi
 
@@ -227,45 +481,143 @@ check_dependencies() {
     echo -e "${GREEN}所有依赖检测通过！${NC}"
 }
 
-# ============================================================
-# 获取最新版本
-# ============================================================
-fetch_latest_version() {
+is_source_repo() {
+    local dir="$1"
+    [ -d "$dir/.git" ] &&
+    [ -f "$dir/package.json" ] &&
+    [ -f "$dir/prisma/schema.prisma" ] &&
+    [ -d "$dir/src/app" ] &&
+    [ -f "$dir/deploy/deploy.sh" ]
+}
+
+is_deployment_instance() {
+    local dir="$1"
+    [ -d "$dir" ] || return 1
+    is_source_repo "$dir" && return 1
+    [ -f "$dir/package.json" ] || return 1
+    [ -d "$dir/prisma" ] || return 1
+    [ -f "$dir/.env.local" ] || [ -f "$dir/version.txt" ]
+}
+
+fetch_latest_release_info() {
     echo ""
     echo "正在检查最新版本..."
 
     local response
-    response=$(curl -fsSL "https://api.github.com/repos/TengShao/u-plus-lite/releases/latest" 2>/dev/null) || true
-
-    if [ -n "$response" ]; then
-        LATEST_VERSION=$(echo "$response" | grep '"tag_name"' | sed 's/.*"v\?\([^"]*\)".*/\1/' | tr -d ' ')
-        if [ -z "$LATEST_VERSION" ]; then
-            LATEST_VERSION="unknown"
-        else
-            print_status "ok" "最新版本: v$LATEST_VERSION"
-        fi
-    else
-        # API 失败时尝试从 git remote 获取最新 tag
-        LATEST_VERSION=$(git ls-remote --tags origin 2>/dev/null | cut -d$'\t' -f2 | grep -E '^refs/tags/v[0-9]' | sed 's/refs\/tags\/v//' | sed 's/\^{}//' | sort -V | tail -1) || LATEST_VERSION="unknown"
-        if [ "$LATEST_VERSION" != "unknown" ]; then
-            print_status "ok" "最新版本: v$LATEST_VERSION"
-        fi
+    response=$(curl -fsSL "$RELEASE_API_URL" 2>/dev/null) || true
+    if [ -z "$response" ]; then
+        print_status "fail" "无法获取最新版本信息"
+        exit 1
     fi
 
-    # 显示当前项目版本（仅当已有部署时）
-    if [ -d "$DEFAULT_DIR/.git" ]; then
-        if [ -f "$DEFAULT_DIR/version.txt" ]; then
-            CURRENT_VERSION=$(cat "$DEFAULT_DIR/version.txt" | tr -d ' \n')
-        else
-            CURRENT_VERSION=$(git -C "$DEFAULT_DIR" describe --tags 2>/dev/null | sed 's/\^{}//' | tr -d ' \n') || CURRENT_VERSION="unknown"
-        fi
-        echo "当前版本: $CURRENT_VERSION"
+    local parsed
+    parsed=$(printf '%s' "$response" | node -e '
+let input="";
+process.stdin.on("data", chunk => input += chunk);
+process.stdin.on("end", () => {
+  const data = JSON.parse(input);
+  const version = (data.tag_name || "").replace(/^v/, "");
+  const asset = (data.assets || []).find(item => item.name === `u-plus-lite-v${version}-macos-linux.tar.gz`);
+  if (!version || !asset) process.exit(2);
+  console.log(version);
+  console.log(asset.browser_download_url || "");
+});
+') || true
+
+    if [ -z "$parsed" ]; then
+        print_status "fail" "最新 release 缺少可用部署包"
+        exit 1
+    fi
+
+    LATEST_VERSION=$(printf '%s\n' "$parsed" | sed -n '1p')
+    RELEASE_URL=$(printf '%s\n' "$parsed" | sed -n '2p')
+
+    if [ -z "$LATEST_VERSION" ] || [ -z "$RELEASE_URL" ]; then
+        print_status "fail" "release 解析失败"
+        exit 1
+    fi
+
+    print_status "ok" "最新版本: v$LATEST_VERSION"
+}
+
+current_deployed_version() {
+    local dir="$1"
+    if [ -f "$dir/version.txt" ]; then
+        cat "$dir/version.txt" | tr -d ' \n'
+    else
+        echo "unknown"
     fi
 }
 
-# ============================================================
-# 检测部署状态
-# ============================================================
+download_release_archive() {
+    local url="$1"
+    local output="$2"
+    curl -fL "$url" -o "$output"
+}
+
+extract_release_archive() {
+    local archive="$1"
+    local destination="$2"
+    mkdir -p "$destination"
+    tar -xzf "$archive" -C "$destination"
+}
+
+sync_release_contents() {
+    local source_dir="$1"
+    local target_dir="$2"
+    mkdir -p "$target_dir"
+
+    if command_exists rsync; then
+        rsync -a --delete \
+            --exclude '.env.local' \
+            --exclude 'version.txt' \
+            --exclude 'prisma/prod.db' \
+            --exclude 'prisma/dev.db' \
+            "$source_dir"/ "$target_dir"/
+        return
+    fi
+
+    print_status "warn" "未检测到 rsync，将使用非删除式文件覆盖"
+    (cd "$source_dir" && tar -cf - .) | (cd "$target_dir" && tar -xf -)
+}
+
+install_runtime_dependencies() {
+    local project_dir="$1"
+    (cd "$project_dir" && npm install --omit=dev)
+}
+
+initialize_database() {
+    local project_dir="$1"
+    (cd "$project_dir" && DATABASE_URL="file:${project_dir}/prisma/prod.db" npx prisma generate)
+    (cd "$project_dir" && DATABASE_URL="file:${project_dir}/prisma/prod.db" npx prisma db push --accept-data-loss)
+}
+
+write_env_file() {
+    local project_dir="$1"
+    local port="$2"
+    local local_ip
+    local_ip=$(get_local_ip)
+    local nextauth_secret
+    nextauth_secret=$(generate_secret)
+
+    cat > "$project_dir/.env.local" <<EOF
+DATABASE_URL="file:${project_dir}/prisma/prod.db"
+NEXTAUTH_SECRET="$nextauth_secret"
+NEXTAUTH_URL="http://${local_ip}:${port}"
+NEXT_PUBLIC_LLM_PROVIDER=ollama
+NEXT_PUBLIC_OLLAMA_MODEL=qwen3:4b
+EOF
+    echo ".env.local 文件已创建"
+}
+
+download_and_extract_latest_release() {
+    local temp_root="$1"
+    local extract_dir="$2"
+    local archive="$temp_root/release.tar.gz"
+    download_release_archive "$RELEASE_URL" "$archive"
+    extract_release_archive "$archive" "$extract_dir"
+}
+
 detect_deployment() {
     echo ""
     echo "=========================================="
@@ -273,91 +625,62 @@ detect_deployment() {
     echo "=========================================="
     echo ""
 
-    # 自动检测：参考重新部署的逻辑
     local script_path
     script_path="$(cd "$(dirname "$0")" && pwd)"
-    local script_parent="$(dirname "$script_path")"
+    local script_parent
+    script_parent="$(dirname "$script_path")"
+    SCRIPT_SOURCE_ROOT="$script_parent"
 
-    if [ -d "$script_parent/.git" ]; then
-        # 脚本在项目的 deploy/ 子目录中（如 u-plus-lite/deploy/）
-        DEPLOY_MODE="update"
-        DEPLOY_DIR="$script_parent"
-        echo "自动检测到项目目录: $DEPLOY_DIR"
-    elif [ -d "$script_parent/u-plus-lite/.git" ]; then
-        # 脚本在项目的兄弟目录中（如 Downloads/deploy/，项目在 Downloads/u-plus-lite/）
-        DEPLOY_MODE="update"
-        DEPLOY_DIR="$script_parent/u-plus-lite"
-        echo "自动检测到项目目录: $DEPLOY_DIR"
-    elif [ -d "$DEFAULT_DIR/.git" ]; then
+    if is_source_repo "$script_parent"; then
+        print_status "warn" "检测到当前目录是源码仓库，仅作为脚本来源，不作为部署目录"
+    fi
+
+    if is_deployment_instance "$DEFAULT_DIR"; then
         DEPLOY_MODE="update"
         DEPLOY_DIR="$DEFAULT_DIR"
         echo "检测到已有部署: $DEPLOY_DIR"
     else
         echo "默认路径 (${DEFAULT_DIR}) 未检测到现有部署"
         echo ""
-        echo "请选择部署模式："
-        echo "  1 - 全新部署"
-        echo "  2 - 指定已部署路径"
-        echo ""
-        echo -n "请选择（直接回车选择 1，输入 q 退出）: "
-        read -r choice
-        choice=${choice:-1}
-
-        if [ "$choice" = "q" ] || [ "$choice" = "Q" ]; then
+        local choice
+        choice="$(cli_select "请选择部署模式：" "1" "1" "1|全新部署" "2|指定已部署路径")"
+        local choice_status=$?
+        if [ $choice_status -eq 130 ]; then
             echo "已取消部署"
             exit 0
+        fi
+        if [ $choice_status -ne 0 ]; then
+            echo "部署模式选择失败"
+            exit 1
         fi
 
         if [ "$choice" = "1" ]; then
             DEPLOY_MODE="new"
-            echo ""
             echo -n "请输入部署目录路径（直接回车使用 ${DEFAULT_DIR}，输入 q 退出）: "
             read -r custom_path
-
             if [ "$custom_path" = "q" ] || [ "$custom_path" = "Q" ]; then
                 echo "已取消部署"
                 exit 0
             fi
-
             custom_path=${custom_path:-$DEFAULT_DIR}
             custom_path=$(eval echo "$custom_path")
-            # 确保路径以 u-plus-lite 结尾
-            if [[ "$custom_path" != */u-plus-lite ]]; then
-                custom_path="$custom_path/u-plus-lite"
-            fi
-
-            # 检查输入路径是否已是 git 仓库，如果是改为更新模式
-            if [ -d "$custom_path/.git" ]; then
-                DEPLOY_MODE="update"
-                DEPLOY_DIR="$custom_path"
-                echo "检测到已有部署，进入更新模式: $DEPLOY_DIR"
-            else
-                DEPLOY_DIR="$custom_path"
-            fi
+            [[ "$custom_path" != */u-plus-lite ]] && custom_path="$custom_path/u-plus-lite"
+            DEPLOY_DIR="$custom_path"
         else
             while true; do
-                echo -n "请输入已有项目路径（输入 q 退出）: "
+                echo -n "请输入已有部署路径（输入 q 退出）: "
                 read -r custom_path
-
                 if [ "$custom_path" = "q" ] || [ "$custom_path" = "Q" ]; then
                     echo "已取消部署"
                     exit 0
                 fi
-
                 custom_path=$(eval echo "$custom_path")
-
-                # 检查指定路径是否是 git 仓库
-                if [ -d "$custom_path/.git" ]; then
+                if is_deployment_instance "$custom_path"; then
                     DEPLOY_MODE="update"
                     DEPLOY_DIR="$custom_path"
                     break
-                # 检查是否有 u-plus-lite 子文件夹
-                elif [ -d "$custom_path/u-plus-lite/.git" ]; then
-                    DEPLOY_MODE="update"
-                    DEPLOY_DIR="$custom_path/u-plus-lite"
-                    break
                 else
-                    echo -e "${RED}错误：$custom_path 不是 Git 仓库${NC}"
+                    echo -e "${RED}错误：$custom_path 不是有效的部署目录${NC}"
                 fi
             done
         fi
@@ -365,314 +688,110 @@ detect_deployment() {
 
     PROJECT_ROOT="$DEPLOY_DIR"
     echo "部署目录: $DEPLOY_DIR"
-    echo "部署模式: $DEPLOY_MODE"
+    echo "部署模式: ${DEPLOY_MODE:-update}"
 }
 
-# ============================================================
-# 写入内嵌的 seed.ts 和 import.ts
-# ============================================================
-write_helper_scripts() {
-    # seed.ts - 支持命令行参数和删除管理员
-    cat > "$PROJECT_ROOT/prisma/seed.ts" << 'SEED_EOF'
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
-
-const prisma = new PrismaClient()
-
-async function main() {
-  const args = process.argv.slice(2)
-  const resetMode = args.includes('--reset')
-
-  if (resetMode) {
-    // 删除所有管理员
-    await prisma.user.deleteMany({ where: { role: 'ADMIN' } })
-    console.log('已删除所有管理员账号')
-  }
-
-  const providedName = args[0]
-  const providedPassword = args[1]
-
-  if (providedName && providedPassword) {
-    const hashedPassword = await bcrypt.hash(providedPassword, 10)
-    await prisma.user.upsert({
-      where: { name: providedName },
-      update: {},
-      create: {
-        name: providedName,
-        password: hashedPassword,
-        role: 'ADMIN',
-      },
-    })
-    console.log(`Seed complete: admin user "${providedName}" created`)
-  } else {
-    const hashedPassword = await bcrypt.hash('88888888', 10)
-    await prisma.user.upsert({
-      where: { name: '邵腾' },
-      update: {},
-      create: {
-        name: '邵腾',
-        password: hashedPassword,
-        role: 'ADMIN',
-      },
-    })
-    console.log('Seed complete: admin user "邵腾" created (default)')
-  }
-}
-
-main()
-  .catch((e) => { console.error(e); process.exit(1) })
-  .finally(() => prisma.$disconnect())
-SEED_EOF
-
-    # import.ts - CSV 导入脚本
-    cat > "$PROJECT_ROOT/prisma/import.ts" << 'IMPORT_EOF'
-import { PrismaClient } from '@prisma/client'
-import * as fs from 'fs'
-import * as readline from 'readline'
-
-const prisma = new PrismaClient()
-
-type CliArgs = {
-  pipelines?: string
-  budgetItems?: string
-}
-
-function parseArgs(): CliArgs {
-  const args: CliArgs = {}
-  for (let i = 2; i < process.argv.length; i++) {
-    const arg = process.argv[i]
-    if (arg.startsWith('--pipelines=')) args.pipelines = arg.replace('--pipelines=', '')
-    if (arg.startsWith('--budget-items=')) args.budgetItems = arg.replace('--budget-items=', '')
-  }
-  return args
-}
-
-async function readCsvLines(input: string): Promise<string[]> {
-  if (input === '-') {
-    const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity })
-    const lines: string[] = []
-    for await (const line of rl) lines.push(line)
-    return lines
-  }
-  if (!fs.existsSync(input)) {
-    console.error('文件不存在: ' + input)
-    process.exit(1)
-  }
-  return fs.readFileSync(input, 'utf8').split('\n').filter((l) => l.trim())
-}
-
-function parsePipelinesCsv(lines: string[]): string[] {
-  if (lines.length < 2) return []
-  return lines.slice(1).filter((l) => l.trim())
-}
-
-function parseBudgetItemsCsv(lines: string[]): Array<{ pipeline: string; name: string }> {
-  if (lines.length < 2) return []
-  return lines.slice(1).map((line) => {
-    const firstComma = line.indexOf(',')
-    if (firstComma === -1) return { pipeline: '', name: line.trim() }
-    return {
-      pipeline: line.slice(0, firstComma).trim(),
-      name: line.slice(firstComma + 1).split(',')[0].trim(),
-    }
-  })
-}
-
-async function ensureOtherPipeline(): Promise<number> {
-  const existing = await prisma.pipelineSetting.findUnique({ where: { name: '其他' } })
-  if (existing) return existing.id
-  const created = await prisma.pipelineSetting.create({ data: { name: '其他' } })
-  console.log('  自动创建"其他"管线')
-  return created.id
-}
-
-async function importPipelines(args: CliArgs) {
-  if (!args.pipelines) {
-    console.log('跳过管线导入（未指定 --pipelines）')
-    return
-  }
-  const lines = await readCsvLines(args.pipelines)
-  const names = parsePipelinesCsv(lines)
-  if (names.length === 0) {
-    console.log('pipelines.csv 为空，跳过')
-    return
-  }
-  let created = 0, skipped = 0
-  for (const name of names) {
-    if (!name.trim()) continue
-    const existing = await prisma.pipelineSetting.findUnique({ where: { name } })
-    if (existing) {
-      skipped++
-    } else {
-      await prisma.pipelineSetting.create({ data: { name } })
-      created++
-    }
-  }
-  console.log('管线导入完成：跳过 ' + skipped + '，已创建 ' + created)
-}
-
-async function importBudgetItems(args: CliArgs) {
-  if (!args.budgetItems) {
-    console.log('跳过预算项导入（未指定 --budget-items）')
-    return
-  }
-  const otherPipelineId = await ensureOtherPipeline()
-  const lines = await readCsvLines(args.budgetItems)
-  const items = parseBudgetItemsCsv(lines)
-  if (items.length === 0) {
-    console.log('budget_items.csv 为空，跳过')
-    return
-  }
-  let created = 0, skipped = 0
-  const pipelineMap = new Map<string, number>()
-  const allPipelines = await prisma.pipelineSetting.findMany()
-  for (const p of allPipelines) pipelineMap.set(p.name, p.id)
-  for (const item of items) {
-    if (!item.name.trim()) continue
-    let pipelineId = item.pipeline ? pipelineMap.get(item.pipeline) : undefined
-    if (!pipelineId) {
-      if (item.pipeline) {
-        const createdPipeline = await prisma.pipelineSetting.create({ data: { name: item.pipeline } })
-        pipelineMap.set(item.pipeline, createdPipeline.id)
-        pipelineId = createdPipeline.id
-        console.log('  自动创建管线: ' + item.pipeline)
-      } else {
-        pipelineId = otherPipelineId
-      }
-    }
-    const existing = await prisma.budgetItemSetting.findFirst({
-      where: { pipelineId, name: item.name },
-    })
-    if (existing) {
-      skipped++
-    } else {
-      await prisma.budgetItemSetting.create({ data: { pipelineId, name: item.name } })
-      created++
-    }
-  }
-  console.log('预算项导入完成：跳过 ' + skipped + '，已创建 ' + created)
-}
-
-async function main() {
-  const args = parseArgs()
-  console.log('')
-  await importPipelines(args)
-  await importBudgetItems(args)
-  console.log('')
-}
-
-main()
-  .catch((e) => {
-    console.error(e)
-    process.exit(1)
-  })
-  .finally(() => prisma.$disconnect())
-IMPORT_EOF
-
-    echo "辅助脚本已写入"
-}
-
-# ============================================================
-# CSV 导入
-# ============================================================
 import_csv_data() {
     echo ""
     echo "=========================================="
     echo " CSV 数据导入"
     echo "=========================================="
     echo ""
-    echo "请选择导入方式："
-    echo "  1 - 指定 CSV 文件路径"
-    echo "  2 - 直接粘贴 CSV 内容"
-    echo "  3 - 跳过（稍后通过 Web 端手动添加）"
-    echo ""
-    echo -n "请选择（直接回车选择 3，输入 q 退出）: "
-    read -r choice
-    choice=${choice:-3}
 
-    if [ "$choice" = "q" ] || [ "$choice" = "Q" ]; then
+    local choice
+    choice="$(cli_select "请选择导入方式：" "3" "1" "1|指定 CSV 文件路径" "2|直接粘贴 CSV 内容" "3|跳过（稍后通过 Web 端手动添加）")"
+    local choice_status=$?
+    if [ $choice_status -eq 130 ]; then
         echo "已取消部署"
         exit 0
+    fi
+    if [ $choice_status -ne 0 ]; then
+        echo "CSV 导入方式选择失败"
+        exit 1
     fi
 
     if [ "$choice" = "1" ]; then
         echo ""
-        echo "请输入管线名称文件路径（CSV格式）: "
-        echo "  格式：每行一个管线名称，如："
-        echo "    UGC研发"
-        echo "    UGC运营"
-        echo ""
-        echo -n "文件路径（直接回车跳过，输入 q 退出）: "
+        echo -n "管线 CSV 文件路径（直接回车跳过，输入 q 退出）: "
         read -r pipelines_path
+        [ "$pipelines_path" = "q" ] || [ "$pipelines_path" = "Q" ] && exit 0
 
-        if [ "$pipelines_path" = "q" ] || [ "$pipelines_path" = "Q" ]; then
-            echo "已取消部署"
-            exit 0
-        fi
-
-        echo ""
-        echo "请输入预算项文件路径（CSV格式）: "
-        echo "  格式：管线名称,预算项名称，如："
-        echo "    UGC研发,UGC商业化功能"
-        echo "    UGC运营,乐园会员体系"
-        echo ""
-        echo -n "文件路径（直接回车跳过，输入 q 退出）: "
+        echo -n "预算项 CSV 文件路径（直接回车跳过，输入 q 退出）: "
         read -r budget_path
+        [ "$budget_path" = "q" ] || [ "$budget_path" = "Q" ] && exit 0
 
-        if [ "$budget_path" = "q" ] || [ "$budget_path" = "Q" ]; then
-            echo "已取消部署"
-            exit 0
-        fi
-
-        local cmd_args=""
-        if [ -n "$pipelines_path" ]; then
-            cmd_args="$cmd_args --pipelines=$pipelines_path"
-        fi
-        if [ -n "$budget_path" ]; then
-            cmd_args="$cmd_args --budget-items=$budget_path"
-        fi
-
-        if [ -n "$cmd_args" ]; then
-            echo ""
-            echo "正在导入数据..."
-            DATABASE_URL="file:$PROJECT_ROOT/prisma/prod.db" npx tsx "$PROJECT_ROOT/prisma/import.ts" $cmd_args
+        local args=()
+        [ -n "${pipelines_path:-}" ] && args+=("--pipelines=$pipelines_path")
+        [ -n "${budget_path:-}" ] && args+=("--budget-items=$budget_path")
+        if [ ${#args[@]} -gt 0 ]; then
+            DATABASE_URL="file:$PROJECT_ROOT/prisma/prod.db" run_runtime_import "$PROJECT_ROOT" "${args[@]}"
         else
             echo "未指定文件，跳过导入"
         fi
-
     elif [ "$choice" = "2" ]; then
-        echo ""
-        echo "请粘贴管线名称文件内容（每行一个名称，Ctrl+D 结束）: "
+        echo "请粘贴管线名称（每行一个，Ctrl+D 结束）:"
         local pipelines_content
         pipelines_content=$(cat)
         echo ""
-        echo "请粘贴预算项文件内容（格式：管线名称,预算项名称，Ctrl+D 结束）: "
+        echo "请粘贴预算项内容（格式：管线名称,预算项名称，Ctrl+D 结束）:"
         local budget_content
         budget_content=$(cat)
 
+        local args=()
         if [ -n "$pipelines_content" ]; then
             local pipelines_tmp
             pipelines_tmp=$(mktemp)
-            echo "$pipelines_content" > "$pipelines_tmp"
-            DATABASE_URL="file:$PROJECT_ROOT/prisma/prod.db" npx tsx "$PROJECT_ROOT/prisma/import.ts" --pipelines="$pipelines_tmp"
-            rm -f "$pipelines_tmp"
+            {
+                echo "name"
+                printf '%s\n' "$pipelines_content"
+            } > "$pipelines_tmp"
+            args+=("--pipelines=$pipelines_tmp")
         fi
-
         if [ -n "$budget_content" ]; then
             local budget_tmp
             budget_tmp=$(mktemp)
-            echo "$budget_content" > "$budget_tmp"
-            DATABASE_URL="file:$PROJECT_ROOT/prisma/prod.db" npx tsx "$PROJECT_ROOT/prisma/import.ts" --budget-items="$budget_tmp"
-            rm -f "$budget_tmp"
+            {
+                echo "pipeline,name"
+                printf '%s\n' "$budget_content"
+            } > "$budget_tmp"
+            args+=("--budget-items=$budget_tmp")
+        fi
+        if [ ${#args[@]} -gt 0 ]; then
+            DATABASE_URL="file:$PROJECT_ROOT/prisma/prod.db" run_runtime_import "$PROJECT_ROOT" "${args[@]}"
+        else
+            echo "未输入内容，跳过导入"
         fi
     else
         echo "跳过导入，管理员可在 Web 端手动添加管线/预算项"
     fi
 }
 
-# ============================================================
-# 全新部署
-# ============================================================
+prepare_release_payload() {
+    local temp_root="$1"
+    local extract_dir="$2"
+    rm -rf "$temp_root" "$extract_dir"
+    mkdir -p "$temp_root" "$extract_dir"
+    download_and_extract_latest_release "$temp_root" "$extract_dir"
+}
+
+configure_port() {
+    if is_port_used 3000; then
+        local choice
+        choice="$(cli_select "端口 3000 已被占用，如何处理？" "1" "1" "1|帮我释放 3000 端口" "2|查找下一个可用端口（注意：可能影响正在使用的用户）")"
+        local status=$?
+        [ $status -eq 130 ] && exit 0
+        [ $status -ne 0 ] && exit 1
+        if [ "$choice" = "1" ]; then
+            lsof -ti:3000 | xargs kill
+            PORT=3000
+        else
+            PORT=$(find_available_port)
+        fi
+    else
+        PORT=3000
+    fi
+}
+
 deploy_new() {
     echo ""
     echo "=========================================="
@@ -680,366 +799,121 @@ deploy_new() {
     echo "=========================================="
     echo ""
 
-    # [1/9] Git Clone
-    echo "[1/9] 正在克隆代码仓库..."
-    if [ -d "$DEPLOY_DIR" ]; then
+    fetch_latest_release_info
+    local temp_root
+    temp_root=$(mktemp -d "${TMPDIR:-/tmp}/u-plus-lite-release.XXXXXX")
+    local extract_dir="$temp_root/extracted"
+    prepare_release_payload "$temp_root" "$extract_dir"
+
+    if [ -d "$DEPLOY_DIR" ] && [ "$(ls -A "$DEPLOY_DIR" 2>/dev/null)" ]; then
         echo -e "${YELLOW}警告：$DEPLOY_DIR 目录已存在${NC}"
-        echo -n "是否删除并重新克隆？ [y/N]: "
+        echo -n "是否删除并重新安装？ [y/N]: "
         read -r confirm
         confirm=${confirm:-N}
         if [ "$(echo "$confirm" | tr '[:upper:]' '[:lower:]')" = "y" ]; then
             rm -rf "$DEPLOY_DIR"
-            if ! git clone "$REPO_URL" "$DEPLOY_DIR"; then
-                print_status "fail" "Git clone 失败"
-                exit 1
-            fi
         else
             echo "部署取消"
             exit 1
         fi
-    else
-        if ! git clone "$REPO_URL" "$DEPLOY_DIR"; then
-            print_status "fail" "Git clone 失败"
-            exit 1
-        fi
-    fi
-    cd "$DEPLOY_DIR"
-    write_helper_scripts
-
-    # [2/9] npm install
-    echo ""
-    echo "[2/9] 正在安装依赖..."
-    # 修复 npm cache 权限（之前 sudo npm 可能留下 root 所属文件）
-    if [ -d "$HOME/.npm/_cacache" ]; then
-        echo -e "${YELLOW}（如需输入密码，是系统登录密码）${NC}"
-        sudo chown -R "$(whoami)" "$HOME/.npm/_cacache" 2>/dev/null || true
-    fi
-    if ! npm install; then
-        print_status "fail" "npm install 失败"
-        exit 1
     fi
 
-    # [3/9] Prisma
-    echo ""
-    echo "[3/9] 正在初始化数据库..."
-    DATABASE_URL="file:$DEPLOY_DIR/prisma/prod.db" npx prisma generate
-    DATABASE_URL="file:$DEPLOY_DIR/prisma/prod.db" npx prisma db push --accept-data-loss
+    mkdir -p "$DEPLOY_DIR"
+    sync_release_contents "$extract_dir" "$DEPLOY_DIR"
+    PROJECT_ROOT="$DEPLOY_DIR"
 
-    # [4/9] 创建管理员
-    echo ""
-    echo "[4/9] 创建管理员账号"
-    echo ""
+    echo "[1/8] 已下载并解压 release 包"
+    echo "[2/8] 正在安装运行依赖..."
+    install_runtime_dependencies "$PROJECT_ROOT"
 
+    echo "[3/8] 正在初始化数据库..."
+    initialize_database "$PROJECT_ROOT"
+
+    echo "[4/8] 创建管理员账号"
     local admin_name=""
     local admin_password=""
     local admin_password_confirm=""
-
     read -p "  管理员姓名（输入 q 退出）: " admin_name
-    if [ "$admin_name" = "q" ] || [ "$admin_name" = "Q" ]; then
-        echo "已取消部署"
-        exit 0
-    fi
+    [ "$admin_name" = "q" ] || [ "$admin_name" = "Q" ] && exit 0
     while [ -z "$admin_name" ]; do
         echo "  错误：管理员姓名不能为空"
         read -p "  管理员姓名（输入 q 退出）: " admin_name
-        if [ "$admin_name" = "q" ] || [ "$admin_name" = "Q" ]; then
-            echo "已取消部署"
-            exit 0
-        fi
+        [ "$admin_name" = "q" ] || [ "$admin_name" = "Q" ] && exit 0
     done
 
     read_secret "  密码（至少8位，输入 q 退出）: " admin_password
-    if [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ]; then
-        echo "已取消部署"
-        exit 0
-    fi
-    while [ -z "$admin_password" ]; do
-        echo "  错误：密码不能为空"
-        read_secret "  密码（至少8位，输入 q 退出）: " admin_password
-        if [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ]; then
-            echo "已取消部署"
-            exit 0
-        fi
-    done
-
+    [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ] && exit 0
     while [ ${#admin_password} -lt 8 ]; do
         echo "  错误：密码至少8位"
         read_secret "  密码（至少8位，输入 q 退出）: " admin_password
-        if [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ]; then
-            echo "已取消部署"
-            exit 0
-        fi
+        [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ] && exit 0
     done
-
     read_secret "  确认密码: " admin_password_confirm
     while [ "$admin_password" != "$admin_password_confirm" ]; do
         echo "  错误：两次输入的密码不一致"
         read_secret "  密码（至少8位，输入 q 退出）: " admin_password
-        if [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ]; then
-            echo "已取消部署"
-            exit 0
-        fi
-        while [ ${#admin_password} -lt 8 ]; do
-            echo "  错误：密码至少8位"
-            read_secret "  密码（至少8位，输入 q 退出）: " admin_password
-            if [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ]; then
-                echo "已取消部署"
-                exit 0
-            fi
-        done
+        [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ] && exit 0
         read_secret "  确认密码: " admin_password_confirm
     done
-    while [ ${#admin_password} -lt 8 ]; do
-        echo "  错误：密码至少8位"
-        read_secret "  密码（至少8位，输入 q 退出）: " admin_password
-        if [ "$admin_password" = "q" ] || [ "$admin_password" = "Q" ]; then
-            echo "已取消部署"
-            exit 0
-        fi
-    done
+    DATABASE_URL="file:$PROJECT_ROOT/prisma/prod.db" run_runtime_seed "$PROJECT_ROOT" "$admin_name" "$admin_password"
 
-    DATABASE_URL="file:$DEPLOY_DIR/prisma/prod.db" npx tsx "$PROJECT_ROOT/prisma/seed.ts" "$admin_name" "$admin_password"
+    echo "[5/8] 配置环境变量..."
+    configure_port
+    write_env_file "$PROJECT_ROOT" "$PORT"
 
-    # [5/9] 配置 .env
-    echo ""
-    echo "[5/9] 配置环境变量..."
-
-    local local_ip
-    local_ip=$(get_local_ip)
-    echo "检测到本机局域网 IP: $local_ip"
-
-    # 端口配置
-    if is_port_used 3000; then
-        echo ""
-        echo -e "${YELLOW}端口 3000 已被占用${NC}"
-        echo "  1 - 帮我释放 3000 端口"
-        echo "  2 - 查找下一个可用端口（注意：可能影响正在使用的用户）"
-        echo ""
-        echo -n "请选择（直接回车选择 1，输入 q 退出）: "
-        read -r port_choice
-        port_choice=${port_choice:-1}
-
-        if [ "$port_choice" = "q" ] || [ "$port_choice" = "Q" ]; then
-            echo "已取消部署"
-            exit 0
-        fi
-
-        if [ "$port_choice" = "1" ]; then
-            lsof -ti:3000 | xargs kill
-            echo "端口 3000 已释放"
-            PORT=3000
-        else
-            PORT=$(find_available_port)
-            echo "使用端口: $PORT"
-        fi
-    else
-        PORT=3000
-    fi
-
-    local nextauth_secret
-    nextauth_secret=$(generate_secret)
-
-    cat > .env.local << EOF
-DATABASE_URL="file:$DEPLOY_DIR/prisma/prod.db"
-NEXTAUTH_SECRET="$nextauth_secret"
-NEXTAUTH_URL="http://$local_ip:$PORT"
-NEXT_PUBLIC_LLM_PROVIDER=ollama
-NEXT_PUBLIC_OLLAMA_MODEL=qwen3:4b
-EOF
-
-    echo ".env.local 文件已创建"
-
-    # [6/9] Build
-    echo ""
-    echo "[6/9] 正在构建生产版本..."
-    if ! npm run build; then
-        print_status "fail" "npm run build 失败"
-        exit 1
-    fi
-
-    # [7/9] PM2 启动
-    echo ""
-    echo "[7/9] 配置 PM2 服务..."
-
+    echo "[6/8] 配置 PM2 服务..."
     pm2 delete u-plus-lite 2>/dev/null || true
-    PORT=$PORT pm2 start npm --name u-plus-lite -- start -- -H 0.0.0.0
+    (cd "$PROJECT_ROOT" && PORT=$PORT pm2 start npm --name u-plus-lite -- start -- -H 0.0.0.0)
     pm2 save
 
-    # [8/9] 写入版本文件
-    echo ""
-    echo "[8/9] 保存版本信息..."
-    echo "v$LATEST_VERSION" > version.txt
+    echo "[7/8] 保存版本信息..."
+    echo "v$LATEST_VERSION" > "$PROJECT_ROOT/version.txt"
 
-    # [9/9] CSV 导入
-    echo ""
-    echo "[9/9] CSV 数据导入..."
+    echo "[8/8] CSV 数据导入..."
     import_csv_data
 
-    # 自启配置
-    echo ""
-    echo "是否配置开机自启？[Y/n]（输入 q 退出）: "
-    read -r enable_autostart
-    enable_autostart=${enable_autostart:-Y}
-
-    if [ "$enable_autostart" = "q" ] || [ "$enable_autostart" = "Q" ]; then
-        echo "已取消部署"
-        exit 0
-    fi
-
-    if [ "$(echo "$enable_autostart" | tr '[:upper:]' '[:lower:]')" = "y" ]; then
-        echo "（可能需要输入本机管理员密码）"
+    local enable_autostart
+    enable_autostart="$(cli_confirm "是否配置开机自启？" "true")"
+    local auto_status=$?
+    [ $auto_status -eq 130 ] && exit 0
+    if [ "$enable_autostart" = "true" ]; then
         env PATH="$PATH:/usr/local/bin" pm2 startup 2>/dev/null || true
     fi
 
-    # 显示完成信息
+    rm -rf "$temp_root"
     show_complete "$admin_name"
 }
 
-# ============================================================
-# 更新部署
-# ============================================================
-deploy_update() {
-    echo ""
-    echo "=========================================="
-    echo " 更新部署"
-    echo "=========================================="
-    echo ""
-
-    cd "$PROJECT_ROOT"
-
-    echo ""
-    echo "请选择操作："
-    echo "  1 - 更新（推荐）"
-    echo "  2 - 卸载"
-    echo "  3 - 重新安装"
-    echo ""
-    echo -n "请选择（直接回车选择 1，输入 q 退出）: "
-    read -r update_choice
-    update_choice=${update_choice:-1}
-
-    if [ "$update_choice" = "q" ] || [ "$update_choice" = "Q" ]; then
-        echo "已取消部署"
-        exit 0
-    fi
-
-    if [ "$update_choice" = "1" ]; then
-        do_update
-    elif [ "$update_choice" = "2" ]; then
-        do_uninstall
-    elif [ "$update_choice" = "3" ]; then
-        do_uninstall
-        cd /tmp
-        DEPLOY_MODE="new"
-        DEPLOY_DIR="$DEFAULT_DIR"
-        PROJECT_ROOT="$DEPLOY_DIR"
-        deploy_new
-    else
-        echo "无效选择，取消操作"
-        exit 1
-    fi
-}
-
-# ============================================================
-# 执行更新
-# ============================================================
 do_update() {
     echo ""
     echo "正在更新..."
 
-    # 迁移 .env → .env.local（兼容旧部署）
-    if [ -f ".env" ] && [ ! -f ".env.local" ]; then
-        mv .env .env.local
-        echo "已将 .env 迁移为 .env.local"
-    elif [ -f ".env" ] && [ -f ".env.local" ]; then
-        rm -f .env
-        echo "已删除 .env（使用 .env.local）"
-    fi
-
-    # 保存旧版本信息用于对比
-    local old_package_lock=""
-    local old_schema=""
-    if [ -f "package-lock.json" ]; then
-        old_package_lock=$(md5sum package-lock.json 2>/dev/null || cat package-lock.json | md5)
-    fi
-    if [ -f "prisma/schema.prisma" ]; then
-        old_schema=$(md5sum prisma/schema.prisma 2>/dev/null || cat prisma/schema.prisma | md5)
-    fi
-
-    # Git fetch and pull
-    echo "正在拉取最新代码..."
-    if ! git fetch origin; then
-        print_status "fail" "Git fetch 失败"
+    if is_source_repo "$PROJECT_ROOT"; then
+        print_status "fail" "当前目录是源码仓库，不能作为部署目录更新"
         exit 1
     fi
-    # stash 本地修改（如 package-lock.json）以避免 pull 冲突
-    git stash --include-untracked 2>/dev/null || true
-    local pull_output
-    pull_output=$(git pull origin master 2>&1)
-    if echo "$pull_output" | grep -q "Already up to date."; then
-        echo "已经是最新的。"
-    else
-        echo "$pull_output"
-    fi
-    # 恢复 stash（部署目录的本地修改通常不需要保留）
-    git stash drop 2>/dev/null || true
 
-    # git pull 成功后立即更新版本号
-    echo "v$LATEST_VERSION" > version.txt
+    fetch_latest_release_info
+    local current_version
+    current_version=$(current_deployed_version "$PROJECT_ROOT")
+    echo "当前版本: ${current_version:-unknown}"
 
-    # 检查 package-lock.json 变化
-    local need_npm_install=false
-    if [ -f "package-lock.json" ]; then
-        local new_package_lock
-        new_package_lock=$(md5sum package-lock.json 2>/dev/null || cat package-lock.json | md5)
-        if [ "$old_package_lock" != "$new_package_lock" ]; then
-            local lines_diff
-            lines_diff=$(diff <(echo "$old_package_lock") <(echo "$new_package_lock") | wc -l)
-            if [ "$lines_diff" -gt 5 ]; then
-                need_npm_install=true
-            fi
-        fi
-    fi
+    local temp_root
+    temp_root=$(mktemp -d "${TMPDIR:-/tmp}/u-plus-lite-update.XXXXXX")
+    local extract_dir="$temp_root/extracted"
+    prepare_release_payload "$temp_root" "$extract_dir"
 
-    # 检查 schema.prisma 变化
-    local need_prisma=false
-    if [ -f "prisma/schema.prisma" ]; then
-        local new_schema
-        new_schema=$(md5sum prisma/schema.prisma 2>/dev/null || cat prisma/schema.prisma | md5)
-        if [ "$old_schema" != "$new_schema" ]; then
-            need_prisma=true
-        fi
-    fi
+    sync_release_contents "$extract_dir" "$PROJECT_ROOT"
+    install_runtime_dependencies "$PROJECT_ROOT"
+    initialize_database "$PROJECT_ROOT"
 
-    # 智能构建
-    echo ""
-    if [ "$need_npm_install" = true ]; then
-        echo "检测到依赖变化，正在安装依赖..."
-        if [ -d "$HOME/.npm/_cacache" ]; then
-            sudo chown -R "$(whoami)" "$HOME/.npm/_cacache" 2>/dev/null || true
-        fi
-        npm install
-    else
-        echo "依赖无变化，跳过 npm install"
-    fi
-
-    if [ "$need_prisma" = true ]; then
-        echo "检测到数据库结构变化，正在更新数据库..."
-        npx prisma generate
-        npx prisma db push --accept-data-loss
-    fi
-
-    # 修改管理员密码
-    echo ""
-    echo "是否修改管理员账号密码？"
-    echo "  1 - 跳过（沿用现有账号）"
-    echo "  2 - 修改"
-    echo ""
-    echo -n "请选择（直接回车选择 1）: "
-    read -r admin_choice
-    admin_choice=${admin_choice:-1}
-
+    local admin_choice
+    admin_choice="$(cli_select "是否修改管理员账号密码？" "1" "0" "1|跳过（沿用现有账号）" "2|修改")"
+    local admin_status=$?
+    [ $admin_status -ne 0 ] && exit 1
     if [ "$admin_choice" = "2" ]; then
-        echo ""
+        local admin_name=""
+        local admin_password=""
         echo -n "  管理员姓名: "
         read -r admin_name
         while [ -z "$admin_name" ]; do
@@ -1047,46 +921,50 @@ do_update() {
             echo -n "  管理员姓名: "
             read -r admin_name
         done
-
         read_secret "  密码（至少8位）: " admin_password
-        while [ -z "$admin_password" ]; do
-            echo "  错误：密码不能为空"
-            read_secret "  密码（至少8位）: " admin_password
-        done
-
         while [ ${#admin_password} -lt 8 ]; do
             echo "  错误：密码至少8位"
             read_secret "  密码（至少8位）: " admin_password
         done
-
-        DATABASE_URL="file:$PROJECT_ROOT/prisma/prod.db" npx tsx "$PROJECT_ROOT/prisma/seed.ts" --reset "$admin_name" "$admin_password"
+        DATABASE_URL="file:$PROJECT_ROOT/prisma/prod.db" run_runtime_seed "$PROJECT_ROOT" --reset "$admin_name" "$admin_password"
         print_status "ok" "管理员账号已更新"
     fi
 
-    # 写入辅助脚本
-    write_helper_scripts
-
-    # 构建
-    echo ""
-    echo "正在构建..."
-    if ! npm run build; then
-        print_status "fail" "npm run build 失败"
-        exit 1
-    fi
-
-    # 重启 PM2
-    echo ""
-    echo "正在重启服务..."
-    pm2 restart u-plus-lite
-
-    echo ""
+    echo "v$LATEST_VERSION" > "$PROJECT_ROOT/version.txt"
+    (cd "$PROJECT_ROOT" && pm2 restart u-plus-lite)
+    rm -rf "$temp_root"
     print_status "ok" "更新完成"
     show_complete ""
 }
 
-# ============================================================
-# 执行卸载
-# ============================================================
+deploy_update() {
+    echo ""
+    echo "=========================================="
+    echo " 更新部署"
+    echo "=========================================="
+    echo ""
+
+    local update_choice
+    update_choice="$(cli_select "请选择操作：" "1" "1" "1|更新（推荐）" "2|卸载" "3|重新安装")"
+    local status=$?
+    [ $status -eq 130 ] && exit 0
+    [ $status -ne 0 ] && exit 1
+
+    case "$update_choice" in
+        1) do_update ;;
+        2) do_uninstall ;;
+        3)
+            local reinstall_dir="$DEPLOY_DIR"
+            do_uninstall
+            DEPLOY_MODE="new"
+            DEPLOY_DIR="$reinstall_dir"
+            PROJECT_ROOT="$DEPLOY_DIR"
+            deploy_new
+            ;;
+        *) echo "无效选择"; exit 1 ;;
+    esac
+}
+
 do_uninstall() {
     echo ""
     echo -e "${RED}警告：即将卸载 U-Plus-Lite${NC}"
@@ -1097,23 +975,17 @@ do_uninstall() {
     echo ""
     echo -n "确认卸载？（输入 YES 确认）: "
     read -r confirm
-
     if [ "$(echo "$confirm" | tr '[:lower:]' '[:upper:]')" != "YES" ]; then
         echo "取消卸载操作"
         exit 0
     fi
 
-    echo ""
-    echo "正在卸载..."
     pm2 stop u-plus-lite 2>/dev/null || true
     pm2 delete u-plus-lite 2>/dev/null || true
     rm -rf "$DEPLOY_DIR"
     print_status "ok" "卸载完成"
 }
 
-# ============================================================
-# 显示完成信息
-# ============================================================
 show_complete() {
     local admin_name="$1"
     local local_ip
@@ -1124,16 +996,18 @@ show_complete() {
     echo -e " ${GREEN}部署完成！${NC}"
     echo "=========================================="
     echo ""
-    echo -e "访问地址: ${GREEN}http://$local_ip:$PORT${NC}"
+    echo -e "访问地址: ${GREEN}http://${local_ip}:${PORT}${NC}"
     echo ""
-
     if [ -n "$admin_name" ]; then
         echo "管理员账号: $admin_name"
     else
         echo "管理员账号: （沿用之前设置）"
     fi
-    echo "管理员密码: （沿用之前设置）"
-
+    if [ -n "$admin_name" ]; then
+        echo "管理员密码: （使用刚刚设置的密码）"
+    else
+        echo "管理员密码: （沿用之前设置）"
+    fi
     echo ""
     echo "常用命令："
     echo "  pm2 status                查看状态"
@@ -1143,15 +1017,11 @@ show_complete() {
     echo "=========================================="
 }
 
-# ============================================================
-# 主流程
-# ============================================================
 main() {
+    trap cleanup_runtime_dir EXIT
     check_dependencies
-    fetch_latest_version
     detect_deployment
-
-    if [ "$DEPLOY_MODE" = "new" ]; then
+    if [ "${DEPLOY_MODE:-update}" = "new" ]; then
         deploy_new
     else
         deploy_update
